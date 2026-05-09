@@ -62,13 +62,15 @@ export function Sidebar() {
     <>
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gray-900 text-white shrink-0">
-        <div className="px-5 py-5 border-b border-gray-700">
-          <div className="flex flex-col items-center gap-1">
-            <div className="bg-gray-900 rounded-xl p-1">
-              <Image src="/logo.png" alt="Aivora" width={64} height={64} />
+        <div className="px-5 py-6 border-b border-gray-700">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-900/40">
+              <span className="text-white font-black text-3xl leading-none tracking-tighter">A</span>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-wide leading-tight">Aivora</h1>
-            <p className="text-[10px] text-gray-400 tracking-[0.35em] uppercase leading-tight">System</p>
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-white tracking-wide leading-tight">Aivora</h1>
+              <p className="text-[10px] text-gray-400 tracking-[0.35em] uppercase leading-tight mt-0.5">System</p>
+            </div>
           </div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -88,8 +90,8 @@ export function Sidebar() {
       {/* ── Mobile top header ── */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-900 text-white flex items-center justify-between px-4 h-14 shadow-lg">
         <div className="flex items-center gap-2.5">
-          <div className="bg-gray-900 rounded-lg p-0.5 shrink-0">
-            <Image src="/logo.png" alt="Aivora" width={32} height={32} />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0">
+            <span className="text-white font-black text-base leading-none">A</span>
           </div>
           <div>
             <p className="text-lg font-bold text-white tracking-wide leading-tight">Aivora</p>
@@ -117,8 +119,8 @@ export function Sidebar() {
           <div className="relative w-72 max-w-[85vw] bg-gray-900 text-white flex flex-col h-full shadow-2xl animate-slide-in">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
               <div className="flex items-center gap-2.5">
-                <div className="bg-gray-900 rounded-lg p-0.5 shrink-0">
-                  <Image src="/logo.png" alt="Aivora" width={32} height={32} />
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0">
+                  <span className="text-white font-black text-base leading-none">A</span>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-white tracking-wide leading-tight">Aivora</p>
