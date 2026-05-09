@@ -16,6 +16,8 @@ export interface Database {
           user_id: string
           name: string
           company_name: string | null
+          razao_social: string | null
+          inscricao_estadual: string | null
           type: ClientType
           email: string | null
           phone: string | null
@@ -26,6 +28,22 @@ export interface Database {
           city: string | null
           state: string | null
           address: string | null
+          cep: string | null
+          endereco_entrega: string | null
+          cep_entrega: string | null
+          area_restrita: boolean | null
+          num_lojas: number | null
+          email_compras: string | null
+          telefone_compras: string | null
+          email_assistencia: string | null
+          telefone_assistencia: string | null
+          email_financeiro: string | null
+          telefone_financeiro: string | null
+          email_deposito: string | null
+          telefone_deposito: string | null
+          email_agendamento: string | null
+          telefone_agendamento: string | null
+          email_comunicado: string | null
           notes: string | null
           active: boolean
           created_at: string
@@ -35,6 +53,8 @@ export interface Database {
           user_id: string
           name: string
           company_name?: string | null
+          razao_social?: string | null
+          inscricao_estadual?: string | null
           type?: ClientType
           email?: string | null
           phone?: string | null
@@ -45,12 +65,30 @@ export interface Database {
           city?: string | null
           state?: string | null
           address?: string | null
+          cep?: string | null
+          endereco_entrega?: string | null
+          cep_entrega?: string | null
+          area_restrita?: boolean | null
+          num_lojas?: number | null
+          email_compras?: string | null
+          telefone_compras?: string | null
+          email_assistencia?: string | null
+          telefone_assistencia?: string | null
+          email_financeiro?: string | null
+          telefone_financeiro?: string | null
+          email_deposito?: string | null
+          telefone_deposito?: string | null
+          email_agendamento?: string | null
+          telefone_agendamento?: string | null
+          email_comunicado?: string | null
           notes?: string | null
           active?: boolean
         }
         Update: {
           name?: string
           company_name?: string | null
+          razao_social?: string | null
+          inscricao_estadual?: string | null
           type?: ClientType
           email?: string | null
           phone?: string | null
@@ -61,6 +99,22 @@ export interface Database {
           city?: string | null
           state?: string | null
           address?: string | null
+          cep?: string | null
+          endereco_entrega?: string | null
+          cep_entrega?: string | null
+          area_restrita?: boolean | null
+          num_lojas?: number | null
+          email_compras?: string | null
+          telefone_compras?: string | null
+          email_assistencia?: string | null
+          telefone_assistencia?: string | null
+          email_financeiro?: string | null
+          telefone_financeiro?: string | null
+          email_deposito?: string | null
+          telefone_deposito?: string | null
+          email_agendamento?: string | null
+          telefone_agendamento?: string | null
+          email_comunicado?: string | null
           notes?: string | null
           active?: boolean
         }
