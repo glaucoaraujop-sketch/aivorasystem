@@ -235,13 +235,13 @@ export function ClienteForm({ cliente }: Props) {
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input type="email"
-                value={(form as Record<string, string>)[email]}
+                value={(form as unknown as Record<string, string>)[email]}
                 onChange={e => set(email, e.target.value)}
                 placeholder="e-mail"
                 className={inputCls}
               />
               <input
-                value={(form as Record<string, string>)[tel]}
+                value={(form as unknown as Record<string, string>)[tel]}
                 onChange={e => set(tel, e.target.value)}
                 placeholder="telefone"
                 className={inputCls}
