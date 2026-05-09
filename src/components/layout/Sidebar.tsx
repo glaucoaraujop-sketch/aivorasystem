@@ -26,24 +26,27 @@ const nav = [
 function NavLinks({ onClick }: { onClick?: () => void }) {
   const pathname = usePathname()
   return (
-    <>
-      {nav.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          onClick={onClick}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-            pathname.startsWith(href)
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-          )}
-        >
-          <Icon size={18} />
-          {label}
-        </Link>
-      ))}
-    </>
+    <div className="space-y-0.5">
+      {nav.map(({ href, label, icon: Icon }) => {
+        const active = pathname.startsWith(href)
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={onClick}
+            className={cn(
+              'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+              active
+                ? 'bg-white/10 text-white shadow-sm border border-white/10'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            )}
+          >
+            <Icon size={17} className={active ? 'text-blue-400' : ''} />
+            {label}
+          </Link>
+        )
+      })}
+    </div>
   )
 }
 
@@ -60,71 +63,68 @@ export function Sidebar() {
   return (
     <>
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gray-900 text-white shrink-0">
-        <div className="px-5 py-6 border-b border-gray-700 text-center">
-          <h1 className="text-3xl font-bold text-white tracking-wide leading-tight">Aivora</h1>
-          <p className="text-[11px] text-gray-400 tracking-[0.35em] uppercase mt-1">System</p>
+      <aside className="hidden md:flex flex-col w-64 min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-gray-900 text-white shrink-0 border-r border-white/5">
+        {/* Brand */}
+        <div className="px-6 py-7 border-b border-white/5">
+          <h1 className="text-3xl font-black text-white tracking-tight leading-none">Aivora</h1>
+          <p className="text-[11px] text-slate-500 tracking-[0.3em] uppercase mt-1.5">System</p>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-5">
           <NavLinks />
         </nav>
-        <div className="px-3 py-4 border-t border-gray-700">
+
+        {/* Footer */}
+        <div className="px-3 py-4 border-t border-white/5">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+            className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all"
           >
-            <LogOut size={18} />
+            <LogOut size={17} />
             Sair
           </button>
         </div>
       </aside>
 
       {/* ── Mobile top header ── */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-900 text-white flex items-center justify-between px-4 h-14 shadow-lg">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-900 text-white flex items-center justify-between px-5 h-14 border-b border-white/5">
         <div>
-          <p className="text-xl font-bold text-white tracking-wide leading-tight">Aivora</p>
-          <p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase leading-tight mt-0.5">System</p>
+          <span className="text-xl font-black tracking-tight">Aivora</span>
+          <span className="text-[10px] text-slate-500 ml-2 tracking-[0.25em] uppercase">System</span>
         </div>
         <button
           onClick={() => setOpen(true)}
-          className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+          className="p-2 rounded-xl hover:bg-white/10 transition-colors"
           aria-label="Abrir menu"
         >
           <Menu size={22} />
         </button>
       </header>
 
-      {/* ── Mobile drawer overlay ── */}
+      {/* ── Mobile drawer ── */}
       {open && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
-          {/* Drawer */}
-          <div className="relative w-72 max-w-[85vw] bg-gray-900 text-white flex flex-col h-full shadow-2xl animate-slide-in">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="relative w-72 max-w-[85vw] bg-gradient-to-b from-slate-900 to-gray-900 text-white flex flex-col h-full shadow-2xl animate-slide-in border-r border-white/5">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
               <div>
-                <p className="text-xl font-bold text-white tracking-wide leading-tight">Aivora</p>
-                <p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase leading-tight mt-0.5">System</p>
+                <p className="text-xl font-black text-white tracking-tight">Aivora</p>
+                <p className="text-[10px] text-slate-500 tracking-[0.3em] uppercase mt-0.5">System</p>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-              >
+              <button onClick={() => setOpen(false)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav className="flex-1 px-3 py-5 overflow-y-auto">
               <NavLinks onClick={() => setOpen(false)} />
             </nav>
-            <div className="px-3 py-4 border-t border-gray-700">
+            <div className="px-3 py-4 border-t border-white/5">
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all"
               >
-                <LogOut size={18} />
+                <LogOut size={17} />
                 Sair
               </button>
             </div>
