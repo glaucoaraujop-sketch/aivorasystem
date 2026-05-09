@@ -1,0 +1,8 @@
+.next
+node_modules
+.git
+.env*.local
+*.md
+deploy.sh
+ecosystem.config.js
+nginx.conf
