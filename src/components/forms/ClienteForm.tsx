@@ -20,17 +20,29 @@ const ESTADOS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG
 
 interface Props { cliente?: Client }
 
+const cardStyle = {
+  background: 'linear-gradient(127.09deg, rgba(6, 11, 40, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%)',
+  backdropFilter: 'blur(120px)',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl p-6 space-y-4" style={cardStyle}>
+      <h2 className="font-bold text-white text-base">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
 function Field({ label, children, span2 }: { label: string; children: React.ReactNode; span2?: boolean }) {
   return (
     <div className={span2 ? 'col-span-1 sm:col-span-2' : ''}>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium uppercase tracking-wider mb-1.5" style={{ color: '#A0AEC0' }}>{label}</label>
       {children}
     </div>
   )
 }
-
-const inputCls = "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-const selectCls = "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
 
 export function ClienteForm({ cliente }: Props) {
   const router = useRouter()
@@ -133,150 +145,160 @@ export function ClienteForm({ cliente }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl w-full">
 
       {/* Identificação */}
-      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-        <h2 className="font-bold text-slate-900 text-base">Identificação</h2>
+      <Section title="Identificação">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nome Fantasia *" span2>
-            <input value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} required />
+            <input value={form.name} onChange={e => set('name', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" required />
           </Field>
           <Field label="Razão Social">
-            <input value={form.razao_social} onChange={e => set('razao_social', e.target.value)} className={inputCls} />
+            <input value={form.razao_social} onChange={e => set('razao_social', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Nome do Responsável">
-            <input value={form.company_name} onChange={e => set('company_name', e.target.value)} className={inputCls} />
+            <input value={form.company_name} onChange={e => set('company_name', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CNPJ">
-            <input value={form.cpf_cnpj} onChange={e => set('cpf_cnpj', e.target.value)} placeholder="00.000.000/0000-00" className={inputCls} />
+            <input value={form.cpf_cnpj} onChange={e => set('cpf_cnpj', e.target.value)} placeholder="00.000.000/0000-00" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Inscrição Estadual">
-            <input value={form.inscricao_estadual} onChange={e => set('inscricao_estadual', e.target.value)} className={inputCls} />
+            <input value={form.inscricao_estadual} onChange={e => set('inscricao_estadual', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Tipo *">
-            <select value={form.type} onChange={e => set('type', e.target.value)} className={selectCls}>
+            <select value={form.type} onChange={e => set('type', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </Field>
           <Field label="Tabela de Preço">
-            <select value={form.price_table_id} onChange={e => set('price_table_id', e.target.value)} className={selectCls}>
+            <select value={form.price_table_id} onChange={e => set('price_table_id', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               <option value="">Selecionar...</option>
               {priceTables.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </Field>
           <Field label="Nº de Lojas">
-            <input type="number" min="0" value={form.num_lojas} onChange={e => set('num_lojas', e.target.value)} className={inputCls} />
+            <input type="number" min="0" value={form.num_lojas} onChange={e => set('num_lojas', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <div className="flex items-center gap-3 pt-1">
             <input type="checkbox" id="area_restrita" checked={form.area_restrita}
               onChange={e => set('area_restrita', e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-            <label htmlFor="area_restrita" className="text-sm font-medium text-slate-700">Área Restrita</label>
+              className="w-4 h-4 rounded border-slate-600 bg-transparent accent-blue-500" />
+            <label htmlFor="area_restrita" className="text-sm font-medium" style={{ color: '#A0AEC0' }}>Área Restrita</label>
           </div>
         </div>
-      </section>
+      </Section>
 
       {/* Endereços */}
-      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-        <h2 className="font-bold text-slate-900 text-base">Endereços</h2>
+      <Section title="Endereços">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Estado">
-            <select value={form.state} onChange={e => set('state', e.target.value)} className={selectCls}>
+            <select value={form.state} onChange={e => set('state', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               <option value="">UF</option>
               {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
             </select>
           </Field>
           <Field label="Cidade">
-            <input value={form.city} onChange={e => set('city', e.target.value)} className={inputCls} />
+            <input value={form.city} onChange={e => set('city', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Região">
-            <input value={form.region} onChange={e => set('region', e.target.value)} placeholder="ex: Norte, Zona Sul" className={inputCls} />
+            <input value={form.region} onChange={e => set('region', e.target.value)} placeholder="ex: Norte, Zona Sul" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CEP (Faturamento)">
-            <input value={form.cep} onChange={e => set('cep', e.target.value)} placeholder="00000-000" className={inputCls} />
+            <input value={form.cep} onChange={e => set('cep', e.target.value)} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Endereço de Faturamento" span2>
-            <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Rua, número, bairro" className={inputCls} />
+            <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CEP (Entrega)">
-            <input value={form.cep_entrega} onChange={e => set('cep_entrega', e.target.value)} placeholder="00000-000" className={inputCls} />
+            <input value={form.cep_entrega} onChange={e => set('cep_entrega', e.target.value)} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Endereço de Entrega" span2>
-            <input value={form.endereco_entrega} onChange={e => set('endereco_entrega', e.target.value)} placeholder="Rua, número, bairro" className={inputCls} />
+            <input value={form.endereco_entrega} onChange={e => set('endereco_entrega', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
         </div>
-      </section>
+      </Section>
 
       {/* Contato Geral */}
-      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-        <h2 className="font-bold text-slate-900 text-base">Contato Geral</h2>
+      <Section title="Contato Geral">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="WhatsApp">
-            <input value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} placeholder="(00) 00000-0000" className={inputCls} />
+            <input value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} placeholder="(00) 00000-0000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Telefone">
-            <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 0000-0000" className={inputCls} />
+            <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 0000-0000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="E-mail Geral" span2>
-            <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} />
+            <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
         </div>
-      </section>
+      </Section>
 
       {/* Contatos por Setor */}
-      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
-        <h2 className="font-bold text-slate-900 text-base">Contatos por Setor</h2>
-        {[
-          { label: 'Compras',             email: 'email_compras',        tel: 'telefone_compras' },
-          { label: 'Assistência Técnica', email: 'email_assistencia',    tel: 'telefone_assistencia' },
-          { label: 'Financeiro',          email: 'email_financeiro',     tel: 'telefone_financeiro' },
-          { label: 'Depósito / Entrega',  email: 'email_deposito',       tel: 'telefone_deposito' },
-          { label: 'Agendamento Entrega', email: 'email_agendamento',    tel: 'telefone_agendamento' },
-        ].map(({ label, email, tel }) => (
-          <div key={label}>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input type="email"
-                value={(form as unknown as Record<string, string>)[email]}
-                onChange={e => set(email, e.target.value)}
-                placeholder="e-mail"
-                className={inputCls}
-              />
-              <input
-                value={(form as unknown as Record<string, string>)[tel]}
-                onChange={e => set(tel, e.target.value)}
-                placeholder="telefone"
-                className={inputCls}
-              />
+      <Section title="Contatos por Setor">
+        <div className="space-y-5">
+          {[
+            { label: 'Compras',             email: 'email_compras',        tel: 'telefone_compras' },
+            { label: 'Assistência Técnica', email: 'email_assistencia',    tel: 'telefone_assistencia' },
+            { label: 'Financeiro',          email: 'email_financeiro',     tel: 'telefone_financeiro' },
+            { label: 'Depósito / Entrega',  email: 'email_deposito',       tel: 'telefone_deposito' },
+            { label: 'Agendamento Entrega', email: 'email_agendamento',    tel: 'telefone_agendamento' },
+          ].map(({ label, email, tel }) => (
+            <div key={label}>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#56577A' }}>{label}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="email"
+                  value={(form as unknown as Record<string, string>)[email]}
+                  onChange={e => set(email, e.target.value)}
+                  placeholder="e-mail"
+                  className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                />
+                <input
+                  value={(form as unknown as Record<string, string>)[tel]}
+                  onChange={e => set(tel, e.target.value)}
+                  placeholder="telefone"
+                  className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                />
+              </div>
             </div>
+          ))}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#56577A' }}>Comunicados e Tabelas</p>
+            <input type="email"
+              value={form.email_comunicado}
+              onChange={e => set('email_comunicado', e.target.value)}
+              placeholder="e-mail para envio de comunicados e tabelas de preço"
+              className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+            />
           </div>
-        ))}
-        <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Comunicados e Tabelas</p>
-          <input type="email"
-            value={form.email_comunicado}
-            onChange={e => set('email_comunicado', e.target.value)}
-            placeholder="e-mail para envio de comunicados e tabelas de preço"
-            className={inputCls}
-          />
         </div>
-      </section>
+      </Section>
 
       {/* Observações */}
-      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <Field label="Observações">
-          <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
-            rows={3} className={`${inputCls} resize-none`} />
-        </Field>
+      <section className="rounded-2xl p-6" style={cardStyle}>
+        <label className="block text-xs font-medium uppercase tracking-wider mb-1.5" style={{ color: '#A0AEC0' }}>Observações</label>
+        <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+          rows={3} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm resize-none" />
       </section>
 
-      {error && <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
+      {error && (
+        <p className="text-sm rounded-xl p-3" style={{ color: '#FC8181', background: 'rgba(252,129,129,0.1)', border: '1px solid rgba(252,129,129,0.2)' }}>
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-3 pb-8">
         <button type="button" onClick={() => router.push('/clientes')}
-          className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            color: '#A0AEC0',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
           Cancelar
         </button>
         <button type="submit" disabled={saving}
-          className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 shadow-sm shadow-blue-200 transition-all">
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+            boxShadow: '0 4px 20px rgba(0,117,255,0.3)',
+          }}>
           {saving ? 'Salvando...' : cliente ? 'Salvar alterações' : 'Cadastrar cliente'}
         </button>
       </div>
