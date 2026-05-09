@@ -17,24 +17,27 @@ function VariacoesPanel({ productId }: { productId: string }) {
   const [novaOpcao, setNovaOpcao]       = useState<Record<string, string>>({})
   const [novaOpcaoPreco, setNovaOpcaoPreco] = useState<Record<string, string>>({})
   const [saving, setSaving]             = useState(false)
+  const [erro, setErro]                 = useState<string | null>(null)
 
   async function adicionarTipo() {
     if (!novoTipo.trim()) return
-    setSaving(true)
+    setSaving(true); setErro(null)
     try { await criarTipo(productId, novoTipo.trim()); setNovoTipo(''); refetch() }
+    catch (e: unknown) { setErro(e instanceof Error ? e.message : 'Erro ao criar tipo') }
     finally { setSaving(false) }
   }
 
   async function adicionarOpcao(typeId: string) {
     const nome = novaOpcao[typeId]?.trim()
     if (!nome) return
-    setSaving(true)
+    setSaving(true); setErro(null)
     try {
       await criarOpcao(typeId, nome, parseFloat(novaOpcaoPreco[typeId] || '0'))
       setNovaOpcao(p => ({ ...p, [typeId]: '' }))
       setNovaOpcaoPreco(p => ({ ...p, [typeId]: '' }))
       refetch()
-    } finally { setSaving(false) }
+    } catch (e: unknown) { setErro(e instanceof Error ? e.message : 'Erro ao criar opção') }
+    finally { setSaving(false) }
   }
 
   async function excluirTipo(id: string) {
@@ -53,6 +56,9 @@ function VariacoesPanel({ productId }: { productId: string }) {
         <p className="text-xs text-gray-400">Tecido, Modelo, Módulos, Cor...</p>
       </div>
 
+      {erro && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{erro}</div>
+      )}
       {loading ? (
         <p className="text-sm text-gray-400">Carregando...</p>
       ) : (
