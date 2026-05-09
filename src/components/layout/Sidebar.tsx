@@ -62,13 +62,13 @@ export function Sidebar() {
     <>
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gray-900 text-white shrink-0">
-        <div className="px-5 py-6 border-b border-gray-700">
-          <div className="flex items-center gap-4">
-            <Image src="/logo.png" alt="Aivora" width={56} height={56} className="shrink-0 drop-shadow(0 0 4px rgba(99,179,237,0.4))" />
-            <div>
-              <h1 className="text-3xl font-bold text-white tracking-wide leading-tight">Aivora</h1>
-              <p className="text-xs text-gray-400 tracking-[0.3em] uppercase leading-tight mt-0.5">System</p>
+        <div className="px-5 py-5 border-b border-gray-700">
+          <div className="flex flex-col items-center gap-1">
+            <div className="bg-gray-900 rounded-xl p-1">
+              <Image src="/logo.png" alt="Aivora" width={64} height={64} />
             </div>
+            <h1 className="text-2xl font-bold text-white tracking-wide leading-tight">Aivora</h1>
+            <p className="text-[10px] text-gray-400 tracking-[0.35em] uppercase leading-tight">System</p>
           </div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -87,11 +87,13 @@ export function Sidebar() {
 
       {/* ── Mobile top header ── */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-900 text-white flex items-center justify-between px-4 h-14 shadow-lg">
-        <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="Aivora" width={40} height={40} className="shrink-0 drop-shadow(0 0 4px rgba(99,179,237,0.4))" />
+        <div className="flex items-center gap-2.5">
+          <div className="bg-gray-900 rounded-lg p-0.5 shrink-0">
+            <Image src="/logo.png" alt="Aivora" width={32} height={32} />
+          </div>
           <div>
-            <p className="text-2xl font-bold text-white tracking-wide leading-tight">Aivora</p>
-            <p className="text-[11px] text-gray-400 tracking-[0.3em] uppercase leading-tight mt-0.5">System</p>
+            <p className="text-lg font-bold text-white tracking-wide leading-tight">Aivora</p>
+            <p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase leading-tight">System</p>
           </div>
         </div>
         <button
@@ -114,11 +116,13 @@ export function Sidebar() {
           {/* Drawer */}
           <div className="relative w-72 max-w-[85vw] bg-gray-900 text-white flex flex-col h-full shadow-2xl animate-slide-in">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-              <div className="flex items-center gap-3">
-                <Image src="/logo.png" alt="Aivora" width={40} height={40} className="shrink-0 drop-shadow(0 0 4px rgba(99,179,237,0.4))" />
+              <div className="flex items-center gap-2.5">
+                <div className="bg-gray-900 rounded-lg p-0.5 shrink-0">
+                  <Image src="/logo.png" alt="Aivora" width={32} height={32} />
+                </div>
                 <div>
-                  <p className="text-2xl font-bold text-white tracking-wide leading-tight">Aivora</p>
-                  <p className="text-[11px] text-gray-400 tracking-[0.3em] uppercase leading-tight mt-0.5">System</p>
+                  <p className="text-lg font-bold text-white tracking-wide leading-tight">Aivora</p>
+                  <p className="text-[10px] text-gray-400 tracking-[0.3em] uppercase leading-tight">System</p>
                 </div>
               </div>
               <button
