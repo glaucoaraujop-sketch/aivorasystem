@@ -55,7 +55,7 @@ export default function LoginPage() {
             width={260}
             height={180}
             priority
-            style={{ mixBlendMode: 'screen' }}
+            style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
           />
         </div>
 
