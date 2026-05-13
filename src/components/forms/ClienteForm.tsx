@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClientesMutations } from '@/hooks/useClientes'
 import { createClient } from '@/lib/supabase/client'
+import { maskCpfCnpj, maskPhone, maskCep } from '@/lib/masks'
 import type { Database, ClientType } from '@/types/database'
 
 type Client = Database['public']['Tables']['clients']['Row']
@@ -156,8 +157,8 @@ export function ClienteForm({ cliente }: Props) {
           <Field label="Nome do Responsável">
             <input value={form.company_name} onChange={e => set('company_name', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
-          <Field label="CNPJ">
-            <input value={form.cpf_cnpj} onChange={e => set('cpf_cnpj', e.target.value)} placeholder="00.000.000/0000-00" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+          <Field label="CPF / CNPJ">
+            <input value={form.cpf_cnpj} onChange={e => set('cpf_cnpj', maskCpfCnpj(e.target.value))} placeholder="000.000.000-00 ou 00.000.000/0000-00" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Inscrição Estadual">
             <input value={form.inscricao_estadual} onChange={e => set('inscricao_estadual', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
@@ -201,13 +202,13 @@ export function ClienteForm({ cliente }: Props) {
             <input value={form.region} onChange={e => set('region', e.target.value)} placeholder="ex: Norte, Zona Sul" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CEP (Faturamento)">
-            <input value={form.cep} onChange={e => set('cep', e.target.value)} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <input value={form.cep} onChange={e => set('cep', maskCep(e.target.value))} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Endereço de Faturamento" span2>
             <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CEP (Entrega)">
-            <input value={form.cep_entrega} onChange={e => set('cep_entrega', e.target.value)} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <input value={form.cep_entrega} onChange={e => set('cep_entrega', maskCep(e.target.value))} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Endereço de Entrega" span2>
             <input value={form.endereco_entrega} onChange={e => set('endereco_entrega', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
@@ -219,10 +220,10 @@ export function ClienteForm({ cliente }: Props) {
       <Section title="Contato Geral">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="WhatsApp">
-            <input value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} placeholder="(00) 00000-0000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <input value={form.whatsapp} onChange={e => set('whatsapp', maskPhone(e.target.value))} placeholder="(00) 00000-0000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Telefone">
-            <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 0000-0000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <input value={form.phone} onChange={e => set('phone', maskPhone(e.target.value))} placeholder="(00) 0000-0000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="E-mail Geral" span2>
             <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
@@ -251,8 +252,8 @@ export function ClienteForm({ cliente }: Props) {
                 />
                 <input
                   value={(form as unknown as Record<string, string>)[tel]}
-                  onChange={e => set(tel, e.target.value)}
-                  placeholder="telefone"
+                  onChange={e => set(tel, maskPhone(e.target.value))}
+                  placeholder="(00) 00000-0000"
                   className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
                 />
               </div>
