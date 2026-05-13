@@ -61,14 +61,14 @@ export default function ClientesPage() {
   return (
     <div className="max-w-5xl w-full">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight">Clientes</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Gerencie sua base de clientes</p>
         </div>
         <Link
           href="/clientes/novo"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 sm:flex-shrink-0"
           style={{
             background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
             boxShadow: '0 4px 20px rgba(0, 117, 255, 0.3)',
