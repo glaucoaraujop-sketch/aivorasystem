@@ -9,18 +9,18 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 
 interface ItemForm {
-  product_id: string
-  name: string
-  code: string
-  unit: string
-  quantity: number
-  unit_price: number
-  discount_pct: number
-  notes: string
+  product_id: string; name: string; code: string; unit: string
+  quantity: number; unit_price: number; discount_pct: number; notes: string
 }
-
 interface ClienteOption { id: string; name: string; company_name: string | null; price_table_id: string | null }
 interface ProdutoOption { id: string; name: string; code: string; unit: string; prices: { price_table_id: string; price: number }[] }
+
+const glass = {
+  background: 'linear-gradient(127.09deg, rgba(6,11,40,0.94) 19.41%, rgba(10,14,35,0.49) 76.65%)',
+  backdropFilter: 'blur(120px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+}
+const dropdownStyle = { background: 'rgba(6,11,40,0.98)', border: '1px solid rgba(255,255,255,0.1)' }
 
 export function OrcamentoForm() {
   const router = useRouter()
@@ -31,27 +31,19 @@ export function OrcamentoForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Cabeçalho
-  const [clienteId, setClienteId] = useState('')
-  const [tabelaId, setTabelaId] = useState('')
-  const [desconto, setDesconto] = useState('0')
-  const [validoAte, setValidoAte] = useState('')
-  const [notas, setNotas] = useState('')
+  const [clienteId, setClienteId]               = useState('')
+  const [tabelaId, setTabelaId]                 = useState('')
+  const [desconto, setDesconto]                 = useState('0')
+  const [validoAte, setValidoAte]               = useState('')
+  const [notas, setNotas]                       = useState('')
+  const [clientes, setClientes]                 = useState<ClienteOption[]>([])
+  const [clienteBusca, setClienteBusca]         = useState('')
+  const [clienteSel, setClienteSel]             = useState<ClienteOption | null>(null)
+  const [produtos, setProdutos]                 = useState<ProdutoOption[]>([])
+  const [produtoBusca, setProdutoBusca]         = useState('')
+  const [mostrarProdutos, setMostrarProdutos]   = useState(false)
+  const [itens, setItens]                       = useState<ItemForm[]>([])
 
-  // Busca de clientes
-  const [clientes, setClientes] = useState<ClienteOption[]>([])
-  const [clienteBusca, setClienteBusca] = useState('')
-  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteOption | null>(null)
-
-  // Busca de produtos
-  const [produtos, setProdutos] = useState<ProdutoOption[]>([])
-  const [produtoBusca, setProdutoBusca] = useState('')
-  const [mostrarProdutos, setMostrarProdutos] = useState(false)
-
-  // Itens do orçamento
-  const [itens, setItens] = useState<ItemForm[]>([])
-
-  // Buscar clientes
   useEffect(() => {
     if (clienteBusca.length < 2) { setClientes([]); return }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,16 +54,12 @@ export function OrcamentoForm() {
       .then(({ data }: { data: ClienteOption[] }) => setClientes(data ?? []))
   }, [clienteBusca])
 
-  // Ao selecionar cliente, preencher tabela de preço
   function selecionarCliente(c: ClienteOption) {
-    setClienteSelecionado(c)
-    setClienteId(c.id)
-    setClienteBusca('')
-    setClientes([])
+    setClienteSel(c); setClienteId(c.id)
+    setClienteBusca(''); setClientes([])
     if (c.price_table_id) setTabelaId(c.price_table_id)
   }
 
-  // Buscar produtos
   useEffect(() => {
     if (produtoBusca.length < 2) { setProdutos([]); return }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,112 +71,77 @@ export function OrcamentoForm() {
   }, [produtoBusca])
 
   function adicionarItem(p: ProdutoOption) {
-    const preco = p.prices?.find(pr => pr.price_table_id === tabelaId)?.price
-      ?? p.prices?.[0]?.price ?? 0
-
+    const preco = p.prices?.find(pr => pr.price_table_id === tabelaId)?.price ?? p.prices?.[0]?.price ?? 0
     setItens(prev => {
-      const existe = prev.findIndex(i => i.product_id === p.id)
-      if (existe >= 0) {
-        const novo = [...prev]
-        novo[existe].quantity += 1
-        return novo
-      }
+      const idx = prev.findIndex(i => i.product_id === p.id)
+      if (idx >= 0) { const n = [...prev]; n[idx].quantity += 1; return n }
       return [...prev, { product_id: p.id, name: p.name, code: p.code, unit: p.unit, quantity: 1, unit_price: preco, discount_pct: 0, notes: '' }]
     })
-    setProdutoBusca('')
-    setProdutos([])
-    setMostrarProdutos(false)
+    setProdutoBusca(''); setProdutos([]); setMostrarProdutos(false)
   }
 
-  function removerItem(idx: number) {
-    setItens(prev => prev.filter((_, i) => i !== idx))
-  }
+  function removerItem(idx: number) { setItens(prev => prev.filter((_, i) => i !== idx)) }
 
   function atualizarItem(idx: number, field: keyof ItemForm, value: string | number) {
-    setItens(prev => {
-      const novo = [...prev]
-      novo[idx] = { ...novo[idx], [field]: value }
-      return novo
-    })
+    setItens(prev => { const n = [...prev]; n[idx] = { ...n[idx], [field]: value }; return n })
   }
 
-  // Totais
   const { subtotal, totalComDesconto } = useMemo(() => {
-    const subtotal = itens.reduce((acc, item) => {
-      const itemTotal = item.unit_price * item.quantity * (1 - item.discount_pct / 100)
-      return acc + itemTotal
-    }, 0)
-    const totalComDesconto = subtotal * (1 - parseFloat(desconto || '0') / 100)
-    return { subtotal, totalComDesconto }
+    const subtotal = itens.reduce((acc, item) => acc + item.unit_price * item.quantity * (1 - item.discount_pct / 100), 0)
+    return { subtotal, totalComDesconto: subtotal * (1 - parseFloat(desconto || '0') / 100) }
   }, [itens, desconto])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!clienteId) { setError('Selecione um cliente'); return }
+    if (!clienteId)         { setError('Selecione um cliente'); return }
     if (itens.length === 0) { setError('Adicione pelo menos um produto'); return }
-
-    setSaving(true)
-    setError('')
+    setSaving(true); setError('')
     try {
       await criar(
-        {
-          client_id: clienteId,
-          price_table_id: tabelaId || undefined,
-          discount_pct: parseFloat(desconto || '0'),
-          valid_until: validoAte || undefined,
-          notes: notas || undefined,
-          subtotal,
-          total: totalComDesconto,
-        },
-        itens.map(i => ({
-          product_id: i.product_id,
-          quantity: i.quantity,
-          unit_price: i.unit_price,
-          discount_pct: i.discount_pct,
-          total: i.unit_price * i.quantity * (1 - i.discount_pct / 100),
-          notes: i.notes || undefined,
-        }))
+        { client_id: clienteId, price_table_id: tabelaId || undefined, discount_pct: parseFloat(desconto || '0'), valid_until: validoAte || undefined, notes: notas || undefined, subtotal, total: totalComDesconto },
+        itens.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price, discount_pct: i.discount_pct, total: i.unit_price * i.quantity * (1 - i.discount_pct / 100), notes: i.notes || undefined }))
       )
       router.push('/orcamentos')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl w-full">
+    <form onSubmit={handleSubmit} className="space-y-4 max-w-3xl w-full">
 
-      {/* Cliente */}
-      <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900">Cliente</h2>
+      {/* Cliente + Configurações */}
+      <section className="rounded-2xl p-5 space-y-4" style={glass}>
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#A0AEC0' }}>Cliente</p>
 
-        {clienteSelecionado ? (
-          <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+        {clienteSel ? (
+          <div className="flex items-center justify-between rounded-xl px-4 py-3"
+            style={{ background: 'rgba(0,117,255,0.1)', border: '1px solid rgba(0,117,255,0.25)' }}>
             <div>
-              <p className="font-medium text-blue-900">{clienteSelecionado.name}</p>
-              {clienteSelecionado.company_name && <p className="text-sm text-blue-600">{clienteSelecionado.company_name}</p>}
+              <p className="font-semibold text-white">{clienteSel.name}</p>
+              {clienteSel.company_name && <p className="text-sm mt-0.5" style={{ color: '#0075FF' }}>{clienteSel.company_name}</p>}
             </div>
-            <button type="button" onClick={() => { setClienteSelecionado(null); setClienteId(''); setTabelaId('') }}
-              className="text-sm text-blue-500 hover:text-blue-700">Trocar</button>
+            <button type="button" onClick={() => { setClienteSel(null); setClienteId(''); setTabelaId('') }}
+              className="text-sm font-medium transition-opacity hover:opacity-80" style={{ color: '#0075FF' }}>
+              Trocar
+            </button>
           </div>
         ) : (
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={clienteBusca}
-              onChange={e => setClienteBusca(e.target.value)}
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#A0AEC0' }} />
+            <input value={clienteBusca} onChange={e => setClienteBusca(e.target.value)}
               placeholder="Buscar cliente por nome ou empresa..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+              className="input-dark w-full pl-10 pr-4 py-2.5 rounded-xl text-sm" />
             {clientes.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <div className="absolute z-10 w-full mt-1 rounded-xl overflow-hidden shadow-2xl" style={dropdownStyle}>
                 {clientes.map(c => (
                   <button key={c.id} type="button" onClick={() => selecionarCliente(c)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                    <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                    {c.company_name && <p className="text-xs text-gray-500">{c.company_name}</p>}
+                    className="w-full text-left px-4 py-3 transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,117,255,0.1)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
+                    <p className="text-sm font-semibold text-white">{c.name}</p>
+                    {c.company_name && <p className="text-xs" style={{ color: '#A0AEC0' }}>{c.company_name}</p>}
                   </button>
                 ))}
               </div>
@@ -198,61 +151,58 @@ export function OrcamentoForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tabela de Preço</label>
+            <label className="block text-xs font-semibold mb-2" style={{ color: '#56577A' }}>Tabela de Preço</label>
             <select value={tabelaId} onChange={e => setTabelaId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               <option value="">Padrão</option>
               {tabelas.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Desconto geral (%)</label>
-            <input type="number" min="0" max="100" step="0.5"
-              value={desconto} onChange={e => setDesconto(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label className="block text-xs font-semibold mb-2" style={{ color: '#56577A' }}>Desconto geral (%)</label>
+            <input type="number" min="0" max="100" step="0.5" value={desconto}
+              onChange={e => setDesconto(e.target.value)}
+              className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Válido até</label>
+            <label className="block text-xs font-semibold mb-2" style={{ color: '#56577A' }}>Válido até</label>
             <input type="date" value={validoAte} onChange={e => setValidoAte(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </div>
         </div>
       </section>
 
       {/* Produtos */}
-      <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-4">
+      <section className="rounded-2xl p-5 space-y-4" style={glass}>
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Produtos</h2>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#A0AEC0' }}>Produtos</p>
           <button type="button" onClick={() => setMostrarProdutos(!mostrarProdutos)}
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium">
-            <Plus size={15} />
-            Adicionar produto
+            className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ color: '#0075FF' }}>
+            <Plus size={15} /> Adicionar produto
           </button>
         </div>
 
-        {/* Busca de produto */}
         {mostrarProdutos && (
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input autoFocus
-              value={produtoBusca}
-              onChange={e => setProdutoBusca(e.target.value)}
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#A0AEC0' }} />
+            <input autoFocus value={produtoBusca} onChange={e => setProdutoBusca(e.target.value)}
               placeholder="Buscar produto por nome ou código..."
-              className="w-full pl-9 pr-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+              className="input-dark w-full pl-10 pr-4 py-2.5 rounded-xl text-sm" />
             {produtos.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <div className="absolute z-10 w-full mt-1 rounded-xl overflow-hidden shadow-2xl" style={dropdownStyle}>
                 {produtos.map(p => (
                   <button key={p.id} type="button" onClick={() => adicionarItem(p)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors flex items-center justify-between">
+                    className="w-full text-left px-4 py-3 transition-colors flex items-center justify-between"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,117,255,0.1)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">{p.code}</p>
+                      <p className="text-sm font-semibold text-white">{p.name}</p>
+                      <p className="text-xs font-mono" style={{ color: '#A0AEC0' }}>{p.code}</p>
                     </div>
                     {p.prices?.length > 0 && (
-                      <p className="text-sm font-semibold text-blue-600">
+                      <p className="text-sm font-semibold" style={{ color: '#2CD9FF' }}>
                         {formatCurrency(p.prices.find(pr => pr.price_table_id === tabelaId)?.price ?? p.prices[0]?.price ?? 0)}
                       </p>
                     )}
@@ -263,19 +213,19 @@ export function OrcamentoForm() {
           </div>
         )}
 
-        {/* Lista de itens */}
         {itens.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <Package size={32} className="mx-auto mb-2 text-gray-200" />
+          <div className="flex flex-col items-center justify-center py-10" style={{ color: '#56577A' }}>
+            <Package size={28} className="mb-2" />
             <p className="text-sm">Nenhum produto adicionado</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {/* Header — hidden on mobile */}
-            <div className="hidden sm:grid grid-cols-12 gap-2 text-xs text-gray-400 font-medium px-2">
+            {/* Table header — desktop only */}
+            <div className="hidden sm:grid grid-cols-12 gap-2 px-2 text-xs font-semibold uppercase tracking-wider"
+              style={{ color: '#56577A' }}>
               <span className="col-span-4">Produto</span>
               <span className="col-span-2 text-center">Qtd</span>
-              <span className="col-span-2 text-right">Preço unit.</span>
+              <span className="col-span-2 text-right">R$ unit.</span>
               <span className="col-span-1 text-center">Desc%</span>
               <span className="col-span-2 text-right">Total</span>
               <span className="col-span-1" />
@@ -284,48 +234,49 @@ export function OrcamentoForm() {
             {itens.map((item, idx) => {
               const itemTotal = item.unit_price * item.quantity * (1 - item.discount_pct / 100)
               return (
-                <div key={item.product_id} className="bg-gray-50 rounded-lg px-3 py-3 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center sm:px-2 sm:py-2">
-                  {/* Mobile: name + trash */}
+                <div key={item.product_id} className="rounded-xl px-3 py-3 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center sm:px-2 sm:py-2"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="col-span-4 flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">{item.code} · {item.unit}</p>
+                      <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                      <p className="text-xs font-mono" style={{ color: '#56577A' }}>{item.code} · {item.unit}</p>
                     </div>
                     <button type="button" onClick={() => removerItem(idx)}
-                      className="sm:hidden p-1 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0">
+                      className="sm:hidden p-1 transition-colors flex-shrink-0"
+                      style={{ color: '#56577A' }}
+                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#FC8181')}
+                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#56577A')}>
                       <Trash2 size={15} />
                     </button>
                   </div>
-                  {/* Mobile: inputs row */}
                   <div className="flex gap-2 sm:contents">
                     <div className="flex-1 sm:col-span-2">
-                      <label className="sm:hidden text-xs text-gray-400 block mb-1">Qtd</label>
-                      <input type="number" min="0.001" step="0.001"
-                        value={item.quantity}
+                      <label className="sm:hidden text-xs block mb-1" style={{ color: '#56577A' }}>Qtd</label>
+                      <input type="number" min="0.001" step="0.001" value={item.quantity}
                         onChange={e => atualizarItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                        className="w-full text-center px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="input-dark w-full text-center px-2 py-1.5 rounded-lg text-sm" />
                     </div>
                     <div className="flex-1 sm:col-span-2">
-                      <label className="sm:hidden text-xs text-gray-400 block mb-1">R$ unit.</label>
-                      <input type="number" min="0" step="0.01"
-                        value={item.unit_price}
+                      <label className="sm:hidden text-xs block mb-1" style={{ color: '#56577A' }}>R$ unit.</label>
+                      <input type="number" min="0" step="0.01" value={item.unit_price}
                         onChange={e => atualizarItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
-                        className="w-full text-right px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="input-dark w-full text-right px-2 py-1.5 rounded-lg text-sm" />
                     </div>
                     <div className="w-16 sm:col-span-1">
-                      <label className="sm:hidden text-xs text-gray-400 block mb-1">Desc%</label>
-                      <input type="number" min="0" max="100" step="0.5"
-                        value={item.discount_pct}
+                      <label className="sm:hidden text-xs block mb-1" style={{ color: '#56577A' }}>Desc%</label>
+                      <input type="number" min="0" max="100" step="0.5" value={item.discount_pct}
                         onChange={e => atualizarItem(idx, 'discount_pct', parseFloat(e.target.value) || 0)}
-                        className="w-full text-center px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="input-dark w-full text-center px-2 py-1.5 rounded-lg text-sm" />
                     </div>
                     <div className="flex-1 sm:col-span-2 text-right self-end">
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(itemTotal)}</p>
+                      <p className="text-sm font-semibold" style={{ color: '#2CD9FF' }}>{formatCurrency(itemTotal)}</p>
                     </div>
                   </div>
                   <div className="hidden sm:block col-span-1 text-right">
-                    <button type="button" onClick={() => removerItem(idx)}
-                      className="p-1 text-gray-300 hover:text-red-500 transition-colors">
+                    <button type="button" onClick={() => removerItem(idx)} className="p-1 transition-colors"
+                      style={{ color: '#56577A' }}
+                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#FC8181')}
+                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#56577A')}>
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -335,45 +286,51 @@ export function OrcamentoForm() {
           </div>
         )}
 
-        {/* Totais */}
         {itens.length > 0 && (
-          <div className="border-t border-gray-100 pt-4 space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-500">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
+          <div className="space-y-2 pt-4 text-sm" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex justify-between" style={{ color: '#A0AEC0' }}>
+              <span>Subtotal</span><span>{formatCurrency(subtotal)}</span>
             </div>
             {parseFloat(desconto || '0') > 0 && (
-              <div className="flex justify-between text-red-500">
+              <div className="flex justify-between" style={{ color: '#FC8181' }}>
                 <span>Desconto ({desconto}%)</span>
                 <span>- {formatCurrency(subtotal - totalComDesconto)}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
-              <span>Total</span>
-              <span className="text-blue-600">{formatCurrency(totalComDesconto)}</span>
+            <div className="flex justify-between font-black text-base pt-2"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: '#2CD9FF' }}>
+              <span className="text-white">Total</span>
+              <span>{formatCurrency(totalComDesconto)}</span>
             </div>
           </div>
         )}
       </section>
 
       {/* Observações */}
-      <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+      <section className="rounded-2xl p-5" style={glass}>
+        <label className="block text-xs font-semibold mb-2" style={{ color: '#56577A' }}>Observações</label>
         <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={3}
           placeholder="Condições de pagamento, prazo de entrega, observações..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+          className="input-dark w-full px-3 py-2.5 rounded-xl text-sm resize-none" />
       </section>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && (
+        <p className="text-sm px-4 py-3 rounded-xl"
+          style={{ color: '#FC8181', background: 'rgba(252,129,129,0.1)', border: '1px solid rgba(252,129,129,0.2)' }}>
+          {error}
+        </p>
+      )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pb-8">
         <button type="button" onClick={() => router.push('/orcamentos')}
-          className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{ color: '#A0AEC0', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
           Cancelar
         </button>
         <button type="submit" disabled={saving}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
-          {saving ? 'Salvando...' : 'Criar orçamento'}
+          className="flex-1 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', boxShadow: '0 4px 20px rgba(0,117,255,0.3)' }}>
+          {saving ? 'Salvando…' : 'Criar orçamento'}
         </button>
       </div>
     </form>
