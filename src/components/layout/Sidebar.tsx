@@ -117,24 +117,26 @@ export function Sidebar() {
 
       {/* ── Mobile top header ── */}
       <header
-        className="md:hidden fixed top-0 left-0 right-0 z-40 text-white flex items-center justify-between px-5 h-14"
+        className="md:hidden fixed top-0 left-0 right-0 z-40 text-white flex items-center justify-between px-5 overflow-hidden"
         style={{
+          height: '56px',
           background: 'rgba(6, 11, 40, 0.95)',
           backdropFilter: 'blur(42px)',
           borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}
       >
-        <Image
-          src="/logo-aivora.png"
-          alt="Aivora System"
-          width={120}
-          height={42}
-          priority
-          style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
-        />
+        <div style={{ width: 110, height: 36, position: 'relative', flexShrink: 0 }}>
+          <Image
+            src="/logo-aivora.png"
+            alt="Aivora System"
+            fill
+            priority
+            style={{ objectFit: 'contain', objectPosition: 'left center', mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+          />
+        </div>
         <button
           onClick={() => setOpen(true)}
-          className="p-2 rounded-xl transition-colors"
+          className="p-2 rounded-xl transition-colors flex-shrink-0"
           style={{ color: '#A0AEC0' }}
           aria-label="Abrir menu"
         >
