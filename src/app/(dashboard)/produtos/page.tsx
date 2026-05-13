@@ -6,54 +6,66 @@ import { Package, Plus, Search, Tag } from 'lucide-react'
 import { useProdutos, useCategorias } from '@/hooks/useProdutos'
 import { formatCurrency } from '@/lib/utils'
 
-const BRAND_COLORS: Record<string, string> = {
-  'Rafana':     'bg-purple-50 border-purple-200 text-purple-700',
-  'Fine Decor': 'bg-amber-50 border-amber-200 text-amber-700',
-  'Feroni':     'bg-teal-50 border-teal-200 text-teal-700',
-  'Cyrne':      'bg-blue-50 border-blue-200 text-blue-700',
-}
-
-const BRAND_HEADER: Record<string, string> = {
-  'Rafana':     'bg-purple-600',
-  'Fine Decor': 'bg-amber-600',
-  'Feroni':     'bg-teal-600',
-  'Cyrne':      'bg-blue-600',
+const BRAND_ACCENT: Record<string, { color: string; bg: string }> = {
+  'Rafana':     { color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+  'Fine Decor': { color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
+  'Feroni':     { color: '#2CD9FF', bg: 'rgba(44,217,255,0.15)'  },
+  'Cyrne':      { color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
 }
 
 function ProdutoCard({ p }: { p: ReturnType<typeof useProdutos>['produtos'][0] }) {
   const precoMin = p.product_prices?.length
     ? Math.min(...p.product_prices.map(pp => pp.price))
     : null
+  const accent = BRAND_ACCENT[p.brand ?? ''] ?? { color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' }
 
   return (
-    <Link href={`/produtos/${p.id}`}
-      className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all overflow-hidden group">
-      <div className="h-40 bg-gray-50 flex items-center justify-center border-b border-gray-100">
+    <Link
+      href={`/produtos/${p.id}`}
+      className="glass-card rounded-2xl overflow-hidden transition-all group"
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.border = '1px solid rgba(0,117,255,0.3)'
+        ;(e.currentTarget as HTMLElement).style.boxShadow = '0 4px 24px rgba(0,117,255,0.1)'
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.08)'
+        ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
+      }}
+    >
+      <div
+        className="h-40 flex items-center justify-center"
+        style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
         {p.image_url ? (
           <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
         ) : (
-          <Package size={36} className="text-gray-200" />
+          <Package size={36} style={{ color: '#56577A' }} />
         )}
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <p className="font-medium text-gray-900 text-sm leading-snug group-hover:text-blue-600 transition-colors">
+          <p className="font-semibold text-white text-sm leading-snug group-hover:text-blue-400 transition-colors">
             {p.name}
           </p>
           {!p.active && (
-            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded flex-shrink-0">inativo</span>
+            <span
+              className="px-1.5 py-0.5 text-xs rounded-full flex-shrink-0"
+              style={{ color: '#FC8181', background: 'rgba(252,129,129,0.15)' }}
+            >
+              inativo
+            </span>
           )}
         </div>
-        <p className="text-xs text-gray-400 mb-3 font-mono">{p.code}</p>
+        <p className="text-xs font-mono mb-3" style={{ color: '#56577A' }}>{p.code}</p>
         <div className="flex items-center justify-between">
           {p.product_categories && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs" style={{ color: '#A0AEC0' }}>
               <Tag size={11} />
               {p.product_categories.name}
             </span>
           )}
           {precoMin !== null && (
-            <span className="text-sm font-semibold text-blue-600">
+            <span className="text-sm font-black" style={{ color: accent.color }}>
               {formatCurrency(precoMin)}
             </span>
           )}
@@ -90,100 +102,145 @@ export default function ProdutosPage() {
   const isFiltered = !!(brand || search || categoriaId)
 
   return (
-    <div>
+    <div className="max-w-5xl w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Catálogo de Produtos</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{produtos.length} produto{produtos.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">Catálogo</h1>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
+            {produtos.length} produto{produtos.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Link href="/produtos/novo"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+        <Link
+          href="/produtos/novo"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+          style={{
+            background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+            boxShadow: '0 4px 20px rgba(0, 117, 255, 0.3)',
+          }}
+        >
           <Plus size={16} />
           Novo Produto
         </Link>
       </div>
 
       {/* Filtros */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-48 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou código..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      <div className="glass-card rounded-2xl p-4 mb-6 space-y-3">
+        <div className="flex gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-48">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#A0AEC0' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou código..."
+              className="input-dark w-full pl-10 pr-4 py-2.5 rounded-xl text-sm"
+            />
+          </div>
+          <select
+            value={categoriaId}
+            onChange={e => setCategoriaId(e.target.value)}
+            className="input-dark px-4 py-2.5 rounded-xl text-sm"
+          >
+            <option value="">Todas as categorias</option>
+            {categorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
-        <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-          <option value="">Todas as categorias</option>
-          {categorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </div>
 
-      {/* Filtro por fábrica */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        <button onClick={() => setBrand('')}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            !brand ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
-          }`}>
-          Todas as fábricas
-        </button>
-        {brands.map(b => (
-          <button key={b} onClick={() => setBrand(b)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              brand === b
-                ? 'bg-gray-900 text-white'
-                : `bg-white border ${BRAND_COLORS[b] ?? 'border-gray-200 text-gray-600'} hover:opacity-80`
-            }`}>
-            {b}
+        {/* Filtro por fábrica */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setBrand('')}
+            className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+            style={!brand ? {
+              background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+              color: '#ffffff',
+              boxShadow: '0 2px 12px rgba(0,117,255,0.25)',
+            } : {
+              background: 'rgba(255,255,255,0.06)',
+              color: '#A0AEC0',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            Todas as fábricas
           </button>
-        ))}
+          {brands.map(b => {
+            const acc = BRAND_ACCENT[b] ?? { color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' }
+            return (
+              <button
+                key={b}
+                onClick={() => setBrand(b)}
+                className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+                style={brand === b ? {
+                  color: acc.color,
+                  background: acc.bg,
+                  border: `1px solid ${acc.color}40`,
+                } : {
+                  background: 'rgba(255,255,255,0.06)',
+                  color: '#A0AEC0',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                {b}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Conteúdo */}
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-              <div className="h-36 bg-gray-100 rounded-lg mb-3" />
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-1/2" />
+            <div key={i} className="glass-card rounded-2xl p-4 animate-pulse">
+              <div className="h-36 rounded-xl mb-3" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="h-4 rounded-lg w-3/4 mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="h-3 rounded-lg w-1/2" style={{ background: 'rgba(255,255,255,0.04)' }} />
             </div>
           ))}
         </div>
       ) : produtos.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
-          <Package size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">Nenhum produto encontrado</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="glass-card rounded-2xl p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <Package size={28} style={{ color: '#56577A' }} />
+          </div>
+          <p className="text-white font-semibold text-lg">Nenhum produto encontrado</p>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             {isFiltered ? 'Tente outros filtros' : 'Clique em "Novo Produto" para começar'}
           </p>
         </div>
       ) : isFiltered ? (
-        /* Lista filtrada — grid simples */
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {produtos.map(p => <ProdutoCard key={p.id} p={p} />)}
         </div>
       ) : (
-        /* Agrupado por fábrica */
         <div className="space-y-10">
-          {grouped && Array.from(grouped.entries()).map(([brandName, items]) => (
-            <section key={brandName}>
-              <div className={`flex items-center gap-3 mb-4 px-4 py-2.5 rounded-xl ${BRAND_HEADER[brandName] ?? 'bg-gray-700'}`}>
-                <h2 className="text-white font-bold text-lg">{brandName}</h2>
-                <span className="text-white/70 text-sm">{items.length} produto{items.length !== 1 ? 's' : ''}</span>
-                <button onClick={() => setBrand(brandName)}
-                  className="ml-auto text-white/80 hover:text-white text-xs font-medium transition-colors">
-                  Ver só {brandName} →
-                </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {items.map(p => <ProdutoCard key={p.id} p={p} />)}
-              </div>
-            </section>
-          ))}
+          {grouped && Array.from(grouped.entries()).map(([brandName, items]) => {
+            const acc = BRAND_ACCENT[brandName] ?? { color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' }
+            return (
+              <section key={brandName}>
+                <div
+                  className="flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl"
+                  style={{ background: acc.bg, border: `1px solid ${acc.color}30` }}
+                >
+                  <h2 className="font-black text-lg" style={{ color: acc.color }}>{brandName}</h2>
+                  <span className="text-sm" style={{ color: `${acc.color}99` }}>
+                    {items.length} produto{items.length !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={() => setBrand(brandName)}
+                    className="ml-auto text-xs font-medium transition-all hover:opacity-80"
+                    style={{ color: acc.color }}
+                  >
+                    Ver só {brandName} →
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {items.map(p => <ProdutoCard key={p.id} p={p} />)}
+                </div>
+              </section>
+            )
+          })}
         </div>
       )}
     </div>

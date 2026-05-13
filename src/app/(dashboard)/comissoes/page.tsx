@@ -1,23 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { DollarSign, CheckCircle, Clock, TrendingUp, ThumbsUp } from 'lucide-react'
+import { DollarSign, CheckCircle, Clock, ThumbsUp } from 'lucide-react'
 import { useComissoes, useComissoesMutations } from '@/hooks/useComissoes'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { CommissionStatus } from '@/types/database'
 
-const STATUS_CONFIG: Record<CommissionStatus, { label: string; badgeClass: string }> = {
-  prevista:  { label: 'Prevista',  badgeClass: 'bg-gray-100 text-gray-600' },
-  aprovada:  { label: 'Aprovada',  badgeClass: 'bg-blue-100 text-blue-700' },
-  paga:      { label: 'Paga',      badgeClass: 'bg-green-100 text-green-700' },
-  cancelada: { label: 'Cancelada', badgeClass: 'bg-red-100 text-red-500' },
+const STATUS_CONFIG: Record<CommissionStatus, { label: string; color: string; bg: string }> = {
+  prevista:  { label: 'Prevista',  color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
+  aprovada:  { label: 'Aprovada',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+  paga:      { label: 'Paga',      color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+  cancelada: { label: 'Cancelada', color: '#FC8181', bg: 'rgba(252,129,129,0.15)' },
 }
 
 const FILTROS: { value: CommissionStatus | ''; label: string }[] = [
-  { value: '',          label: 'Todas' },
-  { value: 'prevista',  label: 'Previstas' },
-  { value: 'aprovada',  label: 'Aprovadas' },
-  { value: 'paga',      label: 'Pagas' },
+  { value: '',         label: 'Todas'     },
+  { value: 'prevista', label: 'Previstas' },
+  { value: 'aprovada', label: 'Aprovadas' },
+  { value: 'paga',     label: 'Pagas'     },
 ]
 
 export default function ComissoesPage() {
@@ -37,91 +37,124 @@ export default function ComissoesPage() {
     c.status === 'prevista' && c.due_date && c.due_date < hoje
   )
 
+  const summaryCards = [
+    {
+      label: 'A Receber',
+      value: summary.prevista + summary.aprovada,
+      count: comissoes.filter(c => ['prevista', 'aprovada'].includes(c.status)).length,
+      icon: Clock,
+      color: '#A0AEC0',
+      bg: 'rgba(160,174,192,0.15)',
+    },
+    {
+      label: 'Aprovadas',
+      value: summary.aprovada,
+      count: comissoes.filter(c => c.status === 'aprovada').length,
+      icon: ThumbsUp,
+      color: '#0075FF',
+      bg: 'rgba(0,117,255,0.15)',
+    },
+    {
+      label: 'Já Recebi',
+      value: summary.paga,
+      count: comissoes.filter(c => c.status === 'paga').length,
+      icon: CheckCircle,
+      color: '#01B574',
+      bg: 'rgba(1,181,116,0.15)',
+    },
+  ]
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Comissões</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Acompanhe suas comissões por pedido</p>
+    <div className="max-w-5xl w-full">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-white tracking-tight">Comissões</h1>
+        <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Acompanhe suas comissões por pedido</p>
       </div>
 
       {/* Cards resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-              <Clock size={16} className="text-gray-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {summaryCards.map(({ label, value, count, icon: Icon, color, bg }) => (
+          <div key={label} className="glass-card rounded-2xl p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: bg }}>
+                <Icon size={16} style={{ color }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: '#A0AEC0' }}>{label}</p>
             </div>
-            <p className="text-sm text-gray-500 font-medium">A Receber</p>
+            <p className="text-2xl font-black text-white">{loading ? '—' : formatCurrency(value)}</p>
+            <p className="text-xs mt-1" style={{ color: '#56577A' }}>{count} comissões</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.prevista + summary.aprovada)}</p>
-          <p className="text-xs text-gray-400 mt-1">{comissoes.filter(c => ['prevista','aprovada'].includes(c.status)).length} comissões</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-              <ThumbsUp size={16} className="text-blue-600" />
-            </div>
-            <p className="text-sm text-gray-500 font-medium">Aprovadas</p>
-          </div>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(summary.aprovada)}</p>
-          <p className="text-xs text-gray-400 mt-1">{comissoes.filter(c => c.status === 'aprovada').length} comissões</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-              <CheckCircle size={16} className="text-green-600" />
-            </div>
-            <p className="text-sm text-gray-500 font-medium">Já Recebi</p>
-          </div>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.paga)}</p>
-          <p className="text-xs text-gray-400 mt-1">{comissoes.filter(c => c.status === 'paga').length} comissões</p>
-        </div>
+        ))}
       </div>
 
       {/* Alerta de vencidas */}
       {vencidas.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-3 mb-6 flex items-center justify-between">
+        <div
+          className="rounded-2xl px-5 py-4 mb-6 flex items-center justify-between"
+          style={{
+            background: 'rgba(246,173,85,0.1)',
+            border: '1px solid rgba(246,173,85,0.25)',
+          }}
+        >
           <div>
-            <p className="text-sm font-semibold text-orange-700">
+            <p className="text-sm font-semibold" style={{ color: '#F6AD55' }}>
               {vencidas.length} comissão{vencidas.length > 1 ? 'ões' : ''} com prazo vencido
             </p>
-            <p className="text-xs text-orange-500">Verifique com o cliente o pagamento</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(246,173,85,0.7)' }}>
+              Verifique com o cliente o pagamento
+            </p>
           </div>
-          <p className="text-lg font-bold text-orange-700">
+          <p className="text-lg font-black" style={{ color: '#F6AD55' }}>
             {formatCurrency(vencidas.reduce((a, c) => a + c.value, 0))}
           </p>
         </div>
       )}
 
       {/* Filtros */}
-      <div className="flex gap-2 mb-6">
-        {FILTROS.map(f => (
-          <button key={f.value} onClick={() => setStatus(f.value as CommissionStatus | '')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              status === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}>
-            {f.label}
-          </button>
-        ))}
+      <div className="glass-card rounded-2xl p-4 mb-6">
+        <div className="flex gap-2 flex-wrap">
+          {FILTROS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setStatus(f.value as CommissionStatus | '')}
+              className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+              style={status === f.value ? {
+                background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+                color: '#ffffff',
+                boxShadow: '0 2px 12px rgba(0,117,255,0.25)',
+              } : {
+                background: 'rgba(255,255,255,0.06)',
+                color: '#A0AEC0',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Lista */}
       {loading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-1/4" />
+            <div key={i} className="glass-card rounded-2xl p-5 animate-pulse">
+              <div className="h-4 rounded-lg w-1/3 mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="h-3 rounded-lg w-1/4" style={{ background: 'rgba(255,255,255,0.04)' }} />
             </div>
           ))}
         </div>
       ) : comissoes.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
-          <DollarSign size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">Nenhuma comissão encontrada</p>
-          <p className="text-gray-400 text-sm mt-1">As comissões são criadas automaticamente ao gerar um pedido com percentual de comissão</p>
+        <div className="glass-card rounded-2xl p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <DollarSign size={28} style={{ color: '#56577A' }} />
+          </div>
+          <p className="text-white font-semibold text-lg">Nenhuma comissão encontrada</p>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
+            As comissões são criadas automaticamente ao gerar um pedido com percentual de comissão
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -130,43 +163,50 @@ export default function ComissoesPage() {
             const vencida = c.status === 'prevista' && c.due_date && c.due_date < hoje
 
             return (
-              <div key={c.id}
-                className={`bg-white rounded-xl border p-4 transition-all ${vencida ? 'border-orange-200 bg-orange-50/30' : 'border-gray-200'}`}>
+              <div
+                key={c.id}
+                className="glass-card rounded-2xl p-4 transition-all"
+                style={vencida ? { border: '1px solid rgba(246,173,85,0.25)' } : undefined}
+              >
                 <div className="flex flex-wrap items-center gap-4">
                   {/* Info pedido */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-mono text-xs text-gray-400">{c.orders?.number ?? '—'}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.badgeClass}`}>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="font-mono text-xs" style={{ color: '#56577A' }}>{c.orders?.number ?? '—'}</p>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        style={{ color: cfg.color, background: cfg.bg }}>
                         {cfg.label}
                       </span>
                       {vencida && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-600">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          style={{ color: '#F6AD55', background: 'rgba(246,173,85,0.15)' }}>
                           Vencida
                         </span>
                       )}
                     </div>
-                    <p className="font-medium text-gray-900">{c.orders?.clients?.name ?? '—'}</p>
+                    <p className="font-semibold text-white">{c.orders?.clients?.name ?? '—'}</p>
                     {c.orders?.clients?.company_name && (
-                      <p className="text-sm text-gray-400">{c.orders.clients.company_name}</p>
+                      <p className="text-sm" style={{ color: '#A0AEC0' }}>{c.orders.clients.company_name}</p>
                     )}
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: '#56577A' }}>
                       {c.orders?.suppliers && <span>{c.orders.suppliers.name}</span>}
                       {c.due_date && (
-                        <span className={vencida ? 'text-orange-500 font-medium' : ''}>
+                        <span style={vencida ? { color: '#F6AD55' } : undefined}>
                           Prazo: {formatDate(c.due_date)}
                         </span>
                       )}
-                      {c.paid_at && <span className="text-green-600">Pago em {formatDate(c.paid_at)}</span>}
+                      {c.paid_at && (
+                        <span style={{ color: '#01B574' }}>Pago em {formatDate(c.paid_at)}</span>
+                      )}
                     </div>
                   </div>
 
                   {/* Valor */}
                   <div className="text-right mr-4 flex-shrink-0">
-                    <p className="text-xl font-bold text-gray-900">{formatCurrency(c.value)}</p>
-                    <p className="text-xs text-gray-400">{c.pct}% do pedido</p>
+                    <p className="text-xl font-black text-white">{formatCurrency(c.value)}</p>
+                    <p className="text-xs" style={{ color: '#56577A' }}>{c.pct}% do pedido</p>
                     {c.orders?.total && (
-                      <p className="text-xs text-gray-400">{formatCurrency(c.orders.total)}</p>
+                      <p className="text-xs" style={{ color: '#56577A' }}>{formatCurrency(c.orders.total)}</p>
                     )}
                   </div>
 
@@ -176,7 +216,12 @@ export default function ComissoesPage() {
                       <button
                         onClick={() => mudarStatus(c.id, 'aprovada')}
                         disabled={atualizando === c.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-white disabled:opacity-50 transition-all hover:opacity-90"
+                        style={{
+                          background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+                          boxShadow: '0 2px 8px rgba(0,117,255,0.3)',
+                        }}
+                      >
                         <ThumbsUp size={12} /> Aprovar
                       </button>
                     )}
@@ -184,15 +229,30 @@ export default function ComissoesPage() {
                       <button
                         onClick={() => mudarStatus(c.id, 'paga')}
                         disabled={atualizando === c.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-white disabled:opacity-50 transition-all hover:opacity-90"
+                        style={{
+                          background: 'linear-gradient(135deg, #01B574 0%, #00875A 100%)',
+                          boxShadow: '0 2px 8px rgba(1,181,116,0.3)',
+                        }}
+                      >
                         <CheckCircle size={12} /> Marcar paga
                       </button>
                     )}
-                    {['prevista','aprovada'].includes(c.status) && (
+                    {['prevista', 'aprovada'].includes(c.status) && (
                       <button
                         onClick={() => mudarStatus(c.id, 'cancelada')}
                         disabled={atualizando === c.id}
-                        className="px-3 py-1.5 text-gray-400 rounded-lg text-xs hover:text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors">
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium disabled:opacity-50 transition-all"
+                        style={{ color: '#56577A' }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.color = '#FC8181'
+                          ;(e.currentTarget as HTMLElement).style.background = 'rgba(252,129,129,0.1)'
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.color = '#56577A'
+                          ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                        }}
+                      >
                         Cancelar
                       </button>
                     )}

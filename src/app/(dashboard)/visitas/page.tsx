@@ -7,92 +7,118 @@ import { useVisitas } from '@/hooks/useVisitas'
 import { formatPhone } from '@/lib/utils'
 import type { VisitStatus } from '@/types/database'
 
-const STATUS_CONFIG: Record<VisitStatus, { label: string; badge: string; icon: React.ElementType }> = {
-  agendada:   { label: 'Agendada',   badge: 'bg-blue-100 text-blue-700',   icon: Calendar },
-  realizada:  { label: 'Realizada',  badge: 'bg-green-100 text-green-700', icon: CheckCircle },
-  cancelada:  { label: 'Cancelada',  badge: 'bg-red-100 text-red-500',     icon: XCircle },
-  reagendada: { label: 'Reagendada', badge: 'bg-yellow-100 text-yellow-700', icon: RotateCcw },
+const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+  agendada:   { label: 'Agendada',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)',     icon: Calendar    },
+  realizada:  { label: 'Realizada',  color: '#01B574', bg: 'rgba(1,181,116,0.15)',     icon: CheckCircle },
+  cancelada:  { label: 'Cancelada',  color: '#FC8181', bg: 'rgba(252,129,129,0.15)',   icon: XCircle     },
+  reagendada: { label: 'Reagendada', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)',    icon: RotateCcw   },
 }
 
 const FILTROS: { value: VisitStatus | ''; label: string }[] = [
-  { value: '',          label: 'Todas' },
-  { value: 'agendada',  label: 'Agendadas' },
-  { value: 'realizada', label: 'Realizadas' },
-  { value: 'reagendada',label: 'Reagendadas' },
-  { value: 'cancelada', label: 'Canceladas' },
+  { value: '',           label: 'Todas'       },
+  { value: 'agendada',   label: 'Agendadas'   },
+  { value: 'realizada',  label: 'Realizadas'  },
+  { value: 'reagendada', label: 'Reagendadas' },
+  { value: 'cancelada',  label: 'Canceladas'  },
 ]
-
-function formatVisitDate(iso: string) {
-  const d = new Date(iso)
-  const hoje = new Date()
-  const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1)
-
-  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  const data = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-
-  if (d.toDateString() === hoje.toDateString()) return `Hoje, ${hora}`
-  if (d.toDateString() === amanha.toDateString()) return `Amanhã, ${hora}`
-  return `${data}, ${hora}`
-}
 
 export default function VisitasPage() {
   const [status, setStatus] = useState<VisitStatus | ''>('agendada')
   const { visitas, loading } = useVisitas({ status })
 
   const hoje = new Date()
-  const proximas = visitas.filter(v => v.status === 'agendada' && new Date(v.scheduled_at) >= hoje)
   const atrasadas = visitas.filter(v => v.status === 'agendada' && new Date(v.scheduled_at) < hoje)
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-5xl w-full">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Visitas</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{visitas.length} visita{visitas.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">Visitas</h1>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
+            {visitas.length} visita{visitas.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Link href="/visitas/nova"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-          <Plus size={16} /> Agendar Visita
+        <Link
+          href="/visitas/nova"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+          style={{
+            background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+            boxShadow: '0 4px 20px rgba(0, 117, 255, 0.3)',
+          }}
+        >
+          <Plus size={16} />
+          Agendar Visita
         </Link>
       </div>
 
       {/* Alerta de atrasadas */}
       {atrasadas.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-3 mb-6">
-          <p className="text-sm font-semibold text-orange-700">
-            {atrasadas.length} visita{atrasadas.length > 1 ? 's' : ''} com data passada sem registro de resultado
+        <div
+          className="rounded-2xl px-5 py-4 mb-6"
+          style={{
+            background: 'rgba(246,173,85,0.1)',
+            border: '1px solid rgba(246,173,85,0.25)',
+          }}
+        >
+          <p className="text-sm font-semibold" style={{ color: '#F6AD55' }}>
+            {atrasadas.length} visita{atrasadas.length > 1 ? 's' : ''} com data passada sem registro
           </p>
-          <p className="text-xs text-orange-500 mt-0.5">Registre o resultado ou reagende</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(246,173,85,0.7)' }}>
+            Registre o resultado ou reagende
+          </p>
         </div>
       )}
 
       {/* Filtros */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTROS.map(f => (
-          <button key={f.value} onClick={() => setStatus(f.value as VisitStatus | '')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              status === f.value ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}>
-            {f.label}
-          </button>
-        ))}
+      <div className="glass-card rounded-2xl p-4 mb-6">
+        <div className="flex gap-2 flex-wrap">
+          {FILTROS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setStatus(f.value as VisitStatus | '')}
+              className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+              style={status === f.value ? {
+                background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+                color: '#ffffff',
+                boxShadow: '0 2px 12px rgba(0,117,255,0.25)',
+              } : {
+                background: 'rgba(255,255,255,0.06)',
+                color: '#A0AEC0',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Lista */}
       {loading ? (
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-1/2" />
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="glass-card rounded-2xl p-5 animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-14 rounded-xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <div className="flex-1">
+                  <div className="h-4 rounded-lg w-1/3 mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                  <div className="h-3 rounded-lg w-1/2" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                </div>
+              </div>
             </div>
           ))}
         </div>
       ) : visitas.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
-          <MapPin size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">Nenhuma visita encontrada</p>
-          <p className="text-gray-400 text-sm mt-1">Clique em "Agendar Visita" para começar</p>
+        <div className="glass-card rounded-2xl p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <MapPin size={28} style={{ color: '#56577A' }} />
+          </div>
+          <p className="text-white font-semibold text-lg">Nenhuma visita encontrada</p>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
+            {status ? 'Tente outro filtro' : 'Clique em "Agendar Visita" para começar'}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -102,44 +128,65 @@ export default function VisitasPage() {
             const atrasada = v.status === 'agendada' && new Date(v.scheduled_at) < hoje
 
             return (
-              <Link key={v.id} href={`/visitas/${v.id}`}
-                className={`flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-all group ${
-                  atrasada ? 'border-orange-200 bg-orange-50/20' : 'border-gray-200 hover:border-blue-300'
-                }`}>
-
+              <Link
+                key={v.id}
+                href={`/visitas/${v.id}`}
+                className="flex items-center gap-4 glass-card rounded-2xl p-4 transition-all group"
+                style={atrasada ? { border: '1px solid rgba(246,173,85,0.25)' } : undefined}
+                onMouseEnter={e => {
+                  if (!atrasada) {
+                    (e.currentTarget as HTMLElement).style.border = '1px solid rgba(0,117,255,0.3)'
+                    ;(e.currentTarget as HTMLElement).style.boxShadow = '0 4px 24px rgba(0,117,255,0.1)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.border = atrasada
+                    ? '1px solid rgba(246,173,85,0.25)'
+                    : '1px solid rgba(255,255,255,0.08)'
+                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
+                }}
+              >
                 {/* Data/hora */}
-                <div className={`flex-shrink-0 text-center w-16 py-2 rounded-lg ${atrasada ? 'bg-orange-100' : 'bg-gray-50'}`}>
-                  <p className={`text-xs font-semibold ${atrasada ? 'text-orange-600' : 'text-blue-600'}`}>
+                <div
+                  className="flex-shrink-0 text-center w-16 py-2.5 rounded-xl"
+                  style={{ background: atrasada ? 'rgba(246,173,85,0.12)' : 'rgba(0,117,255,0.1)' }}
+                >
+                  <p className="text-xs font-semibold" style={{ color: atrasada ? '#F6AD55' : '#0075FF' }}>
                     {new Date(v.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })}
                   </p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-lg font-black text-white">
                     {new Date(v.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <p className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
                       {v.clients?.name}
                     </p>
-                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${cfg.badge}`}>
+                    <span
+                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
+                      style={{ color: cfg.color, background: cfg.bg }}
+                    >
                       <StatusIcon size={10} />
                       {cfg.label}
                     </span>
                     {atrasada && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-600 flex-shrink-0">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
+                        style={{ color: '#F6AD55', background: 'rgba(246,173,85,0.15)' }}>
                         Atrasada
                       </span>
                     )}
                   </div>
                   {v.clients?.company_name && (
-                    <p className="text-sm text-gray-400 truncate">{v.clients.company_name}</p>
+                    <p className="text-sm truncate" style={{ color: '#A0AEC0' }}>{v.clients.company_name}</p>
                   )}
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: '#56577A' }}>
                     {v.clients?.city && (
                       <span className="flex items-center gap-1">
-                        <MapPin size={11} /> {v.clients.city}{v.clients.state ? `/${v.clients.state}` : ''}
+                        <MapPin size={11} />
+                        {v.clients.city}{v.clients.state ? `/${v.clients.state}` : ''}
                       </span>
                     )}
                     {v.objective && <span className="truncate">· {v.objective}</span>}
@@ -149,10 +196,15 @@ export default function VisitasPage() {
                 {/* WhatsApp */}
                 {v.clients?.whatsapp && (
                   <a
-                    href={`https://wa.me/55${v.clients.whatsapp.replace(/\D/g,'')}`}
-                    target="_blank" rel="noreferrer"
+                    href={`https://wa.me/55${v.clients.whatsapp.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
                     onClick={e => e.stopPropagation()}
-                    className="flex-shrink-0 p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors">
+                    className="flex-shrink-0 p-2.5 rounded-xl transition-all"
+                    style={{ color: '#01B574' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(1,181,116,0.1)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                  >
                     <MessageCircle size={18} />
                   </a>
                 )}
