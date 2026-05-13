@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -83,20 +84,15 @@ export function Sidebar() {
         style={sidebarStyle}
       >
         {/* Brand */}
-        <div className="px-6 py-7" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <h1
-            className="text-3xl font-black tracking-tight leading-none"
-            style={{
-              background: 'linear-gradient(90deg, #ffffff 70%, rgba(117,122,140,0) 140%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            Aivora
-          </h1>
-          <p className="text-[11px] tracking-[0.3em] uppercase mt-1.5" style={{ color: '#56577A' }}>
-            System
-          </p>
+        <div className="px-6 py-5 flex items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <Image
+            src="/logo-aivora.png"
+            alt="Aivora System"
+            width={160}
+            height={56}
+            priority
+            style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+          />
         </div>
 
         {/* Nav */}
@@ -128,21 +124,14 @@ export function Sidebar() {
           borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}
       >
-        <div>
-          <span
-            className="text-xl font-black tracking-tight"
-            style={{
-              background: 'linear-gradient(90deg, #ffffff 70%, rgba(117,122,140,0) 140%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            Aivora
-          </span>
-          <span className="text-[10px] ml-2 tracking-[0.25em] uppercase" style={{ color: '#56577A' }}>
-            System
-          </span>
-        </div>
+        <Image
+          src="/logo-aivora.png"
+          alt="Aivora System"
+          width={120}
+          height={42}
+          priority
+          style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+        />
         <button
           onClick={() => setOpen(true)}
           className="p-2 rounded-xl transition-colors"
@@ -162,19 +151,13 @@ export function Sidebar() {
             style={sidebarStyle}
           >
             <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <div>
-                <p
-                  className="text-xl font-black tracking-tight"
-                  style={{
-                    background: 'linear-gradient(90deg, #ffffff 70%, rgba(117,122,140,0) 140%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  Aivora
-                </p>
-                <p className="text-[10px] tracking-[0.3em] uppercase mt-0.5" style={{ color: '#56577A' }}>System</p>
-              </div>
+              <Image
+                src="/logo-aivora.png"
+                alt="Aivora System"
+                width={130}
+                height={46}
+                style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+              />
               <button
                 onClick={() => setOpen(false)}
                 className="p-2 rounded-xl transition-colors"
