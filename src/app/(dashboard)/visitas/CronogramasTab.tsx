@@ -36,6 +36,7 @@ function ConfigPanel() {
   const [workDays, setWorkDays]             = useState<number[]>([1, 2, 3, 4, 5])
   const [saving, setSaving]                 = useState(false)
   const [saved, setSaved]                   = useState(false)
+  const [erro, setErro]                     = useState<string | null>(null)
 
   useEffect(() => {
     if (settings) {
@@ -50,11 +51,14 @@ function ConfigPanel() {
 
   async function salvar() {
     setSaving(true)
+    setErro(null)
     try {
       await salvarSettings({ clients_per_day: clientesPerDia, work_days: workDays })
       await refetch()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar configurações')
     } finally { setSaving(false) }
   }
 
@@ -69,10 +73,13 @@ function ConfigPanel() {
         </div>
         <button onClick={salvar} disabled={saving}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-50 transition-all hover:opacity-90 text-white"
-          style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
+          style={{ background: saved ? 'linear-gradient(135deg, #01B574 0%, #00875A 100%)' : 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
           {saved ? <><Check size={12} /> Salvo</> : saving ? 'Salvando…' : <><Check size={12} /> Salvar</>}
         </button>
       </div>
+      {erro && (
+        <p className="text-xs mt-2 px-1" style={{ color: '#FC8181' }}>⚠ {erro}</p>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-6">
         <div>
@@ -315,6 +322,7 @@ export default function CronogramasTab() {
   const { schedules, loading, refetch } = useVisitSchedules()
   const { criarCronograma }             = useVisitSchedulesMutations()
   const [criando, setCriando]           = useState(false)
+  const [erroCriar, setErroCriar]       = useState<string | null>(null)
 
   const positionsUsed = new Set(schedules.map(s => s.position))
   const nextPosition  = ([1, 2, 3, 4] as const).find(p => !positionsUsed.has(p))
@@ -322,6 +330,7 @@ export default function CronogramasTab() {
   async function adicionar() {
     if (!nextPosition) return
     setCriando(true)
+    setErroCriar(null)
     try {
       const nomes = ['Prioridade Alta', 'Prioridade Média', 'Prioridade Baixa', 'Cronograma 4']
       const intervalos = [15, 30, 45, 60]
@@ -331,6 +340,8 @@ export default function CronogramasTab() {
         nextPosition,
       )
       await refetch()
+    } catch (e) {
+      setErroCriar(e instanceof Error ? e.message : 'Erro ao criar cronograma')
     } finally { setCriando(false) }
   }
 
@@ -353,19 +364,24 @@ export default function CronogramasTab() {
         ))}
 
         {nextPosition && (
-          <button onClick={adicionar} disabled={criando}
-            className="glass-card rounded-2xl p-5 flex flex-col items-center justify-center gap-3 transition-all min-h-40 disabled:opacity-50"
-            style={{ border: '2px dashed rgba(255,255,255,0.1)' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,117,255,0.4)')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)')}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(0,117,255,0.12)' }}>
-              <Plus size={20} style={{ color: '#0075FF' }} />
-            </div>
-            <p className="text-sm font-semibold" style={{ color: '#A0AEC0' }}>
-              {criando ? 'Criando…' : `Adicionar Cronograma ${nextPosition}`}
-            </p>
-          </button>
+          <div className="flex flex-col gap-2">
+            <button onClick={adicionar} disabled={criando}
+              className="glass-card rounded-2xl p-5 flex flex-col items-center justify-center gap-3 transition-all min-h-40 disabled:opacity-50"
+              style={{ border: '2px dashed rgba(255,255,255,0.1)' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,117,255,0.4)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)')}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(0,117,255,0.12)' }}>
+                <Plus size={20} style={{ color: '#0075FF' }} />
+              </div>
+              <p className="text-sm font-semibold" style={{ color: '#A0AEC0' }}>
+                {criando ? 'Criando…' : `Adicionar Cronograma ${nextPosition}`}
+              </p>
+            </button>
+            {erroCriar && (
+              <p className="text-xs text-center" style={{ color: '#FC8181' }}>⚠ {erroCriar}</p>
+            )}
+          </div>
         )}
       </div>
 
