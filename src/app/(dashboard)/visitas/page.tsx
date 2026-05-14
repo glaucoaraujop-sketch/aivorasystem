@@ -6,6 +6,8 @@ import { MapPin, Plus, Calendar, CheckCircle, Clock, RotateCcw, XCircle, Message
 import { useVisitas } from '@/hooks/useVisitas'
 import { formatPhone } from '@/lib/utils'
 import type { VisitStatus } from '@/types/database'
+import CronogramasTab from './CronogramasTab'
+import AgendaTab from './AgendaTab'
 
 const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   agendada:   { label: 'Agendada',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)',     icon: Calendar    },
@@ -14,7 +16,7 @@ const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: str
   reagendada: { label: 'Reagendada', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)',    icon: RotateCcw   },
 }
 
-const FILTROS: { value: VisitStatus | ''; label: string }[] = [
+const FILTROS_STATUS: { value: VisitStatus | ''; label: string }[] = [
   { value: '',           label: 'Todas'       },
   { value: 'agendada',   label: 'Agendadas'   },
   { value: 'realizada',  label: 'Realizadas'  },
@@ -22,7 +24,15 @@ const FILTROS: { value: VisitStatus | ''; label: string }[] = [
   { value: 'cancelada',  label: 'Canceladas'  },
 ]
 
-export default function VisitasPage() {
+type Aba = 'visitas' | 'cronogramas' | 'agenda'
+const ABAS: { value: Aba; label: string }[] = [
+  { value: 'visitas',     label: 'Visitas'     },
+  { value: 'cronogramas', label: 'Cronogramas' },
+  { value: 'agenda',      label: 'Agenda 4 Semanas' },
+]
+
+// ─── Aba de lista de visitas (conteúdo existente) ─────────────────────────────
+function VisitasListTab() {
   const [status, setStatus] = useState<VisitStatus | ''>('agendada')
   const { visitas, loading } = useVisitas({ status })
 
@@ -30,37 +40,11 @@ export default function VisitasPage() {
   const atrasadas = visitas.filter(v => v.status === 'agendada' && new Date(v.scheduled_at) < hoje)
 
   return (
-    <div className="max-w-5xl w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Visitas</h1>
-          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
-            {visitas.length} visita{visitas.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Link
-          href="/visitas/nova"
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 sm:flex-shrink-0"
-          style={{
-            background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
-            boxShadow: '0 4px 20px rgba(0, 117, 255, 0.3)',
-          }}
-        >
-          <Plus size={16} />
-          Agendar Visita
-        </Link>
-      </div>
-
+    <div>
       {/* Alerta de atrasadas */}
       {atrasadas.length > 0 && (
-        <div
-          className="rounded-2xl px-5 py-4 mb-6"
-          style={{
-            background: 'rgba(246,173,85,0.1)',
-            border: '1px solid rgba(246,173,85,0.25)',
-          }}
-        >
+        <div className="rounded-2xl px-5 py-4 mb-6"
+          style={{ background: 'rgba(246,173,85,0.1)', border: '1px solid rgba(246,173,85,0.25)' }}>
           <p className="text-sm font-semibold" style={{ color: '#F6AD55' }}>
             {atrasadas.length} visita{atrasadas.length > 1 ? 's' : ''} com data passada sem registro
           </p>
@@ -73,10 +57,8 @@ export default function VisitasPage() {
       {/* Filtros */}
       <div className="glass-card rounded-2xl p-4 mb-6">
         <div className="flex gap-2 flex-wrap">
-          {FILTROS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => setStatus(f.value as VisitStatus | '')}
+          {FILTROS_STATUS.map(f => (
+            <button key={f.value} onClick={() => setStatus(f.value as VisitStatus | '')}
               className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
               style={status === f.value ? {
                 background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
@@ -86,8 +68,7 @@ export default function VisitasPage() {
                 background: 'rgba(255,255,255,0.06)',
                 color: '#A0AEC0',
                 border: '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
+              }}>
               {f.label}
             </button>
           ))}
@@ -128,9 +109,7 @@ export default function VisitasPage() {
             const atrasada = v.status === 'agendada' && new Date(v.scheduled_at) < hoje
 
             return (
-              <Link
-                key={v.id}
-                href={`/visitas/${v.id}`}
+              <Link key={v.id} href={`/visitas/${v.id}`}
                 className="flex items-center gap-4 glass-card rounded-2xl p-4 transition-all group"
                 style={atrasada ? { border: '1px solid rgba(246,173,85,0.25)' } : undefined}
                 onMouseEnter={e => {
@@ -144,13 +123,11 @@ export default function VisitasPage() {
                     ? '1px solid rgba(246,173,85,0.25)'
                     : '1px solid rgba(255,255,255,0.08)'
                   ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-                }}
-              >
+                }}>
+
                 {/* Data/hora */}
-                <div
-                  className="flex-shrink-0 text-center w-16 py-2.5 rounded-xl"
-                  style={{ background: atrasada ? 'rgba(246,173,85,0.12)' : 'rgba(0,117,255,0.1)' }}
-                >
+                <div className="flex-shrink-0 text-center w-16 py-2.5 rounded-xl"
+                  style={{ background: atrasada ? 'rgba(246,173,85,0.12)' : 'rgba(0,117,255,0.1)' }}>
                   <p className="text-xs font-semibold" style={{ color: atrasada ? '#F6AD55' : '#0075FF' }}>
                     {new Date(v.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })}
                   </p>
@@ -165,12 +142,9 @@ export default function VisitasPage() {
                     <p className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
                       {v.clients?.name}
                     </p>
-                    <span
-                      className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
-                      style={{ color: cfg.color, background: cfg.bg }}
-                    >
-                      <StatusIcon size={10} />
-                      {cfg.label}
+                    <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
+                      style={{ color: cfg.color, background: cfg.bg }}>
+                      <StatusIcon size={10} /> {cfg.label}
                     </span>
                     {atrasada && (
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
@@ -195,16 +169,13 @@ export default function VisitasPage() {
 
                 {/* WhatsApp */}
                 {v.clients?.whatsapp && (
-                  <a
-                    href={`https://wa.me/55${v.clients.whatsapp.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <a href={`https://wa.me/55${v.clients.whatsapp.replace(/\D/g, '')}`}
+                    target="_blank" rel="noreferrer"
                     onClick={e => e.stopPropagation()}
                     className="flex-shrink-0 p-2.5 rounded-xl transition-all"
                     style={{ color: '#01B574' }}
                     onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(1,181,116,0.1)')}
-                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
-                  >
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
                     <MessageCircle size={18} />
                   </a>
                 )}
@@ -213,6 +184,54 @@ export default function VisitasPage() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+export default function VisitasPage() {
+  const [aba, setAba] = useState<Aba>('visitas')
+
+  return (
+    <div className="max-w-5xl w-full">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Visitas</h1>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
+            Gerencie visitas e cronogramas de visitação
+          </p>
+        </div>
+        {aba === 'visitas' && (
+          <Link href="/visitas/nova"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 sm:flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', boxShadow: '0 4px 20px rgba(0,117,255,0.3)' }}>
+            <Plus size={16} /> Agendar Visita
+          </Link>
+        )}
+      </div>
+
+      {/* Abas de navegação */}
+      <div className="glass-card rounded-2xl p-1.5 mb-6 flex gap-1">
+        {ABAS.map(a => (
+          <button key={a.value} onClick={() => setAba(a.value)}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={aba === a.value ? {
+              background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+              color: '#ffffff',
+              boxShadow: '0 2px 12px rgba(0,117,255,0.3)',
+            } : {
+              color: '#A0AEC0',
+            }}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Conteúdo da aba */}
+      {aba === 'visitas'     && <VisitasListTab />}
+      {aba === 'cronogramas' && <CronogramasTab />}
+      {aba === 'agenda'      && <AgendaTab />}
     </div>
   )
 }
