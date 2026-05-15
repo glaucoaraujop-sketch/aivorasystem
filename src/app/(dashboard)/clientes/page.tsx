@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Users, Plus, Search, MapPin, MessageCircle, Building2, UserCircle } from 'lucide-react'
 import { useClientes } from '@/hooks/useClientes'
 import { formatPhone } from '@/lib/utils'
+import { clientEngagement } from '@/lib/engagement'
 import type { ClientType } from '@/types/database'
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -204,7 +205,7 @@ export default function ClientesPage() {
                   )}
                 </div>
 
-                {/* Contato */}
+                {/* Contato + Engajamento */}
                 <div className="hidden sm:flex items-center gap-5 text-sm flex-shrink-0" style={{ color: '#A0AEC0' }}>
                   {c.whatsapp && (
                     <span className="flex items-center gap-1.5">
@@ -219,6 +220,16 @@ export default function ClientesPage() {
                     </span>
                   )}
                 </div>
+                {/* Badge de engajamento */}
+                {(() => {
+                  const eng = clientEngagement(c.active, c.last_order_at ?? null, c.created_at)
+                  return (
+                    <span className="flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold"
+                      style={{ color: eng.color, background: eng.bg }}>
+                      {eng.label}
+                    </span>
+                  )
+                })()}
               </Link>
             )
           })}

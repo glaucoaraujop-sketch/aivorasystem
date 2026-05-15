@@ -2,8 +2,9 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag } from 'lucide-react'
+import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag, ShoppingBag } from 'lucide-react'
 import { useCliente } from '@/hooks/useClientes'
+import { clientEngagement } from '@/lib/engagement'
 import { ClienteForm } from '@/components/forms/ClienteForm'
 import { formatPhone } from '@/lib/utils'
 import { useFornecedores, type Supplier } from '@/hooks/useFornecedores'
@@ -316,15 +317,32 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
                   <p className="font-medium text-white">{cliente.cpf_cnpj}</p>
                 </div>
               )}
-              <div>
-                <p className="text-xs mb-2" style={{ color: '#56577A' }}>Status</p>
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                  style={cliente.active
-                    ? { color: '#01B574', background: 'rgba(1,181,116,0.15)' }
-                    : { color: '#A0AEC0', background: 'rgba(160,174,192,0.12)' }}>
-                  {cliente.active ? 'Ativo' : 'Inativo'}
-                </span>
-              </div>
+              {(() => {
+                const eng = clientEngagement(
+                  cliente.active,
+                  (cliente as unknown as { last_order_at: string | null }).last_order_at ?? null,
+                  cliente.created_at,
+                )
+                return (
+                  <div>
+                    <p className="text-xs mb-2" style={{ color: '#56577A' }}>Status</p>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit"
+                        style={{ color: eng.color, background: eng.bg }}>
+                        {eng.label}
+                      </span>
+                      {eng.days !== null && cliente.active && (
+                        <p className="flex items-center gap-1 text-xs" style={{ color: '#56577A' }}>
+                          <ShoppingBag size={10} />
+                          {eng.days === 0
+                            ? 'Pedido hoje'
+                            : `${eng.days}d sem pedido`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
 

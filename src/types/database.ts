@@ -46,6 +46,7 @@ export interface Database {
           email_comunicado: string | null
           notes: string | null
           active: boolean
+          last_order_at: string | null
           created_at: string
           updated_at: string
         }
