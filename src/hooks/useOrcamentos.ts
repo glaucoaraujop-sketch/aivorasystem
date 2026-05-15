@@ -9,6 +9,8 @@ type Quote = Database['public']['Tables']['quotes']['Row']
 export type QuoteWithDetails = Quote & {
   clients: { name: string; company_name: string | null; whatsapp: string | null } | null
   price_tables: { name: string } | null
+  suppliers: { name: string } | null
+  purchase_order: string | null
   quote_items: {
     id: string
     quantity: number
@@ -34,7 +36,7 @@ export function useOrcamentos(filters: Filters = {}) {
     setLoading(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase.from('quotes') as any)
-      .select('*, clients(name, company_name, whatsapp), price_tables(name), quote_items(id, quantity, unit_price, discount_pct, total, notes, products(id, code, name, unit))')
+      .select('*, clients(name, company_name, whatsapp), price_tables(name), suppliers(name), quote_items(id, quantity, unit_price, discount_pct, total, notes, products(id, code, name, unit))')
       .order('created_at', { ascending: false })
 
     if (filters.status) query = query.eq('status', filters.status)
@@ -57,7 +59,7 @@ export function useOrcamento(id: string) {
   const fetch = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase.from('quotes') as any)
-      .select('*, clients(name, company_name, whatsapp), price_tables(name), quote_items(id, quantity, unit_price, discount_pct, total, notes, products(id, code, name, unit))')
+      .select('*, clients(name, company_name, whatsapp), price_tables(name), suppliers(name), quote_items(id, quantity, unit_price, discount_pct, total, notes, products(id, code, name, unit))')
       .eq('id', id).single()
     setOrcamento(data)
     setLoading(false)
@@ -71,7 +73,7 @@ export function useOrcamentosMutations() {
   const supabase = createClient()
 
   async function criar(
-    dados: { client_id: string; price_table_id?: string; discount_pct: number; valid_until?: string; notes?: string; subtotal: number; total: number },
+    dados: { client_id: string; supplier_id?: string; price_table_id?: string; purchase_order?: string; discount_pct?: number; valid_until?: string; notes?: string; subtotal: number; total: number },
     itens: { product_id: string; quantity: number; unit_price: number; discount_pct: number; total: number; notes?: string }[]
   ) {
     const { data: { user } } = await supabase.auth.getUser()
