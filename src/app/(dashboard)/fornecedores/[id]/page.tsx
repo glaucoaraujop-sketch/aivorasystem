@@ -2,14 +2,78 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Save, Phone, Mail, User, Edit, X } from 'lucide-react'
-import { useFornecedor, useFornecedoresMutations, calcularEntrega } from '@/hooks/useFornecedores'
+import { ArrowLeft, Clock, Save, Phone, Mail, User, Edit, X, Wrench, DollarSign, Truck, Award } from 'lucide-react'
+import { useFornecedor, useFornecedoresMutations, calcularEntrega, type Supplier } from '@/hooks/useFornecedores'
 import { formatDate, formatPhone } from '@/lib/utils'
+import { maskPhone } from '@/lib/masks'
 
 function prazoColor(days: number): { color: string; bg: string } {
   if (days <= 35) return { color: '#01B574', bg: 'rgba(1,181,116,0.15)'   }
   if (days <= 45) return { color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  }
   return             { color: '#FC8181', bg: 'rgba(252,129,129,0.15)'    }
+}
+
+const SETORES = [
+  {
+    key: 'assistencia',
+    label: 'Assistência Técnica',
+    icon: Wrench,
+    color: '#0075FF',
+    bg: 'rgba(0,117,255,0.1)',
+    border: 'rgba(0,117,255,0.25)',
+  },
+  {
+    key: 'financeiro',
+    label: 'Financeiro',
+    icon: DollarSign,
+    color: '#01B574',
+    bg: 'rgba(1,181,116,0.1)',
+    border: 'rgba(1,181,116,0.25)',
+  },
+  {
+    key: 'logistica',
+    label: 'Logística',
+    icon: Truck,
+    color: '#F6AD55',
+    bg: 'rgba(246,173,85,0.1)',
+    border: 'rgba(246,173,85,0.25)',
+  },
+  {
+    key: 'supervisor',
+    label: 'Supervisor de Vendas',
+    icon: Award,
+    color: '#9F7AEA',
+    bg: 'rgba(159,122,234,0.1)',
+    border: 'rgba(159,122,234,0.25)',
+  },
+] as const
+
+type SetorKey = typeof SETORES[number]['key']
+
+type FormState = {
+  name: string
+  lead_time_days: number
+  notes: string
+} & Record<`${SetorKey}_nome` | `${SetorKey}_whatsapp` | `${SetorKey}_email`, string>
+
+function buildForm(f: Supplier): FormState {
+  return {
+    name:           f.name,
+    lead_time_days: f.lead_time_days,
+    notes:          f.notes ?? '',
+    assistencia_nome:     f.assistencia_nome     ?? '',
+    assistencia_whatsapp: f.assistencia_whatsapp ?? '',
+    assistencia_email:    f.assistencia_email    ?? '',
+    financeiro_nome:      f.financeiro_nome      ?? '',
+    financeiro_whatsapp:  f.financeiro_whatsapp  ?? '',
+    financeiro_email:     f.financeiro_email     ?? '',
+    logistica_nome:       f.logistica_nome       ?? '',
+    logistica_whatsapp:   f.logistica_whatsapp   ?? '',
+    logistica_email:      f.logistica_email      ?? '',
+    supervisor_nome:      f.supervisor_nome      ?? '',
+    supervisor_whatsapp:  f.supervisor_whatsapp  ?? '',
+    supervisor_email:     f.supervisor_email     ?? '',
+  }
 }
 
 export default function FornecedorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,22 +85,21 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
 
-  const [form, setForm] = useState({
-    name: '', lead_time_days: 0, contact_name: '',
-    phone: '', whatsapp: '', email: '', notes: '',
+  const [form, setForm] = useState<FormState>({
+    name: '', lead_time_days: 0, notes: '',
+    assistencia_nome: '', assistencia_whatsapp: '', assistencia_email: '',
+    financeiro_nome:  '', financeiro_whatsapp:  '', financeiro_email:  '',
+    logistica_nome:   '', logistica_whatsapp:   '', logistica_email:   '',
+    supervisor_nome:  '', supervisor_whatsapp:  '', supervisor_email:  '',
   })
+
+  function set<K extends keyof FormState>(field: K, value: FormState[K]) {
+    setForm(p => ({ ...p, [field]: value }))
+  }
 
   function iniciarEdicao() {
     if (!fornecedor) return
-    setForm({
-      name:           fornecedor.name,
-      lead_time_days: fornecedor.lead_time_days,
-      contact_name:   fornecedor.contact_name ?? '',
-      phone:          fornecedor.phone ?? '',
-      whatsapp:       fornecedor.whatsapp ?? '',
-      email:          fornecedor.email ?? '',
-      notes:          fornecedor.notes ?? '',
-    })
+    setForm(buildForm(fornecedor))
     setEditando(true)
   }
 
@@ -44,13 +107,21 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
     setSaving(true); setError('')
     try {
       await atualizar(id, {
-        ...form,
+        name:           form.name,
         lead_time_days: Number(form.lead_time_days),
-        contact_name: form.contact_name || null,
-        phone:        form.phone || null,
-        whatsapp:     form.whatsapp || null,
-        email:        form.email || null,
-        notes:        form.notes || null,
+        notes:          form.notes || null,
+        assistencia_nome:     form.assistencia_nome     || null,
+        assistencia_whatsapp: form.assistencia_whatsapp || null,
+        assistencia_email:    form.assistencia_email    || null,
+        financeiro_nome:      form.financeiro_nome      || null,
+        financeiro_whatsapp:  form.financeiro_whatsapp  || null,
+        financeiro_email:     form.financeiro_email     || null,
+        logistica_nome:       form.logistica_nome       || null,
+        logistica_whatsapp:   form.logistica_whatsapp   || null,
+        logistica_email:      form.logistica_email      || null,
+        supervisor_nome:      form.supervisor_nome      || null,
+        supervisor_whatsapp:  form.supervisor_whatsapp  || null,
+        supervisor_email:     form.supervisor_email     || null,
       })
       setEditando(false)
       window.location.reload()
@@ -60,7 +131,7 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
   }
 
   if (loading) return (
-    <div className="max-w-xl w-full space-y-4 animate-pulse">
+    <div className="max-w-2xl w-full space-y-4 animate-pulse">
       <div className="h-8 rounded-xl w-1/2" style={{ background: 'rgba(255,255,255,0.06)' }} />
       <div className="h-32 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }} />
     </div>
@@ -76,25 +147,28 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
   const previsao = calcularEntrega(editando ? Number(form.lead_time_days) : fornecedor.lead_time_days)
 
   return (
-    <div className="max-w-xl w-full">
+    <div className="max-w-2xl w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div className="flex items-start gap-3">
-          <Link
-            href="/fornecedores"
+          <Link href="/fornecedores"
             className="mt-1 p-2 rounded-xl transition-all flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: '#A0AEC0' }}
             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#ffffff')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#A0AEC0')}
-          >
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#A0AEC0')}>
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-2xl font-black text-white">{fornecedor.name}</h1>
+          {editando ? (
+            <input value={form.name} onChange={e => set('name', e.target.value)}
+              className="input-dark text-2xl font-black px-3 py-1.5 rounded-xl w-full" />
+          ) : (
+            <h1 className="text-2xl font-black text-white">{fornecedor.name}</h1>
+          )}
         </div>
         <div className="flex gap-2 sm:flex-shrink-0">
           {!editando ? (
             <button onClick={iniciarEdicao}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#A0AEC0' }}>
               <Edit size={15} /> Editar
             </button>
@@ -127,7 +201,7 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
               <label className="block text-xs font-semibold mb-2" style={{ color: '#A0AEC0' }}>Prazo em dias *</label>
               <input type="number" min="1" max="365"
                 value={form.lead_time_days}
-                onChange={e => setForm(p => ({ ...p, lead_time_days: parseInt(e.target.value) || 0 }))}
+                onChange={e => set('lead_time_days', parseInt(e.target.value) || 0)}
                 className="input-dark w-32 px-3 py-2.5 rounded-xl text-sm" />
             </div>
           ) : (
@@ -146,52 +220,87 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        {/* Contato */}
+        {/* Contatos Setoriais */}
         <div className="glass-card rounded-2xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#A0AEC0' }}>Contato</p>
-          {editando ? (
-            <div className="space-y-3">
-              {[
-                { label: 'Nome do contato', field: 'contact_name', placeholder: 'ex: João Silva' },
-                { label: 'WhatsApp',        field: 'whatsapp',     placeholder: '(00) 00000-0000' },
-                { label: 'Telefone',        field: 'phone',        placeholder: '(00) 0000-0000'  },
-                { label: 'E-mail',          field: 'email',        placeholder: 'contato@empresa.com' },
-              ].map(({ label, field, placeholder }) => (
-                <div key={field}>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#A0AEC0' }}>{label}</label>
-                  <input value={form[field as keyof typeof form]} placeholder={placeholder}
-                    onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))}
-                    className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+          <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#A0AEC0' }}>
+            Contatos por Setor
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {SETORES.map(setor => {
+              const Icon = setor.icon
+              const nome     = editando ? form[`${setor.key}_nome`]     : fornecedor[`${setor.key}_nome`]
+              const whatsapp = editando ? form[`${setor.key}_whatsapp`] : fornecedor[`${setor.key}_whatsapp`]
+              const email    = editando ? form[`${setor.key}_email`]    : fornecedor[`${setor.key}_email`]
+              const temDados = !editando && (nome || whatsapp || email)
+
+              return (
+                <div key={setor.key} className="rounded-xl p-4"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${setor.border}` }}>
+
+                  {/* Header do setor */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: setor.bg }}>
+                      <Icon size={13} style={{ color: setor.color }} />
+                    </div>
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: setor.color }}>
+                      {setor.label}
+                    </p>
+                  </div>
+
+                  {editando ? (
+                    <div className="space-y-2">
+                      {[
+                        { field: `${setor.key}_nome`     as keyof FormState, label: 'Nome',      placeholder: 'Nome do contato' },
+                        { field: `${setor.key}_whatsapp` as keyof FormState, label: 'WhatsApp',  placeholder: '(00) 00000-0000' },
+                        { field: `${setor.key}_email`    as keyof FormState, label: 'E-mail',    placeholder: 'email@empresa.com' },
+                      ].map(({ field, label, placeholder }) => (
+                        <div key={field}>
+                          <label className="block text-xs mb-1" style={{ color: '#56577A' }}>{label}</label>
+                          <input
+                            value={form[field] as string}
+                            placeholder={placeholder}
+                            onChange={e => {
+                              const val = field.toString().includes('whatsapp')
+                                ? maskPhone(e.target.value)
+                                : e.target.value
+                              set(field, val as FormState[typeof field])
+                            }}
+                            className="input-dark w-full px-2.5 py-2 rounded-lg text-xs"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : temDados ? (
+                    <div className="space-y-1.5 text-xs">
+                      {nome && (
+                        <p className="flex items-center gap-1.5" style={{ color: '#A0AEC0' }}>
+                          <User size={11} style={{ color: '#56577A' }} /> {nome}
+                        </p>
+                      )}
+                      {whatsapp && (
+                        <a href={`https://wa.me/55${whatsapp.replace(/\D/g, '')}`}
+                          target="_blank" rel="noreferrer"
+                          className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                          style={{ color: '#01B574' }}>
+                          <Phone size={11} /> {formatPhone(whatsapp)}
+                        </a>
+                      )}
+                      {email && (
+                        <a href={`mailto:${email}`}
+                          className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                          style={{ color: '#0075FF' }}>
+                          <Mail size={11} /> {email}
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs" style={{ color: '#56577A' }}>Não cadastrado</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3 text-sm">
-              {fornecedor.contact_name && (
-                <p className="flex items-center gap-2" style={{ color: '#A0AEC0' }}>
-                  <User size={14} style={{ color: '#56577A' }} /> {fornecedor.contact_name}
-                </p>
-              )}
-              {fornecedor.whatsapp && (
-                <p className="flex items-center gap-2" style={{ color: '#01B574' }}>
-                  <Phone size={14} /> {formatPhone(fornecedor.whatsapp)}
-                </p>
-              )}
-              {fornecedor.phone && (
-                <p className="flex items-center gap-2" style={{ color: '#A0AEC0' }}>
-                  <Phone size={14} style={{ color: '#56577A' }} /> {formatPhone(fornecedor.phone)}
-                </p>
-              )}
-              {fornecedor.email && (
-                <p className="flex items-center gap-2" style={{ color: '#0075FF' }}>
-                  <Mail size={14} /> {fornecedor.email}
-                </p>
-              )}
-              {!fornecedor.contact_name && !fornecedor.whatsapp && !fornecedor.phone && !fornecedor.email && (
-                <p style={{ color: '#56577A' }}>Nenhum contato cadastrado.</p>
-              )}
-            </div>
-          )}
+              )
+            })}
+          </div>
         </div>
 
         {/* Observações */}
@@ -199,7 +308,7 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#A0AEC0' }}>Observações</p>
           {editando ? (
             <textarea value={form.notes} rows={3}
-              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+              onChange={e => set('notes', e.target.value)}
               placeholder="Condições comerciais, restrições, observações gerais..."
               className="input-dark w-full px-3 py-2.5 rounded-xl text-sm resize-none" />
           ) : (

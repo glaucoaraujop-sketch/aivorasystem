@@ -15,6 +15,19 @@ export interface Supplier {
   active: boolean
   created_at: string
   updated_at: string
+  // Contatos setoriais
+  assistencia_nome:     string | null
+  assistencia_whatsapp: string | null
+  assistencia_email:    string | null
+  financeiro_nome:      string | null
+  financeiro_whatsapp:  string | null
+  financeiro_email:     string | null
+  logistica_nome:       string | null
+  logistica_whatsapp:   string | null
+  logistica_email:      string | null
+  supervisor_nome:      string | null
+  supervisor_whatsapp:  string | null
+  supervisor_email:     string | null
 }
 
 export function useFornecedores() {
