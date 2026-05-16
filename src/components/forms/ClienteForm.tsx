@@ -55,6 +55,7 @@ export function ClienteForm({ cliente }: Props) {
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
+    priority:             String(cliente?.priority ?? ''),
     name:                 cliente?.name ?? '',
     company_name:         cliente?.company_name ?? '',
     razao_social:         cliente?.razao_social ?? '',
@@ -102,6 +103,7 @@ export function ClienteForm({ cliente }: Props) {
     try {
       const n = (v: string) => v.trim() || null
       const payload = {
+        priority:             form.priority ? parseInt(form.priority) : null,
         name:                 form.name,
         company_name:         n(form.company_name),
         razao_social:         n(form.razao_social),
@@ -177,6 +179,17 @@ export function ClienteForm({ cliente }: Props) {
           <Field label="Nº de Lojas">
             <input type="number" min="0" value={form.num_lojas} onChange={e => set('num_lojas', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
+          <Field label="Prioridade de visita">
+            <select value={form.priority} onChange={e => set('priority', e.target.value)}
+              className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
+              <option value="">Sem prioridade definida</option>
+              <option value="1">P1 — Visita mais frequente (VIP)</option>
+              <option value="2">P2 — Cadência regular</option>
+              <option value="3">P3 — Em desenvolvimento</option>
+              <option value="4">P4 — Baixa frequência</option>
+            </select>
+          </Field>
+
           <div className="flex items-center gap-3 pt-1">
             <input type="checkbox" id="area_restrita" checked={form.area_restrita}
               onChange={e => set('area_restrita', e.target.checked)}

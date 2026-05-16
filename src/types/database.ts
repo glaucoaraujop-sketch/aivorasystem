@@ -46,6 +46,7 @@ export interface Database {
           email_comunicado: string | null
           notes: string | null
           active: boolean
+          priority: number | null
           last_order_at: string | null
           created_at: string
           updated_at: string
@@ -84,6 +85,7 @@ export interface Database {
           email_comunicado?: string | null
           notes?: string | null
           active?: boolean
+          priority?: number | null
         }
         Update: {
           name?: string
@@ -118,6 +120,7 @@ export interface Database {
           email_comunicado?: string | null
           notes?: string | null
           active?: boolean
+          priority?: number | null
         }
       }
       products: {

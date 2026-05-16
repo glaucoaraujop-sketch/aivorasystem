@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Users, Package, FileText, ShoppingCart,
-  DollarSign, MapPin, BarChart2, Truck, Wrench, LogOut, Menu, X,
+  DollarSign, MapPin, BarChart2, Truck, Wrench, LogOut, Menu, X, Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +22,7 @@ const nav = [
   { href: '/fornecedores', label: 'Fornecedores',     icon: Truck },
   { href: '/assistencia',  label: 'Assist. Técnica',  icon: Wrench },
   { href: '/relatorios',   label: 'Relatórios',       icon: BarChart2 },
+  { href: '/configuracoes', label: 'Configurações',   icon: Settings  },
 ]
 
 function NavLinks({ onClick }: { onClick?: () => void }) {

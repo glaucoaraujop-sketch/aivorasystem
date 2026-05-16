@@ -8,6 +8,7 @@ import { formatPhone } from '@/lib/utils'
 import type { VisitStatus } from '@/types/database'
 import CronogramasTab from './CronogramasTab'
 import AgendaTab from './AgendaTab'
+import PrioridadesTab from './PrioridadesTab'
 
 const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   agendada:   { label: 'Agendada',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)',     icon: Calendar    },
@@ -24,10 +25,11 @@ const FILTROS_STATUS: { value: VisitStatus | ''; label: string }[] = [
   { value: 'cancelada',  label: 'Canceladas'  },
 ]
 
-type Aba = 'visitas' | 'cronogramas' | 'agenda'
+type Aba = 'visitas' | 'prioridades' | 'cronogramas' | 'agenda'
 const ABAS: { value: Aba; label: string }[] = [
-  { value: 'visitas',     label: 'Visitas'     },
-  { value: 'cronogramas', label: 'Cronogramas' },
+  { value: 'visitas',     label: 'Visitas'        },
+  { value: 'prioridades', label: 'Prioridades'    },
+  { value: 'cronogramas', label: 'Cronogramas'    },
   { value: 'agenda',      label: 'Agenda 4 Semanas' },
 ]
 
@@ -230,6 +232,7 @@ export default function VisitasPage() {
 
       {/* Conteúdo da aba */}
       {aba === 'visitas'     && <VisitasListTab />}
+      {aba === 'prioridades' && <PrioridadesTab />}
       {aba === 'cronogramas' && <CronogramasTab />}
       {aba === 'agenda'      && <AgendaTab />}
     </div>
