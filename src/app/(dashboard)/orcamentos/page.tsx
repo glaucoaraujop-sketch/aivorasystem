@@ -42,7 +42,7 @@ export default function OrcamentosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Orçamentos</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Orçamentos</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             {orcamentos.length} orçamento{orcamentos.length !== 1 ? 's' : ''}
           </p>
@@ -75,7 +75,7 @@ export default function OrcamentosPage() {
             >
               {label}
             </span>
-            <p className="text-3xl font-black text-white">{loading ? '—' : count}</p>
+            <p className="text-3xl font-bold text-white">{loading ? '—' : count}</p>
           </button>
         ))}
       </div>
@@ -90,7 +90,7 @@ export default function OrcamentosPage() {
           }}
         >
           <p className="text-sm font-medium" style={{ color: '#01B574' }}>Total aprovado</p>
-          <p className="text-xl font-black" style={{ color: '#01B574' }}>{formatCurrency(totalAprovado)}</p>
+          <p className="text-xl font-semibold" style={{ color: '#01B574' }}>{formatCurrency(totalAprovado)}</p>
         </div>
       )}
 
@@ -173,7 +173,7 @@ export default function OrcamentosPage() {
                   )}
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-lg font-black text-white">{formatCurrency(o.total)}</p>
+                  <p className="text-lg font-semibold text-white">{formatCurrency(o.total)}</p>
                   <p className="text-xs" style={{ color: '#56577A' }}>
                     {o.quote_items?.length ?? 0} {o.quote_items?.length === 1 ? 'item' : 'itens'} · {formatDate(o.created_at)}
                   </p>

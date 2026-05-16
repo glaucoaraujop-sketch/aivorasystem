@@ -109,7 +109,7 @@ export default function ConfiguracoesPage() {
           <Settings size={22} style={{ color: '#0075FF' }} />
         </div>
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Configurações</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Configurações</h1>
           <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>Preferências do sistema de representação</p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function ConfiguracoesPage() {
                     border: '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
-                  <span className="text-base font-black">{d.short}</span>
+                  <span className="text-base font-semibold">{d.short}</span>
                   <span className="text-xs font-medium hidden sm:block"
                     style={{ color: active ? 'rgba(255,255,255,0.8)' : '#56577A' }}>
                     {d.label.slice(0, 3)}
@@ -187,7 +187,7 @@ export default function ConfiguracoesPage() {
             {PRIORITY_CONFIG.map((p, i) => (
               <div key={p.key} className="flex items-center gap-4 rounded-xl px-4 py-3"
                 style={{ background: p.bg, border: `1px solid ${p.border}` }}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black"
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-semibold"
                   style={{ background: p.color, color: '#ffffff' }}>
                   P{p.key}
                 </div>

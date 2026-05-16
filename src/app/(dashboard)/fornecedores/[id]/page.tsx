@@ -160,9 +160,9 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
           </Link>
           {editando ? (
             <input value={form.name} onChange={e => set('name', e.target.value)}
-              className="input-dark text-2xl font-black px-3 py-1.5 rounded-xl w-full" />
+              className="input-dark text-2xl font-bold px-3 py-1.5 rounded-xl w-full" />
           ) : (
-            <h1 className="text-2xl font-black text-white">{fornecedor.name}</h1>
+            <h1 className="text-2xl font-semibold text-white">{fornecedor.name}</h1>
           )}
         </div>
         <div className="flex gap-2 sm:flex-shrink-0">
@@ -206,7 +206,7 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-2 px-4 py-2 rounded-full text-xl font-black"
+              <span className="flex items-center gap-2 px-4 py-2 rounded-full text-xl font-semibold"
                 style={{ color: prazo.color, background: prazo.bg }}>
                 <Clock size={20} />
                 {fornecedor.lead_time_days} dias
@@ -216,7 +216,7 @@ export default function FornecedorPage({ params }: { params: Promise<{ id: strin
           <div className="mt-4 rounded-xl px-4 py-3"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-xs mb-0.5" style={{ color: '#56577A' }}>Se pedir hoje, entrega em:</p>
-            <p className="font-black text-white text-lg">{formatDate(previsao)}</p>
+            <p className="font-semibold text-white text-lg">{formatDate(previsao)}</p>
           </div>
         </div>
 

@@ -19,7 +19,7 @@ export default function FornecedoresPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Fornecedores</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Fornecedores</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Fábricas parceiras e prazos de produção</p>
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function FornecedoresPage() {
                       <Truck size={18} style={{ color: '#0075FF' }} />
                     </div>
                     <div>
-                      <h2 className="text-lg font-black text-white group-hover:text-blue-400 transition-colors">
+                      <h2 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
                         {f.name}
                       </h2>
                       {f.contact_name && (

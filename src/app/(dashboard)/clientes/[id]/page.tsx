@@ -84,7 +84,7 @@ function FabricaTermCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ac.color }} />
-          <p className="font-black text-white text-sm">{supplier.name}</p>
+          <p className="font-semibold text-white text-sm">{supplier.name}</p>
         </div>
         {!editing ? (
           <button onClick={abrirEdicao}
@@ -169,7 +169,7 @@ function FabricaTermCard({
             <div className="flex items-center gap-2">
               <Tag size={11} style={{ color: '#56577A' }} />
               <span className="text-xs font-semibold" style={{ color: '#56577A' }}>Tabela</span>
-              <span className="px-2 py-0.5 rounded-lg text-xs font-black"
+              <span className="px-2 py-0.5 rounded-lg text-xs font-semibold"
                 style={{ color: ac.color, background: ac.bg }}>
                 {term.price_table}
               </span>
@@ -179,7 +179,7 @@ function FabricaTermCard({
             <div className="flex items-center gap-2">
               <Percent size={11} style={{ color: '#56577A' }} />
               <span className="text-xs font-semibold" style={{ color: '#56577A' }}>Desconto</span>
-              <span className="text-sm font-black" style={{ color: '#01B574' }}>
+              <span className="text-sm font-semibold" style={{ color: '#01B574' }}>
                 {term.discount_pct}%
               </span>
             </div>
@@ -272,7 +272,7 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-white leading-tight">{cliente.name}</h1>
+            <h1 className="text-2xl font-semibold text-white leading-tight">{cliente.name}</h1>
             {cliente.company_name && (
               <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>{cliente.company_name}</p>
             )}

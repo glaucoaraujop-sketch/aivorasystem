@@ -449,7 +449,7 @@ export function OrcamentoForm() {
 
         {itens.length > 0 && (
           <div className="pt-4 text-sm" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="flex justify-between font-black text-base"
+            <div className="flex justify-between font-semibold text-base"
               style={{ color: '#2CD9FF' }}>
               <span className="text-white">Total</span>
               <span>{formatCurrency(total)}</span>

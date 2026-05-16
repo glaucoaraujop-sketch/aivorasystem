@@ -105,7 +105,7 @@ export default function AgendaTab() {
       {/* Header de ação */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
-          <h2 className="text-lg font-black text-white">Agenda — Próximas 4 Semanas</h2>
+          <h2 className="text-lg font-semibold text-white">Agenda — Próximas 4 Semanas</h2>
           <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>
             Gerada com base nos seus cronogramas e última visita de cada cliente
           </p>
@@ -125,13 +125,13 @@ export default function AgendaTab() {
             <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#A0AEC0' }}>
               Clientes agendados
             </p>
-            <p className="text-2xl font-black" style={{ color: '#0075FF' }}>{totalClientes}</p>
+            <p className="text-2xl font-bold" style={{ color: '#0075FF' }}>{totalClientes}</p>
           </div>
           <div className="glass-card rounded-xl px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#A0AEC0' }}>
               Visitas/dia
             </p>
-            <p className="text-2xl font-black text-white">{settings?.clients_per_day ?? 5}</p>
+            <p className="text-2xl font-bold text-white">{settings?.clients_per_day ?? 5}</p>
           </div>
           {semFolga > 0 && (
             <div className="glass-card rounded-xl px-4 py-3"
@@ -139,7 +139,7 @@ export default function AgendaTab() {
               <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#F6AD55' }}>
                 Sem encaixe
               </p>
-              <p className="text-2xl font-black" style={{ color: '#F6AD55' }}>{semFolga}</p>
+              <p className="text-2xl font-bold" style={{ color: '#F6AD55' }}>{semFolga}</p>
             </div>
           )}
         </div>
@@ -181,7 +181,7 @@ export default function AgendaTab() {
                             style={{ color: isHoje ? '#0075FF' : '#56577A' }}>
                             {diaSemana}
                           </span>
-                          <span className="text-lg font-black leading-none"
+                          <span className="text-lg font-semibold leading-none"
                             style={{ color: isHoje ? '#0075FF' : '#ffffff' }}>
                             {slot.date.getDate().toString().padStart(2, '0')}
                           </span>

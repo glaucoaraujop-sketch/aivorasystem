@@ -277,7 +277,7 @@ export default function ProdutoPage({ params }: { params: Promise<{ id: string }
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-white leading-tight">{produto.name}</h1>
+            <h1 className="text-2xl font-semibold text-white leading-tight">{produto.name}</h1>
             <p className="text-sm font-mono mt-0.5" style={{ color: '#56577A' }}>{produto.code}</p>
           </div>
         </div>

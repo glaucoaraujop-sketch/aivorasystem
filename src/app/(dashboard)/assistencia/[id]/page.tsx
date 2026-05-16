@@ -80,7 +80,7 @@ export default function AssistenciaDetalhe() {
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-black text-white">Assistência Técnica</h1>
+          <h1 className="text-2xl font-semibold text-white">Assistência Técnica</h1>
           <p className="text-sm mt-0.5 truncate" style={{ color: '#A0AEC0' }}>
             {assistencia.product_name ?? assistencia.products?.name ?? 'Produto não vinculado'}
           </p>

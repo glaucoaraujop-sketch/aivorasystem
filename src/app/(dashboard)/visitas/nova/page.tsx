@@ -65,7 +65,7 @@ export default function NovaVisitaPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-black text-white">Agendar Visita</h1>
+          <h1 className="text-2xl font-semibold text-white">Agendar Visita</h1>
           <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>Registre uma visita a um cliente</p>
         </div>
       </div>

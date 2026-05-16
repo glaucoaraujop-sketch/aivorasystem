@@ -167,7 +167,7 @@ export default function NovaAssistenciaPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-black text-white">Nova Solicitação de Assistência</h1>
+          <h1 className="text-2xl font-semibold text-white">Nova Solicitação de Assistência</h1>
           <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>Registre um produto com defeito</p>
         </div>
       </div>

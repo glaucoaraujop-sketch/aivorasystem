@@ -106,7 +106,7 @@ export default function VisitaDetalhe() {
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-black text-white">Visita</h1>
+          <h1 className="text-2xl font-semibold text-white">Visita</h1>
           <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>{visita.clients?.name}</p>
         </div>
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold flex-shrink-0"

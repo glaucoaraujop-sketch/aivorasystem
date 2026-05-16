@@ -453,7 +453,7 @@ export function PedidoForm() {
                 <span>{formatCurrency(comissaoValor)}</span>
               </div>
             )}
-            <div className="flex justify-between font-black text-base pt-2"
+            <div className="flex justify-between font-semibold text-base pt-2"
               style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: '#2CD9FF' }}>
               <span className="text-white">Total do Pedido</span>
               <span>{formatCurrency(total)}</span>

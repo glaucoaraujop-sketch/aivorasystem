@@ -90,7 +90,7 @@ function ConfigPanel() {
             <button onClick={() => setClientesPerDia(v => Math.max(1, v - 1))}
               className="w-8 h-8 rounded-lg text-lg font-bold flex items-center justify-center transition-all hover:opacity-80"
               style={{ background: 'rgba(255,255,255,0.08)', color: '#A0AEC0' }}>−</button>
-            <span className="text-2xl font-black text-white w-8 text-center">{clientesPerDia}</span>
+            <span className="text-2xl font-bold text-white w-8 text-center">{clientesPerDia}</span>
             <button onClick={() => setClientesPerDia(v => Math.min(20, v + 1))}
               className="w-8 h-8 rounded-lg text-lg font-bold flex items-center justify-center transition-all hover:opacity-80"
               style={{ background: 'rgba(255,255,255,0.08)', color: '#A0AEC0' }}>+</button>
@@ -202,7 +202,7 @@ function CronogramaCard({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <p className="font-black text-white text-base truncate">{schedule.name}</p>
+              <p className="font-semibold text-white text-base truncate">{schedule.name}</p>
               <button onClick={() => { setNomeEdit(schedule.name); setEditandoNome(true) }}
                 className="p-1 transition-opacity hover:opacity-60 flex-shrink-0"
                 style={{ color: '#56577A' }}><Edit2 size={12} /></button>

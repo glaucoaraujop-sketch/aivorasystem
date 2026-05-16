@@ -44,7 +44,7 @@ export default function PedidosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Pedidos</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Pedidos</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''}
           </p>
@@ -72,7 +72,7 @@ export default function PedidosPage() {
                 <Icon size={16} style={{ color }} />
               </div>
             </div>
-            <p className="text-2xl font-black text-white">{loading ? '—' : value}</p>
+            <p className="text-2xl font-bold text-white">{loading ? '—' : value}</p>
           </div>
         ))}
       </div>
@@ -170,7 +170,7 @@ export default function PedidosPage() {
                   )}
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-lg font-black text-white">{formatCurrency(p.total)}</p>
+                  <p className="text-lg font-semibold text-white">{formatCurrency(p.total)}</p>
                   <p className="text-xs" style={{ color: '#56577A' }}>{formatDate(p.created_at)}</p>
                   {p.commission_value && (
                     <p className="text-xs font-medium" style={{ color: '#01B574' }}>

@@ -57,7 +57,7 @@ function ClienteCard({ c, showConflict }: { c: ClientePrio; showConflict: boolea
       style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${atrasado ? 'rgba(252,129,129,0.2)' : 'rgba(255,255,255,0.06)'}` }}>
 
       {/* Badge prioridade */}
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-black"
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-semibold"
         style={{ background: pc.color, color: '#fff' }}>
         {pc.label}
       </div>
@@ -285,7 +285,7 @@ export default function PrioridadesTab() {
             <div key={p} className="glass-card rounded-xl px-4 py-3"
               style={{ border: `1px solid ${pc.border}`, background: pc.bg }}>
               <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: pc.color }}>P{p}</p>
-              <p className="text-2xl font-black text-white">{cnt}</p>
+              <p className="text-2xl font-bold text-white">{cnt}</p>
               <p className="text-xs" style={{ color: '#A0AEC0' }}>clientes</p>
             </div>
           )

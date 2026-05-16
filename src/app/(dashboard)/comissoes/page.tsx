@@ -68,7 +68,7 @@ export default function ComissoesPage() {
     <div className="max-w-5xl w-full">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-white tracking-tight">Comissões</h1>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">Comissões</h1>
         <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Acompanhe suas comissões por pedido</p>
       </div>
 
@@ -82,7 +82,7 @@ export default function ComissoesPage() {
               </div>
               <p className="text-sm font-medium" style={{ color: '#A0AEC0' }}>{label}</p>
             </div>
-            <p className="text-2xl font-black text-white">{loading ? '—' : formatCurrency(value)}</p>
+            <p className="text-2xl font-bold text-white">{loading ? '—' : formatCurrency(value)}</p>
             <p className="text-xs mt-1" style={{ color: '#56577A' }}>{count} comissões</p>
           </div>
         ))}
@@ -105,7 +105,7 @@ export default function ComissoesPage() {
               Verifique com o cliente o pagamento
             </p>
           </div>
-          <p className="text-lg font-black" style={{ color: '#F6AD55' }}>
+          <p className="text-lg font-semibold" style={{ color: '#F6AD55' }}>
             {formatCurrency(vencidas.reduce((a, c) => a + c.value, 0))}
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function ComissoesPage() {
 
                   {/* Valor */}
                   <div className="text-right mr-4 flex-shrink-0">
-                    <p className="text-xl font-black text-white">{formatCurrency(c.value)}</p>
+                    <p className="text-xl font-semibold text-white">{formatCurrency(c.value)}</p>
                     <p className="text-xs" style={{ color: '#56577A' }}>{c.pct}% do pedido</p>
                     {c.orders?.total && (
                       <p className="text-xs" style={{ color: '#56577A' }}>{formatCurrency(c.orders.total)}</p>

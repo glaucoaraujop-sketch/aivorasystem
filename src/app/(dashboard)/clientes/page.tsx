@@ -71,7 +71,7 @@ export default function ClientesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Clientes</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Clientes</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Gerencie sua base de clientes</p>
         </div>
         <Link
@@ -97,7 +97,7 @@ export default function ClientesPage() {
                 <Icon size={16} style={{ color }} />
               </div>
             </div>
-            <p className="text-3xl font-black text-white">{loading ? '—' : value}</p>
+            <p className="text-3xl font-bold text-white">{loading ? '—' : value}</p>
           </div>
         ))}
       </div>

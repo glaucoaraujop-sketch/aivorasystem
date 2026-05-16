@@ -133,7 +133,7 @@ function VisitasListTab() {
                   <p className="text-xs font-semibold" style={{ color: atrasada ? '#F6AD55' : '#0075FF' }}>
                     {new Date(v.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })}
                   </p>
-                  <p className="text-lg font-black text-white">
+                  <p className="text-lg font-semibold text-white">
                     {new Date(v.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -199,7 +199,7 @@ export default function VisitasPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Visitas</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Visitas</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             Gerencie visitas e cronogramas de visitação
           </p>

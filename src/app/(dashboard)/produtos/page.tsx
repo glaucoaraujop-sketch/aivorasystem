@@ -65,7 +65,7 @@ function ProdutoCard({ p }: { p: ReturnType<typeof useProdutos>['produtos'][0] }
             </span>
           )}
           {precoMin !== null && (
-            <span className="text-sm font-black" style={{ color: accent.color }}>
+            <span className="text-sm font-semibold" style={{ color: accent.color }}>
               {formatCurrency(precoMin)}
             </span>
           )}
@@ -106,7 +106,7 @@ export default function ProdutosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Catálogo</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Catálogo</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             {produtos.length} produto{produtos.length !== 1 ? 's' : ''}
           </p>
@@ -223,7 +223,7 @@ export default function ProdutosPage() {
                   className="flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl"
                   style={{ background: acc.bg, border: `1px solid ${acc.color}30` }}
                 >
-                  <h2 className="font-black text-lg" style={{ color: acc.color }}>{brandName}</h2>
+                  <h2 className="font-semibold text-lg" style={{ color: acc.color }}>{brandName}</h2>
                   <span className="text-sm" style={{ color: `${acc.color}99` }}>
                     {items.length} produto{items.length !== 1 ? 's' : ''}
                   </span>

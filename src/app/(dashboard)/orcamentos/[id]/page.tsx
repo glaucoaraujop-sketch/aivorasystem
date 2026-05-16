@@ -64,7 +64,7 @@ export default function OrcamentoPage({ params }: { params: Promise<{ id: string
                 {cfg.label}
               </span>
             </div>
-            <h1 className="text-2xl font-black text-white">{orcamento.clients?.name}</h1>
+            <h1 className="text-2xl font-semibold text-white">{orcamento.clients?.name}</h1>
           </div>
         </div>
 
@@ -192,7 +192,7 @@ export default function OrcamentoPage({ params }: { params: Promise<{ id: string
               <span>− {formatCurrency(orcamento.subtotal - orcamento.total)}</span>
             </div>
           )}
-          <div className="flex justify-between font-black text-base pt-2"
+          <div className="flex justify-between font-semibold text-base pt-2"
             style={{ borderTop: '1px solid rgba(255,255,255,0.08)', color: '#ffffff' }}>
             <span>Total</span>
             <span style={{ color: '#2CD9FF' }}>{formatCurrency(orcamento.total)}</span>

@@ -41,7 +41,7 @@ function KpiCard({
           <Icon size={15} style={{ color: '#0075FF' }} />
         </div>
       </div>
-      <p className="text-2xl font-black text-white mb-1">{value}</p>
+      <p className="text-2xl font-bold text-white mb-1">{value}</p>
       {sub && (
         <div className="flex items-center gap-1">
           {trend === 'up'   && <TrendingUp  size={12} style={{ color: '#01B574' }} />}
@@ -97,7 +97,7 @@ export default function RelatoriosPage() {
   return (
     <div className="max-w-5xl w-full space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-white tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">Dashboard</h1>
         <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Visão geral do seu negócio</p>
       </div>
 
@@ -206,7 +206,7 @@ export default function RelatoriosPage() {
                   <div key={c.client_id}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-black w-4" style={{ color: '#56577A' }}>{i + 1}</span>
+                        <span className="text-xs font-semibold w-4" style={{ color: '#56577A' }}>{i + 1}</span>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-white truncate">{c.client_name}</p>
                           {c.company_name && (
@@ -215,7 +215,7 @@ export default function RelatoriosPage() {
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
-                        <p className="text-sm font-black" style={{ color: '#2CD9FF' }}>{formatCurrency(c.total_revenue)}</p>
+                        <p className="text-sm font-semibold" style={{ color: '#2CD9FF' }}>{formatCurrency(c.total_revenue)}</p>
                         <p className="text-xs" style={{ color: '#56577A' }}>{c.total_orders} pedido{c.total_orders !== 1 ? 's' : ''}</p>
                       </div>
                     </div>
@@ -263,7 +263,7 @@ export default function RelatoriosPage() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-3">
-                      <p className="text-sm font-black" style={{ color: '#01B574' }}>{formatCurrency(c.value)}</p>
+                      <p className="text-sm font-semibold" style={{ color: '#01B574' }}>{formatCurrency(c.value)}</p>
                       <p className="text-xs" style={{ color: '#56577A' }}>{c.pct}%</p>
                     </div>
                   </div>

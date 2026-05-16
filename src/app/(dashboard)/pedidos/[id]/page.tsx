@@ -77,7 +77,7 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
                 {cfg.label}
               </span>
             </div>
-            <h1 className="text-2xl font-black text-white">{pedido.clients?.name}</h1>
+            <h1 className="text-2xl font-semibold text-white">{pedido.clients?.name}</h1>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap sm:flex-shrink-0">
@@ -152,7 +152,7 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
             </p>
           )}
           {pedido.delivery_date && (
-            <p className="text-lg font-black text-white">{formatDate(pedido.delivery_date)}</p>
+            <p className="text-lg font-semibold text-white">{formatDate(pedido.delivery_date)}</p>
           )}
           {pedido.payment_terms && (
             <p className="text-xs mt-2" style={{ color: '#56577A' }}>{pedido.payment_terms}</p>
@@ -229,7 +229,7 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
               <span>{formatCurrency(pedido.commission_value)}</span>
             </div>
           )}
-          <div className="flex justify-between font-black text-base pt-2"
+          <div className="flex justify-between font-semibold text-base pt-2"
             style={{ borderTop: '1px solid rgba(255,255,255,0.08)', color: '#ffffff' }}>
             <span>Total</span>
             <span style={{ color: '#2CD9FF' }}>{formatCurrency(pedido.total)}</span>
