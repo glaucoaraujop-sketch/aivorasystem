@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, MapPin, MessageCircle, CalendarDays, CheckCircle, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useSystemSettings } from '@/hooks/useSystemSettings'
+import { useSystemSettings, visitDaysSet, nextVisitDay } from '@/hooks/useSystemSettings'
 import { formatPhone } from '@/lib/utils'
 
 interface ClientePrio {
@@ -171,8 +171,9 @@ export default function PrioridadesTab() {
         4: settings.priority_4_days,
       }
 
-      const hoje = new Date()
+      const hoje    = new Date()
       hoje.setHours(0, 0, 0, 0)
+      const workDays = visitDaysSet(settings)
 
       const lista: ClientePrio[] = clientsData.map((c: {
         id: string; name: string; company_name: string | null
@@ -182,8 +183,9 @@ export default function PrioridadesTab() {
         const dias    = diasPorPrio[c.priority] ?? 30
         const base    = lastVisit[c.id] ? new Date(lastVisit[c.id]) : new Date(c.created_at)
         base.setHours(0, 0, 0, 0)
-        const nextDt  = new Date(base)
-        nextDt.setDate(base.getDate() + dias)
+        const raw     = new Date(base)
+        raw.setDate(base.getDate() + dias)
+        const nextDt  = nextVisitDay(raw, workDays)
         const diff    = Math.round((nextDt.getTime() - hoje.getTime()) / 86400000)
 
         return {
