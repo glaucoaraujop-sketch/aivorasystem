@@ -10,6 +10,7 @@ export interface KPIs {
   comissoesAReceber: number
   clientesAtivos: number
   orcamentosEnviados: number
+  totalLojas: number
 }
 
 export interface VendasMes {
@@ -71,6 +72,7 @@ export function useRelatorios() {
         { data: pedidosSeis },
         { data: topCli },
         { data: proximasCom },
+        { data: lojasData },
       ] = await Promise.all([
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase.from('orders') as any).select('total').gte('created_at', inicioMes).not('status', 'eq', 'cancelado'),
@@ -97,11 +99,19 @@ export function useRelatorios() {
           .in('status', ['prevista','aprovada'])
           .order('due_date', { ascending: true })
           .limit(5),
+        // Total de lojas atendidas (soma de num_lojas dos clientes ativos)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('clients') as any).select('num_lojas').eq('active', true),
       ])
 
       // KPIs
       const fatMes = (pedidosMes ?? []).reduce((a: number, p: { total: number }) => a + p.total, 0)
       const fatMesAnt = (pedidosMesAnt ?? []).reduce((a: number, p: { total: number }) => a + p.total, 0)
+      const totalLojas = (lojasData ?? []).reduce(
+        (a: number, c: { num_lojas: number | null }) => a + (c.num_lojas ?? 1),
+        0,
+      )
+
       setKpis({
         faturamentoMes:         fatMes,
         faturamentoMesAnterior: fatMesAnt,
@@ -109,6 +119,7 @@ export function useRelatorios() {
         comissoesAReceber:      (comissoes ?? []).reduce((a: number, c: { value: number }) => a + c.value, 0),
         clientesAtivos:         (clientes ?? []).length,
         orcamentosEnviados:     (orcamentos ?? []).length,
+        totalLojas,
       })
 
       // Vendas por mês (últimos 6 meses)

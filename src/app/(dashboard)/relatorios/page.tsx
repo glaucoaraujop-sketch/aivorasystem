@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, ShoppingCart, DollarSign,
-  Users, FileText, Clock, ArrowRight,
+  Users, FileText, Clock, ArrowRight, Store,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRelatorios } from '@/hooks/useRelatorios'
@@ -112,6 +112,8 @@ export default function RelatoriosPage() {
           sub="aguardando entrega" trend="neutral" icon={ShoppingCart} linkTo="/pedidos" />
         <KpiCard label="Clientes Ativos"      value={String(kpis?.clientesAtivos ?? 0)}
           icon={Users} linkTo="/clientes" />
+        <KpiCard label="Total de Lojas"       value={String(kpis?.totalLojas ?? 0)}
+          sub="lojas atendidas (ativos)" trend="neutral" icon={Store} linkTo="/clientes" />
         <KpiCard label="Orçamentos Enviados"  value={String(kpis?.orcamentosEnviados ?? 0)}
           sub="aguardando resposta" trend="neutral" icon={FileText} linkTo="/orcamentos" />
         <KpiCard label="Comissões Próximas"   value={String(proximasComissoes.length)}
