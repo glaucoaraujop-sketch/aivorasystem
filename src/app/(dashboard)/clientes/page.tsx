@@ -59,11 +59,15 @@ export default function ClientesPage() {
 
   const porTipo = (t: string) => clientes.filter(c => c.type === t).length
 
+  const totalLojas = clientes
+    .filter(c => c.type === 'loja')
+    .reduce((acc, c) => acc + (c.num_lojas ?? 1), 0)
+
   const metrics = [
-    { label: 'Total', value: clientes.length, icon: Users, color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
-    { label: 'Lojas', value: porTipo('loja'), icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-    { label: 'Arquitetos', value: porTipo('arquiteto'), icon: UserCircle, color: '#ED64A6', bg: 'rgba(237,100,166,0.15)' },
-    { label: 'Distribuidores', value: porTipo('distribuidor'), icon: Users, color: '#F6AD55', bg: 'rgba(246,173,85,0.15)' },
+    { label: 'Total',         value: clientes.length,        icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
+    { label: 'Total de Lojas', value: totalLojas,             icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+    { label: 'Arquitetos',    value: porTipo('arquiteto'),    icon: UserCircle, color: '#ED64A6', bg: 'rgba(237,100,166,0.15)' },
+    { label: 'Distribuidores', value: porTipo('distribuidor'), icon: Users,     color: '#F6AD55', bg: 'rgba(246,173,85,0.15)' },
   ]
 
   return (

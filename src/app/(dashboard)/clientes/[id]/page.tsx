@@ -311,6 +311,14 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
                   {tipo.label}
                 </span>
               </div>
+              {cliente.type === 'loja' && cliente.num_lojas && (
+                <div>
+                  <p className="text-xs mb-1" style={{ color: '#56577A' }}>Nº de Lojas</p>
+                  <p className="font-semibold text-white">
+                    {cliente.num_lojas} {cliente.num_lojas === 1 ? 'loja' : 'lojas'}
+                  </p>
+                </div>
+              )}
               {cliente.cpf_cnpj && (
                 <div>
                   <p className="text-xs mb-1" style={{ color: '#56577A' }}>CPF / CNPJ</p>
