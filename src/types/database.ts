@@ -1,6 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type ClientType = 'loja' | 'arquiteto' | 'decorador' | 'distribuidor' | 'outros'
+export type ClientType = 'loja' | 'outros'
 export type QuoteStatus = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'expirado'
 export type OrderStatus = 'pendente' | 'confirmado' | 'em_producao' | 'pronto' | 'entregue' | 'cancelado'
 export type CommissionStatus = 'prevista' | 'aprovada' | 'paga' | 'cancelada'

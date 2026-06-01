@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Users, Plus, Search, MapPin, MessageCircle, Building2, UserCircle } from 'lucide-react'
+import { Users, Plus, Search, MapPin, MessageCircle, Building2 } from 'lucide-react'
 import { useClientes } from '@/hooks/useClientes'
 import { formatPhone } from '@/lib/utils'
 import { clientEngagement } from '@/lib/engagement'
@@ -16,11 +16,8 @@ const PRIORITY_CONFIG: Record<number, { label: string; color: string; bg: string
 }
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  loja:         { label: 'Loja',         color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
-  arquiteto:    { label: 'Arquiteto',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-  decorador:    { label: 'Decorador',    color: '#ED64A6', bg: 'rgba(237,100,166,0.15)' },
-  distribuidor: { label: 'Distribuidor', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)' },
-  outros:       { label: 'Outros',       color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
+  loja:   { label: 'Loja',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
+  outros: { label: 'Outros', color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
 }
 
 const AVATAR_COLORS = [
@@ -37,11 +34,8 @@ function getAvatar(name: string) {
 }
 
 const TIPO_FILTERS: { value: ClientType | ''; label: string }[] = [
-  { value: '', label: 'Todos' },
-  { value: 'loja', label: 'Loja' },
-  { value: 'arquiteto', label: 'Arquiteto' },
-  { value: 'decorador', label: 'Decorador' },
-  { value: 'distribuidor', label: 'Distribuidor' },
+  { value: '',       label: 'Todos' },
+  { value: 'loja',   label: 'Loja' },
   { value: 'outros', label: 'Outros' },
 ]
 
@@ -64,10 +58,10 @@ export default function ClientesPage() {
     .reduce((acc, c) => acc + (c.num_lojas ?? 1), 0)
 
   const metrics = [
-    { label: 'Total',         value: clientes.length,        icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
-    { label: 'Total de Lojas', value: totalLojas,             icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-    { label: 'Arquitetos',    value: porTipo('arquiteto'),    icon: UserCircle, color: '#ED64A6', bg: 'rgba(237,100,166,0.15)' },
-    { label: 'Distribuidores', value: porTipo('distribuidor'), icon: Users,     color: '#F6AD55', bg: 'rgba(246,173,85,0.15)' },
+    { label: 'Total de Clientes', value: clientes.length,     icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
+    { label: 'Clientes Loja',     value: porTipo('loja'),     icon: Building2, color: '#2CD9FF', bg: 'rgba(44,217,255,0.12)' },
+    { label: 'Total de Lojas',    value: totalLojas,           icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+    { label: 'Outros',            value: porTipo('outros'),    icon: Users,     color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)' },
   ]
 
   return (

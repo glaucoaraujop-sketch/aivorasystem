@@ -10,11 +10,8 @@ import type { Database, ClientType } from '@/types/database'
 type Client = Database['public']['Tables']['clients']['Row']
 
 const TIPOS: { value: ClientType; label: string }[] = [
-  { value: 'loja',         label: 'Loja' },
-  { value: 'arquiteto',    label: 'Arquiteto' },
-  { value: 'decorador',    label: 'Decorador' },
-  { value: 'distribuidor', label: 'Distribuidor' },
-  { value: 'outros',       label: 'Outros' },
+  { value: 'loja',   label: 'Loja' },
+  { value: 'outros', label: 'Outros' },
 ]
 
 const ESTADOS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']

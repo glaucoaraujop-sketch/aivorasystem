@@ -14,11 +14,8 @@ import {
 } from '@/hooks/useClientSupplierTerms'
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  loja:         { label: 'Loja',         color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
-  arquiteto:    { label: 'Arquiteto',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-  decorador:    { label: 'Decorador',    color: '#ED64A6', bg: 'rgba(237,100,166,0.15)' },
-  distribuidor: { label: 'Distribuidor', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)' },
-  outros:       { label: 'Outros',       color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
+  loja:   { label: 'Loja',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
+  outros: { label: 'Outros', color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
 }
 
 const SUPPLIER_COLORS = [
