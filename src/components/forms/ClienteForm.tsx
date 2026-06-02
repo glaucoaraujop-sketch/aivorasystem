@@ -60,7 +60,6 @@ export function ClienteForm({ cliente }: Props) {
     type:                 (cliente?.type ?? 'loja') as ClientType,
     cpf_cnpj:             cliente?.cpf_cnpj ?? '',
     price_table_id:       cliente?.price_table_id ?? '',
-    num_lojas:            String(cliente?.num_lojas ?? ''),
     area_restrita:        cliente?.area_restrita ?? false,
     address:              cliente?.address ?? '',
     cep:                  cliente?.cep ?? '',
@@ -108,7 +107,6 @@ export function ClienteForm({ cliente }: Props) {
         type:                 form.type,
         cpf_cnpj:             n(form.cpf_cnpj),
         price_table_id:       form.price_table_id || null,
-        num_lojas:            form.num_lojas ? parseInt(form.num_lojas) : null,
         area_restrita:        form.area_restrita,
         address:              n(form.address),
         cep:                  n(form.cep),
@@ -172,9 +170,6 @@ export function ClienteForm({ cliente }: Props) {
               <option value="">Selecionar...</option>
               {priceTables.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-          </Field>
-          <Field label="Nº de Lojas">
-            <input type="number" min="0" value={form.num_lojas} onChange={e => set('num_lojas', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="Prioridade de visita">
             <select value={form.priority} onChange={e => set('priority', e.target.value)}

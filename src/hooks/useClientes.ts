@@ -8,6 +8,10 @@ type Client = Database['public']['Tables']['clients']['Row']
 type ClientInsert = Database['public']['Tables']['clients']['Insert']
 type ClientUpdate = Database['public']['Tables']['clients']['Update']
 
+export type ClientWithCnpjCount = Client & {
+  client_cnpjs: Array<{ id: string }>
+}
+
 interface Filters {
   search?: string
   type?: ClientType | ''
@@ -16,7 +20,7 @@ interface Filters {
 }
 
 export function useClientes(filters: Filters = {}) {
-  const [clientes, setClientes] = useState<Client[]>([])
+  const [clientes, setClientes] = useState<ClientWithCnpjCount[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
@@ -25,7 +29,8 @@ export function useClientes(filters: Filters = {}) {
     setLoading(true)
     setError(null)
 
-    let query = supabase.from('clients').select('*').order('name')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query = (supabase.from('clients') as any).select('*, client_cnpjs(id)').order('name')
 
     if (filters.search) {
       query = query.or(`name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,whatsapp.ilike.%${filters.search}%`)
@@ -36,7 +41,7 @@ export function useClientes(filters: Filters = {}) {
 
     const { data, error } = await query
     if (error) setError(error.message)
-    else setClientes(data ?? [])
+    else setClientes((data ?? []) as ClientWithCnpjCount[])
     setLoading(false)
   }, [filters.search, filters.type, filters.state, filters.active])
 

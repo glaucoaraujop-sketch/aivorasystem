@@ -32,7 +32,6 @@ export interface Database {
           endereco_entrega: string | null
           cep_entrega: string | null
           area_restrita: boolean | null
-          num_lojas: number | null
           email_compras: string | null
           telefone_compras: string | null
           email_assistencia: string | null
@@ -71,7 +70,6 @@ export interface Database {
           endereco_entrega?: string | null
           cep_entrega?: string | null
           area_restrita?: boolean | null
-          num_lojas?: number | null
           email_compras?: string | null
           telefone_compras?: string | null
           email_assistencia?: string | null
@@ -106,7 +104,6 @@ export interface Database {
           endereco_entrega?: string | null
           cep_entrega?: string | null
           area_restrita?: boolean | null
-          num_lojas?: number | null
           email_compras?: string | null
           telefone_compras?: string | null
           email_assistencia?: string | null
@@ -121,6 +118,33 @@ export interface Database {
           notes?: string | null
           active?: boolean
           priority?: number | null
+        }
+      }
+      client_cnpjs: {
+        Row: {
+          id: string
+          client_id: string
+          razao_social: string
+          cnpj: string | null
+          inscricao_estadual: string | null
+          is_primary: boolean
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          client_id: string
+          razao_social: string
+          cnpj?: string | null
+          inscricao_estadual?: string | null
+          is_primary?: boolean
+          notes?: string | null
+        }
+        Update: {
+          razao_social?: string
+          cnpj?: string | null
+          inscricao_estadual?: string | null
+          is_primary?: boolean
+          notes?: string | null
         }
       }
       products: {
@@ -169,6 +193,7 @@ export interface Database {
           id: string
           user_id: string
           client_id: string
+          client_cnpj_id: string | null
           number: string | null
           status: QuoteStatus
           price_table_id: string | null
@@ -190,6 +215,7 @@ export interface Database {
           id: string
           user_id: string
           client_id: string
+          client_cnpj_id: string | null
           quote_id: string | null
           number: string | null
           status: OrderStatus

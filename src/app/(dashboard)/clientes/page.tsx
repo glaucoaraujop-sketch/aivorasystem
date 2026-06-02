@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Users, Plus, Search, MapPin, MessageCircle, Building2 } from 'lucide-react'
+import { Users, Plus, Search, MapPin, MessageCircle, Building2, Store } from 'lucide-react'
 import { useClientes } from '@/hooks/useClientes'
 import { formatPhone } from '@/lib/utils'
 import { clientEngagement } from '@/lib/engagement'
@@ -55,13 +55,15 @@ export default function ClientesPage() {
 
   const totalLojas = clientes
     .filter(c => c.type === 'loja')
-    .reduce((acc, c) => acc + (c.num_lojas ?? 1), 0)
+    .reduce((acc, c) => acc + (c.client_cnpjs.length || 1), 0)
+
+  const totalGrupos = clientes.filter(c => c.client_cnpjs.length > 1).length
 
   const metrics = [
-    { label: 'Total de Clientes', value: clientes.length,     icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
-    { label: 'Clientes Loja',     value: porTipo('loja'),     icon: Building2, color: '#2CD9FF', bg: 'rgba(44,217,255,0.12)' },
-    { label: 'Total de Lojas',    value: totalLojas,           icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-    { label: 'Outros',            value: porTipo('outros'),    icon: Users,     color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)' },
+    { label: 'Total',          value: clientes.length,  icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+    { label: 'Total de Lojas', value: totalLojas,        icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+    { label: 'Grupos',         value: totalGrupos,       icon: Store,     color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+    { label: 'Outros',         value: porTipo('outros'), icon: Users,     color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)' },
   ]
 
   return (

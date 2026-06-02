@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag, ShoppingBag, Building2, Plus, Star, Trash2 } from 'lucide-react'
 import { useCliente } from '@/hooks/useClientes'
 import { clientEngagement } from '@/lib/engagement'
 import { ClienteForm } from '@/components/forms/ClienteForm'
@@ -12,6 +12,7 @@ import {
   useClientSupplierTerms, useClientSupplierTermsMutations,
   type ClientSupplierTerm,
 } from '@/hooks/useClientSupplierTerms'
+import { useClientCnpjs, useClientCnpjsMutations } from '@/hooks/useClientCnpjs'
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   loja:   { label: 'Loja',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
@@ -195,6 +196,177 @@ function FabricaTermCard({
   )
 }
 
+// ─── Seção CNPJs / Razões Sociais ────────────────────────────────────────────
+function CnpjsSection({ clientId }: { clientId: string }) {
+  const { cnpjs, loading, refetch } = useClientCnpjs(clientId)
+  const { criar, remover, definirPrincipal } = useClientCnpjsMutations()
+  const [adicionando, setAdicionando] = useState(false)
+  const [novoForm, setNovoForm] = useState({ razao_social: '', cnpj: '', inscricao_estadual: '', notes: '' })
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  async function handleAdicionar() {
+    if (!novoForm.razao_social.trim()) { setErro('Razão Social é obrigatória'); return }
+    setSalvando(true); setErro(null)
+    try {
+      await criar({
+        client_id: clientId,
+        razao_social: novoForm.razao_social.trim(),
+        cnpj: novoForm.cnpj.trim() || null,
+        inscricao_estadual: novoForm.inscricao_estadual.trim() || null,
+        notes: novoForm.notes.trim() || null,
+        is_primary: cnpjs.length === 0,
+      })
+      setNovoForm({ razao_social: '', cnpj: '', inscricao_estadual: '', notes: '' })
+      setAdicionando(false)
+      refetch()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar')
+    } finally { setSalvando(false) }
+  }
+
+  async function handleRemover(id: string) {
+    if (!confirm('Remover este CNPJ?')) return
+    await remover(id); refetch()
+  }
+
+  async function handlePrincipal(id: string) {
+    await definirPrincipal(clientId, id); refetch()
+  }
+
+  if (loading) return (
+    <div className="glass-card rounded-2xl p-5 col-span-1 sm:col-span-3">
+      <div className="h-4 w-48 rounded-lg animate-pulse mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="space-y-2">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-14 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="glass-card rounded-2xl p-5 col-span-1 sm:col-span-3">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#A0AEC0' }}>
+            Razões Sociais / CNPJs
+          </p>
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold"
+            style={{ color: '#0075FF', background: 'rgba(0,117,255,0.12)' }}>
+            {cnpjs.length}
+          </span>
+        </div>
+        <button
+          onClick={() => setAdicionando(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+          style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', color: '#fff' }}
+        >
+          <Plus size={12} /> Adicionar
+        </button>
+      </div>
+
+      {adicionando && (
+        <div className="rounded-xl p-4 mb-4 space-y-3"
+          style={{ background: 'rgba(0,117,255,0.06)', border: '1px solid rgba(0,117,255,0.2)' }}>
+          <input
+            value={novoForm.razao_social}
+            onChange={e => setNovoForm(p => ({ ...p, razao_social: e.target.value }))}
+            placeholder="Razão Social *"
+            className="input-dark w-full px-3 py-2 rounded-lg text-sm"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={novoForm.cnpj}
+              onChange={e => setNovoForm(p => ({ ...p, cnpj: e.target.value }))}
+              placeholder="CNPJ"
+              className="input-dark w-full px-3 py-2 rounded-lg text-sm"
+            />
+            <input
+              value={novoForm.inscricao_estadual}
+              onChange={e => setNovoForm(p => ({ ...p, inscricao_estadual: e.target.value }))}
+              placeholder="Insc. Estadual"
+              className="input-dark w-full px-3 py-2 rounded-lg text-sm"
+            />
+          </div>
+          <input
+            value={novoForm.notes}
+            onChange={e => setNovoForm(p => ({ ...p, notes: e.target.value }))}
+            placeholder="Observações (opcional)"
+            className="input-dark w-full px-3 py-2 rounded-lg text-sm"
+          />
+          {erro && <p className="text-xs" style={{ color: '#FC8181' }}>⚠ {erro}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => { setAdicionando(false); setErro(null) }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#A0AEC0' }}>
+              Cancelar
+            </button>
+            <button onClick={handleAdicionar} disabled={salvando}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cnpjs.length === 0 && !adicionando ? (
+        <p className="text-sm text-center py-6" style={{ color: '#56577A' }}>
+          Nenhum CNPJ cadastrado. Clique em Adicionar para começar.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {cnpjs.map(c => (
+            <div key={c.id}
+              className="flex items-start justify-between gap-3 rounded-xl px-4 py-3"
+              style={{
+                background: c.is_primary ? 'rgba(0,117,255,0.06)' : 'rgba(255,255,255,0.03)',
+                border: c.is_primary ? '1px solid rgba(0,117,255,0.2)' : '1px solid rgba(255,255,255,0.06)',
+              }}>
+              <div className="flex items-start gap-2 min-w-0">
+                <Building2 size={14} style={{ color: c.is_primary ? '#0075FF' : '#56577A', marginTop: 2, flexShrink: 0 }} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-white truncate">{c.razao_social}</p>
+                    {c.is_primary && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0"
+                        style={{ color: '#0075FF', background: 'rgba(0,117,255,0.12)' }}>
+                        Principal
+                      </span>
+                    )}
+                  </div>
+                  {c.cnpj && <p className="text-xs mt-0.5 font-mono" style={{ color: '#A0AEC0' }}>{c.cnpj}</p>}
+                  {c.inscricao_estadual && <p className="text-xs" style={{ color: '#56577A' }}>IE: {c.inscricao_estadual}</p>}
+                  {c.notes && <p className="text-xs mt-1 italic" style={{ color: '#56577A' }}>{c.notes}</p>}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {!c.is_primary && (
+                  <button onClick={() => handlePrincipal(c.id)}
+                    className="p-1.5 rounded-lg transition-all" title="Definir como principal"
+                    style={{ color: '#56577A' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#F6AD55')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#56577A')}>
+                    <Star size={13} />
+                  </button>
+                )}
+                <button onClick={() => handleRemover(c.id)}
+                  className="p-1.5 rounded-lg transition-all" title="Remover"
+                  style={{ color: '#56577A' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#FC8181')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#56577A')}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Seção Comercialização ────────────────────────────────────────────────────
 function ComercializacaoSection({ clientId }: { clientId: string }) {
   const { fornecedores, loading: loadingSup } = useFornecedores()
@@ -308,14 +480,6 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
                   {tipo.label}
                 </span>
               </div>
-              {cliente.type === 'loja' && cliente.num_lojas && (
-                <div>
-                  <p className="text-xs mb-1" style={{ color: '#56577A' }}>Nº de Lojas</p>
-                  <p className="font-semibold text-white">
-                    {cliente.num_lojas} {cliente.num_lojas === 1 ? 'loja' : 'lojas'}
-                  </p>
-                </div>
-              )}
               {cliente.cpf_cnpj && (
                 <div>
                   <p className="text-xs mb-1" style={{ color: '#56577A' }}>CPF / CNPJ</p>
@@ -402,6 +566,9 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
           </div>
+
+          {/* Razões Sociais / CNPJs */}
+          <CnpjsSection clientId={id} />
 
           {/* Comercialização por fábrica */}
           <ComercializacaoSection clientId={id} />
