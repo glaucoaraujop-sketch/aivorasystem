@@ -182,12 +182,6 @@ export function ClienteForm({ cliente }: Props) {
             </select>
           </Field>
 
-          <div className="flex items-center gap-3 pt-1">
-            <input type="checkbox" id="area_restrita" checked={form.area_restrita}
-              onChange={e => set('area_restrita', e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-transparent accent-blue-500" />
-            <label htmlFor="area_restrita" className="text-sm font-medium" style={{ color: '#A0AEC0' }}>Área Restrita</label>
-          </div>
         </div>
       </Section>
 
@@ -218,6 +212,12 @@ export function ClienteForm({ cliente }: Props) {
           <Field label="Endereço de Entrega" span2>
             <input value={form.endereco_entrega} onChange={e => set('endereco_entrega', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
+          <div className="col-span-1 sm:col-span-2 flex items-center gap-3 pt-1">
+            <input type="checkbox" id="area_restrita" checked={form.area_restrita}
+              onChange={e => set('area_restrita', e.target.checked)}
+              className="w-4 h-4 rounded border-slate-600 bg-transparent accent-blue-500" />
+            <label htmlFor="area_restrita" className="text-sm font-medium" style={{ color: '#A0AEC0' }}>Área Restrita</label>
+          </div>
         </div>
       </Section>
 
