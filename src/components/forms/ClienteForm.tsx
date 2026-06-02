@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClientesMutations } from '@/hooks/useClientes'
-import { createClient } from '@/lib/supabase/client'
 import { maskCpfCnpj, maskPhone, maskCep } from '@/lib/masks'
 import type { Database, ClientType } from '@/types/database'
 
@@ -45,9 +44,7 @@ function Field({ label, children, span2 }: { label: string; children: React.Reac
 export function ClienteForm({ cliente }: Props) {
   const router = useRouter()
   const { criar, atualizar } = useClientesMutations()
-  const supabase = createClient()
 
-  const [priceTables, setPriceTables] = useState<{ id: string; name: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -59,7 +56,6 @@ export function ClienteForm({ cliente }: Props) {
     inscricao_estadual:   cliente?.inscricao_estadual ?? '',
     type:                 (cliente?.type ?? 'loja') as ClientType,
     cpf_cnpj:             cliente?.cpf_cnpj ?? '',
-    price_table_id:       cliente?.price_table_id ?? '',
     area_restrita:        cliente?.area_restrita ?? false,
     address:              cliente?.address ?? '',
     cep:                  cliente?.cep ?? '',
@@ -85,10 +81,6 @@ export function ClienteForm({ cliente }: Props) {
     notes:                cliente?.notes ?? '',
   })
 
-  useEffect(() => {
-    supabase.from('price_tables').select('id, name').eq('active', true).then(({ data }) => setPriceTables(data ?? []))
-  }, [])
-
   function set(field: string, value: string | boolean) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
@@ -106,7 +98,6 @@ export function ClienteForm({ cliente }: Props) {
         inscricao_estadual:   n(form.inscricao_estadual),
         type:                 form.type,
         cpf_cnpj:             n(form.cpf_cnpj),
-        price_table_id:       form.price_table_id || null,
         area_restrita:        form.area_restrita,
         address:              n(form.address),
         cep:                  n(form.cep),
@@ -163,12 +154,6 @@ export function ClienteForm({ cliente }: Props) {
           <Field label="Tipo *">
             <select value={form.type} onChange={e => set('type', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </Field>
-          <Field label="Tabela de Preço">
-            <select value={form.price_table_id} onChange={e => set('price_table_id', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
-              <option value="">Selecionar...</option>
-              {priceTables.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </Field>
           <Field label="Prioridade de visita">

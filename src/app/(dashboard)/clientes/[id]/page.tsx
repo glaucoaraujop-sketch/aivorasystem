@@ -80,9 +80,18 @@ function FabricaTermCard({
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ac.color }} />
-          <p className="font-semibold text-white text-sm">{supplier.name}</p>
+          <p className="font-semibold text-white text-sm truncate">{supplier.name}</p>
+          {!editing && temDados && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ml-1"
+              style={{ color: ac.color, background: ac.bg }}>
+              {[
+                term?.price_table ? `Tab. ${term.price_table}` : null,
+                term?.discount_pct != null ? `-${term.discount_pct}%` : null,
+              ].filter(Boolean).join(' · ')}
+            </span>
+          )}
         </div>
         {!editing ? (
           <button onClick={abrirEdicao}
@@ -190,7 +199,21 @@ function FabricaTermCard({
           )}
         </div>
       ) : (
-        <p className="text-xs" style={{ color: '#56577A' }}>Sem dados comerciais</p>
+        <button
+          onClick={abrirEdicao}
+          className="w-full text-xs py-2 rounded-lg border border-dashed transition-all"
+          style={{ color: '#56577A', borderColor: 'rgba(255,255,255,0.08)' }}
+          onMouseEnter={e => {
+            ;(e.currentTarget as HTMLElement).style.color = ac.color
+            ;(e.currentTarget as HTMLElement).style.borderColor = ac.color
+          }}
+          onMouseLeave={e => {
+            ;(e.currentTarget as HTMLElement).style.color = '#56577A'
+            ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'
+          }}
+        >
+          + Configurar condições
+        </button>
       )}
     </div>
   )
@@ -389,7 +412,7 @@ function ComercializacaoSection({ clientId }: { clientId: string }) {
   return (
     <div className="glass-card rounded-2xl p-5 col-span-1 sm:col-span-3">
       <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#A0AEC0' }}>
-        Comercialização por Fábrica
+        Condições Comerciais por Fábrica
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {ativos.map((supplier, idx) => (
