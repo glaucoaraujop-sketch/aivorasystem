@@ -47,6 +47,7 @@ export function ClienteForm({ cliente }: Props) {
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [cepLoading, setCepLoading] = useState<'fat' | 'ent' | null>(null)
 
   const [form, setForm] = useState({
     priority:             String(cliente?.priority ?? ''),
@@ -83,6 +84,31 @@ export function ClienteForm({ cliente }: Props) {
 
   function set(field: string, value: string | boolean) {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function buscarCep(cep: string, tipo: 'fat' | 'ent') {
+    const digits = cep.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setCepLoading(tipo)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (data.erro) return
+      if (tipo === 'fat') {
+        setForm(prev => ({
+          ...prev,
+          address: [data.logradouro, data.bairro].filter(Boolean).join(', '),
+          city:    data.localidade ?? prev.city,
+          state:   data.uf         ?? prev.state,
+        }))
+      } else {
+        setForm(prev => ({
+          ...prev,
+          endereco_entrega: [data.logradouro, data.bairro].filter(Boolean).join(', '),
+        }))
+      }
+    } catch { /* falha silenciosa — usuário pode preencher manualmente */ }
+    finally { setCepLoading(null) }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -186,13 +212,37 @@ export function ClienteForm({ cliente }: Props) {
             <input value={form.region} onChange={e => set('region', e.target.value)} placeholder="ex: Norte, Zona Sul" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CEP (Faturamento)">
-            <input value={form.cep} onChange={e => set('cep', maskCep(e.target.value))} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <div className="relative">
+              <input
+                value={form.cep}
+                onChange={e => { const v = maskCep(e.target.value); set('cep', v); buscarCep(v, 'fat') }}
+                placeholder="00000-000"
+                className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+              />
+              {cepLoading === 'fat' && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#0075FF' }}>
+                  buscando...
+                </span>
+              )}
+            </div>
           </Field>
           <Field label="Endereço de Faturamento" span2>
             <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CEP (Entrega)">
-            <input value={form.cep_entrega} onChange={e => set('cep_entrega', maskCep(e.target.value))} placeholder="00000-000" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <div className="relative">
+              <input
+                value={form.cep_entrega}
+                onChange={e => { const v = maskCep(e.target.value); set('cep_entrega', v); buscarCep(v, 'ent') }}
+                placeholder="00000-000"
+                className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+              />
+              {cepLoading === 'ent' && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#0075FF' }}>
+                  buscando...
+                </span>
+              )}
+            </div>
           </Field>
           <Field label="Endereço de Entrega" span2>
             <input value={form.endereco_entrega} onChange={e => set('endereco_entrega', e.target.value)} placeholder="Rua, número, bairro" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
