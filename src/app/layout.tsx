@@ -17,7 +17,7 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const BASE_URL = "https://aivorasystem.com.br";
+const BASE_URL = "https://www.aivoratecnologia.com.br";
 
 export const metadata: Metadata = {
   title: "Aivora System — Rep Móveis",
