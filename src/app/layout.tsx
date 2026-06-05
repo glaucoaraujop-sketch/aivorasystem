@@ -20,23 +20,23 @@ export const viewport: Viewport = {
 const BASE_URL = "https://www.aivoratecnologia.com.br";
 
 export const metadata: Metadata = {
-  title: "Aivora System — Rep Móveis",
-  description: "Sistema de gestão para representação comercial de móveis.",
+  title: "Aivora Tecnologia",
+  description: "Sistemas inteligentes com IA, automação e integração.",
   metadataBase: new URL(BASE_URL),
   manifest: "/manifest.json",
 
   // Open Graph — aparece ao compartilhar no WhatsApp, LinkedIn, etc.
   openGraph: {
-    title: "Aivora System — Rep Móveis",
-    description: "Sistema de gestão para representação comercial de móveis.",
+    title: "Aivora Tecnologia",
+    description: "Sistemas inteligentes com IA, automação e integração.",
     url: BASE_URL,
-    siteName: "Aivora System",
+    siteName: "Aivora Tecnologia",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Aivora System",
+        alt: "Aivora Tecnologia",
       },
     ],
     locale: "pt_BR",
@@ -46,15 +46,15 @@ export const metadata: Metadata = {
   // Twitter / X
   twitter: {
     card: "summary_large_image",
-    title: "Aivora System — Rep Móveis",
-    description: "Sistema de gestão para representação comercial de móveis.",
+    title: "Aivora Tecnologia",
+    description: "Sistemas inteligentes com IA, automação e integração.",
     images: ["/og-image.jpg"],
   },
 
   // PWA / iOS
   appleWebApp: {
     capable: true,
-    title: "Aivora System",
+    title: "Aivora Tecnologia",
     statusBarStyle: "black-translucent",
   },
 
