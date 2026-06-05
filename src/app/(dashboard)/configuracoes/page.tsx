@@ -10,10 +10,10 @@ type VisitDays = {
 }
 
 const PRIORITY_CONFIG = [
-  { key: 1, label: 'Prioridade 1', desc: 'Clientes VIP — visita mais frequente',  color: '#0075FF', bg: 'rgba(0,117,255,0.12)',   border: 'rgba(0,117,255,0.25)'   },
-  { key: 2, label: 'Prioridade 2', desc: 'Clientes ativos — cadência regular',     color: '#01B574', bg: 'rgba(1,181,116,0.12)',   border: 'rgba(1,181,116,0.25)'   },
-  { key: 3, label: 'Prioridade 3', desc: 'Clientes em desenvolvimento',            color: '#F6AD55', bg: 'rgba(246,173,85,0.12)',  border: 'rgba(246,173,85,0.25)'  },
-  { key: 4, label: 'Prioridade 4', desc: 'Clientes de baixa frequência',           color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)', border: 'rgba(160,174,192,0.2)'  },
+  { key: 1, label: 'P1 VIP',    desc: 'Visita mais frequente',  color: '#0075FF', bg: 'rgba(0,117,255,0.12)',   border: 'rgba(0,117,255,0.25)'   },
+  { key: 2, label: 'P2 Ouro',   desc: 'Cadência regular',       color: '#01B574', bg: 'rgba(1,181,116,0.12)',   border: 'rgba(1,181,116,0.25)'   },
+  { key: 3, label: 'P3 Prata',  desc: 'Em desenvolvimento',     color: '#F6AD55', bg: 'rgba(246,173,85,0.12)',  border: 'rgba(246,173,85,0.25)'  },
+  { key: 4, label: 'P4 Bronze', desc: 'Baixa frequência',       color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)', border: 'rgba(160,174,192,0.2)'  },
 ]
 
 const WEEK_DAYS: { key: keyof VisitDays; label: string; short: string }[] = [

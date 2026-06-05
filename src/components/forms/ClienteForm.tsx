@@ -186,10 +186,10 @@ export function ClienteForm({ cliente }: Props) {
             <select value={form.priority} onChange={e => set('priority', e.target.value)}
               className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               <option value="">Sem prioridade definida</option>
-              <option value="1">P1 — Visita mais frequente (VIP)</option>
-              <option value="2">P2 — Cadência regular</option>
-              <option value="3">P3 — Em desenvolvimento</option>
-              <option value="4">P4 — Baixa frequência</option>
+              <option value="1">P1 VIP — Visita mais frequente</option>
+              <option value="2">P2 Ouro — Cadência regular</option>
+              <option value="3">P3 Prata — Em desenvolvimento</option>
+              <option value="4">P4 Bronze — Baixa frequência</option>
             </select>
           </Field>
 

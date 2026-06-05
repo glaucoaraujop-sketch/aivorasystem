@@ -9,10 +9,10 @@ import { clientEngagement } from '@/lib/engagement'
 import type { ClientType } from '@/types/database'
 
 const PRIORITY_CONFIG: Record<number, { label: string; color: string; bg: string }> = {
-  1: { label: 'P1', color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
-  2: { label: 'P2', color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
-  3: { label: 'P3', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
-  4: { label: 'P4', color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
+  1: { label: 'P1 VIP',    color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+  2: { label: 'P2 Ouro',   color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+  3: { label: 'P3 Prata',  color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
+  4: { label: 'P4 Bronze', color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
 }
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
