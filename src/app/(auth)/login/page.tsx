@@ -117,8 +117,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Image src="/logo-aivora.png" alt="Aivora System" width={260} height={180} priority
-            style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }} />
+          <Image src="/logo-aivora.png" alt="Aivora System" width={260} height={180} priority />
         </div>
 
         {/* Card */}
