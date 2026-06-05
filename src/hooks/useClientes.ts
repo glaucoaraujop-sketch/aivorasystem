@@ -88,5 +88,11 @@ export function useClientesMutations() {
     if (error) throw new Error(error.message)
   }
 
-  return { criar, atualizar, arquivar }
+  async function deletar(id: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('clients') as any).delete().eq('id', id)
+    if (error) throw new Error(error.message)
+  }
+
+  return { criar, atualizar, arquivar, deletar }
 }

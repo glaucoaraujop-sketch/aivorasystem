@@ -2,8 +2,9 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag, ShoppingBag, Building2, Plus, Star, Trash2 } from 'lucide-react'
-import { useCliente } from '@/hooks/useClientes'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag, ShoppingBag, Building2, Plus, Star, Trash2, AlertTriangle } from 'lucide-react'
+import { useCliente, useClientesMutations } from '@/hooks/useClientes'
 import { clientEngagement } from '@/lib/engagement'
 import { ClienteForm } from '@/components/forms/ClienteForm'
 import { formatPhone } from '@/lib/utils'
@@ -457,7 +458,20 @@ function ComercializacaoSection({ clientId }: { clientId: string }) {
 export default function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { cliente, loading } = useCliente(id)
+  const { deletar } = useClientesMutations()
   const [editando, setEditando] = useState(false)
+  const [deletando, setDeletando] = useState(false)
+
+  async function handleDeletar() {
+    if (!confirm(`Deletar o cliente "${cliente?.name}" permanentemente?\n\nEssa ação não pode ser desfeita.`)) return
+    setDeletando(true)
+    try {
+      await deletar(id)
+      router.push('/clientes')
+    } catch {
+      setDeletando(false)
+    }
+  }
 
   if (loading) return (
     <div className="max-w-2xl w-full space-y-4 animate-pulse">
@@ -493,20 +507,32 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
             )}
           </div>
         </div>
-        <button onClick={() => setEditando(!editando)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all sm:flex-shrink-0"
-          style={editando ? {
-            background: 'rgba(252,129,129,0.12)',
-            border: '1px solid rgba(252,129,129,0.25)',
-            color: '#FC8181',
-          } : {
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#A0AEC0',
-          }}>
-          <Edit size={15} />
-          {editando ? 'Cancelar edição' : 'Editar'}
-        </button>
+        <div className="flex items-center gap-2 sm:flex-shrink-0">
+          <button onClick={() => setEditando(!editando)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={editando ? {
+              background: 'rgba(252,129,129,0.12)',
+              border: '1px solid rgba(252,129,129,0.25)',
+              color: '#FC8181',
+            } : {
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#A0AEC0',
+            }}>
+            <Edit size={15} />
+            {editando ? 'Cancelar' : 'Editar'}
+          </button>
+          <button onClick={handleDeletar} disabled={deletando}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+            style={{
+              background: 'rgba(252,129,129,0.08)',
+              border: '1px solid rgba(252,129,129,0.2)',
+              color: '#FC8181',
+            }}>
+            <AlertTriangle size={15} />
+            {deletando ? 'Deletando...' : 'Deletar'}
+          </button>
+        </div>
       </div>
 
       {editando ? (
