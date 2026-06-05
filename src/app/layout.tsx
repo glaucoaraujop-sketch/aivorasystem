@@ -17,22 +17,55 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+const BASE_URL = "https://aivorasystem.com.br";
+
 export const metadata: Metadata = {
   title: "Aivora System — Rep Móveis",
-  description: "Sistema de gestão para representação comercial de móveis",
+  description: "Sistema de gestão para representação comercial de móveis.",
+  metadataBase: new URL(BASE_URL),
   manifest: "/manifest.json",
+
+  // Open Graph — aparece ao compartilhar no WhatsApp, LinkedIn, etc.
+  openGraph: {
+    title: "Aivora System — Rep Móveis",
+    description: "Sistema de gestão para representação comercial de móveis.",
+    url: BASE_URL,
+    siteName: "Aivora System",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Aivora System",
+      },
+    ],
+    locale: "pt_BR",
+    type: "website",
+  },
+
+  // Twitter / X
+  twitter: {
+    card: "summary_large_image",
+    title: "Aivora System — Rep Móveis",
+    description: "Sistema de gestão para representação comercial de móveis.",
+    images: ["/og-image.jpg"],
+  },
+
+  // PWA / iOS
   appleWebApp: {
     capable: true,
     title: "Aivora System",
     statusBarStyle: "black-translucent",
   },
+
+  // Ícones
   icons: {
     icon: [
-      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png", sizes: "16x16",   type: "image/png" },
+      { url: "/icons/favicon-32.png", sizes: "32x32",   type: "image/png" },
       { url: "/icons/icon-192.png",   sizes: "192x192", type: "image/png" },
     ],
-    apple: "/icons/apple-touch-icon.png",
+    apple:    "/icons/apple-touch-icon.png",
     shortcut: "/icons/favicon-32.png",
   },
 };
