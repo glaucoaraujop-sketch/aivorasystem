@@ -131,7 +131,7 @@ export default function RelatoriosPage() {
               : { color: '#A0AEC0', border: '1px solid transparent' }
             }
           >
-            <Sparkles size={13} /> Inteligência IA
+            <Sparkles size={13} /> AIRA
           </button>
         </div>
       </div>
