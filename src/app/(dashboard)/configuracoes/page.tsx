@@ -234,15 +234,18 @@ export default function ConfiguracoesPage() {
   const { members, loading: loadingMembers, refetch: refetchMembers } = useTeamMembers()
   const [showAddMember, setShowAddMember] = useState(false)
 
-  const [days,     setDays]     = useState({ p1: 15, p2: 30, p3: 45, p4: 60 })
-  const [perDay,   setPerDay]   = useState(5)
+  const [days,       setDays]     = useState({ p1: 15, p2: 30, p3: 45, p4: 60 })
+  const [perDay,     setPerDay]   = useState(5)
   const [visitDays, setVisitDays] = useState<VisitDays>({
     visit_sun: false, visit_mon: true, visit_tue: true,
     visit_wed: true,  visit_thu: true, visit_fri: true, visit_sat: false,
   })
-  const [saving,   setSaving]   = useState(false)
-  const [sucesso,  setSucesso]  = useState(false)
-  const [erro,     setErro]     = useState('')
+  const [area,       setArea]     = useState('')
+  const [savingArea, setSavingArea] = useState(false)
+  const [areaOk,     setAreaOk]   = useState(false)
+  const [saving,     setSaving]   = useState(false)
+  const [sucesso,    setSucesso]  = useState(false)
+  const [erro,       setErro]     = useState('')
 
   useEffect(() => {
     if (!loading) {
@@ -262,8 +265,22 @@ export default function ConfiguracoesPage() {
         visit_fri: settings.visit_fri,
         visit_sat: settings.visit_sat,
       })
+      setArea(settings.area_atuacao ?? '')
     }
   }, [loading, settings])
+
+  async function handleSalvarArea() {
+    setSavingArea(true)
+    try {
+      await salvar({ area_atuacao: area.trim() || null })
+      setAreaOk(true)
+      setTimeout(() => setAreaOk(false), 3000)
+    } catch {
+      // silently ignore
+    } finally {
+      setSavingArea(false)
+    }
+  }
 
   const activeDays = WEEK_DAYS.filter(d => visitDays[d.key]).length
 
@@ -314,6 +331,33 @@ export default function ConfiguracoesPage() {
       </div>
 
       <div className="space-y-6">
+
+        {/* Área de Atuação */}
+        <section className="rounded-2xl p-6" style={cardStyle}>
+          <div className="flex items-center gap-2 mb-1">
+            <MapPin size={16} style={{ color: '#A78BFA' }} />
+            <h2 className="font-bold text-white text-base">Área de Atuação</h2>
+          </div>
+          <p className="text-sm mb-5" style={{ color: '#A0AEC0' }}>
+            Informe a cidade ou região onde você atua. A AIRA usará essa informação para trazer clima e contexto personalizado na tela inicial.
+          </p>
+          <div className="flex gap-3">
+            <input
+              value={area}
+              onChange={e => setArea(e.target.value)}
+              placeholder="ex: São Paulo, SP · Zona Sul de SP · Grande ABC"
+              className="input-dark flex-1 px-3 py-2.5 rounded-xl text-sm"
+            />
+            <button
+              onClick={handleSalvarArea}
+              disabled={savingArea}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #6D28D9 0%, #0075FF 100%)' }}
+            >
+              {savingArea ? 'Salvando…' : areaOk ? <><CheckCircle size={14} /> Salvo!</> : <><Save size={14} /> Salvar</>}
+            </button>
+          </div>
+        </section>
 
         {/* Dias de visita */}
         <section className="rounded-2xl p-6" style={cardStyle}>

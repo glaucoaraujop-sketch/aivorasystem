@@ -7,12 +7,14 @@ import { usePathname } from 'next/navigation'
 import {
   Users, Package, FileText, ShoppingCart,
   DollarSign, MapPin, BarChart2, Truck, Wrench, LogOut, Menu, X, Settings,
+  Home, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useMyPermissions, type UserPermissions } from '@/hooks/useMyPermissions'
 import { useCurrentUserName } from '@/hooks/useCurrentUserName'
+import { AiraChat } from '@/components/ai/AiraChat'
 
 const ALL_NAV = [
   { href: '/clientes',      label: 'Clientes',       icon: Users,        perm: 'perm_clientes'     },
@@ -27,11 +29,36 @@ const ALL_NAV = [
   { href: '/configuracoes', label: 'Configurações',   icon: Settings,     perm: 'perm_configuracoes'},
 ] as const
 
-function NavLinks({ onClick, perms }: { onClick?: () => void; perms: UserPermissions }) {
+function NavLinks({ onClick, perms, onAira }: { onClick?: () => void; perms: UserPermissions; onAira: () => void }) {
   const pathname = usePathname()
   const nav = ALL_NAV.filter(item => perms[item.perm as keyof UserPermissions])
+  const inicioActive = pathname === '/inicio' || pathname === '/'
   return (
     <div className="space-y-1">
+      {/* Início — sempre visível */}
+      <Link
+        href="/inicio"
+        onClick={onClick}
+        className={cn('flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+          inicioActive ? 'text-white' : 'text-slate-400 hover:text-white')}
+        style={inicioActive ? { background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 2px 12px rgba(0,117,255,0.15)' } : undefined}
+      >
+        <Home size={17} style={inicioActive ? { color: '#0075FF' } : undefined} />
+        Início
+      </Link>
+
+      {/* AIRA — sempre visível */}
+      <button
+        onClick={() => { onClick?.(); onAira() }}
+        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-left"
+        style={{ background: 'linear-gradient(135deg, rgba(0,117,255,0.1) 0%, rgba(109,40,217,0.12) 100%)', border: '1px solid rgba(109,40,217,0.2)', color: '#A78BFA' }}
+      >
+        <Sparkles size={17} style={{ color: '#A78BFA' }} />
+        Fale com a AIRA
+      </button>
+
+      <div className="pt-1 pb-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
       {nav.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href)
         return (
@@ -41,9 +68,7 @@ function NavLinks({ onClick, perms }: { onClick?: () => void; perms: UserPermiss
             onClick={onClick}
             className={cn(
               'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-              active
-                ? 'text-white'
-                : 'text-slate-400 hover:text-white'
+              active ? 'text-white' : 'text-slate-400 hover:text-white'
             )}
             style={active ? {
               background: 'rgba(255,255,255,0.1)',
@@ -52,10 +77,7 @@ function NavLinks({ onClick, perms }: { onClick?: () => void; perms: UserPermiss
               boxShadow: '0 2px 12px rgba(0, 117, 255, 0.15)',
             } : undefined}
           >
-            <Icon
-              size={17}
-              style={active ? { color: '#0075FF' } : undefined}
-            />
+            <Icon size={17} style={active ? { color: '#0075FF' } : undefined} />
             {label}
           </Link>
         )
@@ -65,7 +87,8 @@ function NavLinks({ onClick, perms }: { onClick?: () => void; perms: UserPermiss
 }
 
 export function Sidebar() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]     = useState(false)
+  const [airaOpen, setAiraOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { name: userName } = useCurrentUserName()
@@ -103,7 +126,7 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-5">
-          <NavLinks perms={perms} />
+          <NavLinks perms={perms} onAira={() => setAiraOpen(true)} />
         </nav>
 
         {/* Footer */}
@@ -187,7 +210,7 @@ export function Sidebar() {
               </button>
             </div>
             <nav className="flex-1 px-3 py-5 overflow-y-auto">
-              <NavLinks perms={perms} onClick={() => setOpen(false)} />
+              <NavLinks perms={perms} onClick={() => setOpen(false)} onAira={() => { setOpen(false); setAiraOpen(true) }} />
             </nav>
             <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               {userName && (
@@ -214,6 +237,12 @@ export function Sidebar() {
           </div>
         </div>
       )}
+
+      <AiraChat
+        open={airaOpen}
+        onClose={() => setAiraOpen(false)}
+        userName={userName ?? undefined}
+      />
     </>
   )
 }

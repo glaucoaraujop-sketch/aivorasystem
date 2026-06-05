@@ -16,6 +16,7 @@ export interface SystemSettings {
   visit_thu: boolean
   visit_fri: boolean
   visit_sat: boolean
+  area_atuacao: string | null
 }
 
 const DEFAULTS: SystemSettings = {
@@ -31,6 +32,7 @@ const DEFAULTS: SystemSettings = {
   visit_thu: true,
   visit_fri: true,
   visit_sat: false,
+  area_atuacao: null,
 }
 
 /** Retorna Set com os índices de dia (0=Dom…6=Sáb) marcados como dia de visita. */
