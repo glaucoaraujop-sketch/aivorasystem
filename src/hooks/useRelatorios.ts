@@ -99,9 +99,12 @@ export function useRelatorios() {
           .in('status', ['prevista','aprovada'])
           .order('due_date', { ascending: true })
           .limit(5),
-        // Total de lojas atendidas (soma de num_lojas dos clientes ativos)
+        // Total de pontos de venda: soma num_lojas de cada CNPJ dos clientes ativos do tipo loja
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase.from('clients') as any).select('num_lojas').eq('active', true),
+        (supabase.from('client_cnpjs') as any)
+          .select('num_lojas, clients!inner(active, type)')
+          .eq('clients.active', true)
+          .eq('clients.type', 'loja'),
       ])
 
       // KPIs
@@ -109,7 +112,7 @@ export function useRelatorios() {
       const fatMesAnt = (pedidosMesAnt ?? []).reduce((a: number, p: { total: number }) => a + p.total, 0)
       const totalLojas = (lojasData ?? []).reduce(
         (a: number, c: { num_lojas: number | null }) => a + (c.num_lojas ?? 1),
-        0,
+        0
       )
 
       setKpis({

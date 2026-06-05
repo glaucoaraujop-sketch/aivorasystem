@@ -224,7 +224,7 @@ function CnpjsSection({ clientId }: { clientId: string }) {
   const { cnpjs, loading, refetch } = useClientCnpjs(clientId)
   const { criar, remover, definirPrincipal } = useClientCnpjsMutations()
   const [adicionando, setAdicionando] = useState(false)
-  const [novoForm, setNovoForm] = useState({ razao_social: '', cnpj: '', inscricao_estadual: '', notes: '' })
+  const [novoForm, setNovoForm] = useState({ razao_social: '', cnpj: '', inscricao_estadual: '', num_lojas: '1', notes: '' })
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -237,10 +237,11 @@ function CnpjsSection({ clientId }: { clientId: string }) {
         razao_social: novoForm.razao_social.trim(),
         cnpj: novoForm.cnpj.trim() || null,
         inscricao_estadual: novoForm.inscricao_estadual.trim() || null,
+        num_lojas: novoForm.num_lojas ? parseInt(novoForm.num_lojas) : 1,
         notes: novoForm.notes.trim() || null,
         is_primary: cnpjs.length === 0,
       })
-      setNovoForm({ razao_social: '', cnpj: '', inscricao_estadual: '', notes: '' })
+      setNovoForm({ razao_social: '', cnpj: '', inscricao_estadual: '', num_lojas: '1', notes: '' })
       setAdicionando(false)
       refetch()
     } catch (e) {
@@ -271,14 +272,20 @@ function CnpjsSection({ clientId }: { clientId: string }) {
   return (
     <div className="glass-card rounded-2xl p-5 col-span-1 sm:col-span-3">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#A0AEC0' }}>
             Razões Sociais / CNPJs
           </p>
           <span className="px-2 py-0.5 rounded-full text-xs font-bold"
             style={{ color: '#0075FF', background: 'rgba(0,117,255,0.12)' }}>
-            {cnpjs.length}
+            {cnpjs.length} CNPJ{cnpjs.length !== 1 ? 's' : ''}
           </span>
+          {cnpjs.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold"
+              style={{ color: '#9F7AEA', background: 'rgba(159,122,234,0.12)' }}>
+              {cnpjs.reduce((a, c) => a + (c.num_lojas ?? 1), 0)} lojas
+            </span>
+          )}
         </div>
         <button
           onClick={() => setAdicionando(true)}
@@ -310,6 +317,16 @@ function CnpjsSection({ clientId }: { clientId: string }) {
               onChange={e => setNovoForm(p => ({ ...p, inscricao_estadual: e.target.value }))}
               placeholder="Insc. Estadual"
               className="input-dark w-full px-3 py-2 rounded-lg text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs font-medium flex-shrink-0" style={{ color: '#A0AEC0' }}>Nº de Lojas (pontos de venda)</label>
+            <input
+              type="number" min="1"
+              value={novoForm.num_lojas}
+              onChange={e => setNovoForm(p => ({ ...p, num_lojas: e.target.value }))}
+              className="input-dark w-20 px-2.5 py-1.5 rounded-lg text-sm text-center font-bold"
+              style={{ color: '#0075FF' }}
             />
           </div>
           <input
@@ -359,7 +376,13 @@ function CnpjsSection({ clientId }: { clientId: string }) {
                       </span>
                     )}
                   </div>
-                  {c.cnpj && <p className="text-xs mt-0.5 font-mono" style={{ color: '#A0AEC0' }}>{c.cnpj}</p>}
+                  <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                    {c.cnpj && <p className="text-xs font-mono" style={{ color: '#A0AEC0' }}>{c.cnpj}</p>}
+                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md"
+                      style={{ color: '#9F7AEA', background: 'rgba(159,122,234,0.12)' }}>
+                      {c.num_lojas ?? 1} {(c.num_lojas ?? 1) === 1 ? 'loja' : 'lojas'}
+                    </span>
+                  </div>
                   {c.inscricao_estadual && <p className="text-xs" style={{ color: '#56577A' }}>IE: {c.inscricao_estadual}</p>}
                   {c.notes && <p className="text-xs mt-1 italic" style={{ color: '#56577A' }}>{c.notes}</p>}
                 </div>

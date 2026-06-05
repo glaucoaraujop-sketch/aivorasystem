@@ -9,7 +9,7 @@ type ClientInsert = Database['public']['Tables']['clients']['Insert']
 type ClientUpdate = Database['public']['Tables']['clients']['Update']
 
 export type ClientWithCnpjCount = Client & {
-  client_cnpjs: Array<{ id: string }>
+  client_cnpjs: Array<{ id: string; num_lojas: number | null }>
 }
 
 interface Filters {
@@ -30,7 +30,7 @@ export function useClientes(filters: Filters = {}) {
     setError(null)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query = (supabase.from('clients') as any).select('*, client_cnpjs(id)').order('name')
+    let query = (supabase.from('clients') as any).select('*, client_cnpjs(id, num_lojas)').order('name')
 
     if (filters.search) {
       query = query.or(`name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,whatsapp.ilike.%${filters.search}%`)

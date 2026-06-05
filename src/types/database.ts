@@ -128,6 +128,7 @@ export interface Database {
           cnpj: string | null
           inscricao_estadual: string | null
           is_primary: boolean
+          num_lojas: number | null
           notes: string | null
           created_at: string
         }
@@ -137,6 +138,7 @@ export interface Database {
           cnpj?: string | null
           inscricao_estadual?: string | null
           is_primary?: boolean
+          num_lojas?: number | null
           notes?: string | null
         }
         Update: {
@@ -144,6 +146,7 @@ export interface Database {
           cnpj?: string | null
           inscricao_estadual?: string | null
           is_primary?: boolean
+          num_lojas?: number | null
           notes?: string | null
         }
       }

@@ -53,9 +53,12 @@ export default function ClientesPage() {
 
   const porTipo = (t: string) => clientes.filter(c => c.type === t).length
 
+  // Soma num_lojas de cada CNPJ — representa pontos de venda reais
   const totalLojas = clientes
     .filter(c => c.type === 'loja')
-    .reduce((acc, c) => acc + (c.client_cnpjs.length || 1), 0)
+    .reduce((acc, c) =>
+      acc + c.client_cnpjs.reduce((a, cnpj) => a + (cnpj.num_lojas ?? 1), 0)
+    , 0)
 
   const totalGrupos = clientes.filter(c => c.client_cnpjs.length > 1).length
 
