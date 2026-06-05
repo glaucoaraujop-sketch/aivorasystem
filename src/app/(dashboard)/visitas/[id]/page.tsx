@@ -8,6 +8,10 @@ import {
 } from 'lucide-react'
 import { useVisita, useVisitasMutations } from '@/hooks/useVisitas'
 import type { VisitStatus } from '@/types/database'
+import { AiCard } from '@/components/ai/AiCard'
+import { AiMensagem } from '@/components/ai/AiMensagem'
+import { useAI } from '@/hooks/useAI'
+import { useCurrentUserName } from '@/hooks/useCurrentUserName'
 
 const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   agendada:   { label: 'Agendada',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)',     icon: Calendar    },
@@ -32,15 +36,19 @@ export default function VisitaDetalhe() {
   const router  = useRouter()
   const { visita, loading, refetch } = useVisita(id)
   const { registrarResultado, atualizarStatus, reagendar } = useVisitasMutations()
+  const { name: nomeRepresentante } = useCurrentUserName()
 
-  const [panel, setPanel]           = useState<PanelType>(null)
-  const [saving, setSaving]         = useState(false)
-  const [error, setError]           = useState('')
-  const [result, setResult]         = useState('')
-  const [nextAction, setNextAction] = useState('')
+  const [panel, setPanel]             = useState<PanelType>(null)
+  const [saving, setSaving]           = useState(false)
+  const [error, setError]             = useState('')
+  const [result, setResult]           = useState('')
+  const [nextAction, setNextAction]   = useState('')
   const [resultNotes, setResultNotes] = useState('')
-  const [novaData, setNovaData]     = useState('')
+  const [novaData, setNovaData]       = useState('')
   const minDatetime = new Date().toISOString().slice(0, 16)
+
+  const briefing  = useAI()
+  const followUp  = useAI()
 
   async function handleRegistrar() {
     if (!result.trim()) { setError('Descreva o resultado da visita'); return }
@@ -72,6 +80,36 @@ export default function VisitaDetalhe() {
     finally { setSaving(false) }
   }
 
+  function handleGerarBriefing() {
+    if (!visita) return
+    briefing.generate('/api/ai/briefing', {
+      visita: {
+        scheduled_at: visita.scheduled_at,
+        objective:    visita.objective,
+        notes:        visita.notes,
+        result:       visita.result,
+        next_action:  visita.next_action,
+      },
+      cliente: {
+        name:          visita.clients?.name,
+        company_name:  visita.clients?.company_name,
+        city:          visita.clients?.city,
+        state:         visita.clients?.state,
+        whatsapp:      visita.clients?.whatsapp,
+      },
+    })
+  }
+
+  function handleGerarFollowUp() {
+    if (!visita) return
+    followUp.generate('/api/ai/mensagem', {
+      tipo:              'pos_visita',
+      clienteName:       visita.clients?.name ?? '',
+      nomeRepresentante: nomeRepresentante ?? undefined,
+      contexto:          `Visita realizada. Resultado: ${visita.result ?? 'Realizada com sucesso'}. Próxima ação: ${visita.next_action ?? 'Não definida'}`,
+    })
+  }
+
   if (loading) return (
     <div className="max-w-2xl w-full space-y-4 animate-pulse">
       <div className="h-8 rounded-xl w-1/2" style={{ background: 'rgba(255,255,255,0.06)' }} />
@@ -90,6 +128,8 @@ export default function VisitaDetalhe() {
   const cfg = STATUS_CONFIG[visita.status]
   const StatusIcon = cfg.icon
   const agendada = visita.status === 'agendada'
+  const reagendada = visita.status === 'reagendada'
+  const realizada = visita.status === 'realizada'
   const atrasada = agendada && new Date(visita.scheduled_at) < new Date()
 
   return (
@@ -129,6 +169,19 @@ export default function VisitaDetalhe() {
       )}
 
       <div className="space-y-4">
+        {/* Copiloto IA — antes da visita */}
+        {(agendada || reagendada) && (
+          <AiCard
+            title="Copiloto de Visita"
+            text={briefing.text}
+            loading={briefing.loading}
+            error={briefing.error}
+            onGenerate={handleGerarBriefing}
+            onReset={briefing.reset}
+            generateLabel="Gerar briefing para esta visita"
+          />
+        )}
+
         {/* Cliente */}
         <div className="glass-card rounded-2xl p-5">
           <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#A0AEC0' }}>Cliente</p>
@@ -192,7 +245,7 @@ export default function VisitaDetalhe() {
         </div>
 
         {/* Resultado (se realizada) */}
-        {visita.status === 'realizada' && visita.result && (
+        {realizada && visita.result && (
           <div className="rounded-2xl p-5 space-y-3"
             style={{ background: 'rgba(1,181,116,0.08)', border: '1px solid rgba(1,181,116,0.2)' }}>
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#01B574' }}>Resultado</p>
@@ -209,6 +262,30 @@ export default function VisitaDetalhe() {
               </div>
             )}
           </div>
+        )}
+
+        {/* IA pós-visita: follow-up WhatsApp */}
+        {realizada && (
+          <>
+            <AiCard
+              title="Follow-up da Visita"
+              text={followUp.text}
+              loading={followUp.loading}
+              error={followUp.error}
+              onGenerate={handleGerarFollowUp}
+              onReset={followUp.reset}
+              generateLabel="Gerar mensagem de follow-up"
+            />
+            {visita.clients && (
+              <AiMensagem
+                clienteName={visita.clients.name}
+                clienteWhatsapp={visita.clients.whatsapp}
+                tiposDisponiveis={['pos_visita', 'follow_up_visita', 'follow_up_orcamento']}
+                contextoBase={`Visita realizada. Resultado: ${visita.result ?? ''}. Próxima ação: ${visita.next_action ?? ''}`}
+                nomeRepresentante={nomeRepresentante ?? undefined}
+              />
+            )}
+          </>
         )}
 
         {/* Painel: Registrar resultado */}
@@ -292,7 +369,7 @@ export default function VisitaDetalhe() {
         )}
 
         {/* Ações */}
-        {(visita.status === 'agendada' || visita.status === 'reagendada') && panel === null && (
+        {(agendada || reagendada) && panel === null && (
           <div className="flex gap-3 flex-wrap">
             <button onClick={() => { setPanel('resultado'); setError('') }}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"

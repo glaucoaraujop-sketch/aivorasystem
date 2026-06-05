@@ -1,16 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, ShoppingCart, DollarSign,
-  Users, FileText, Clock, ArrowRight, Store,
+  Users, FileText, Clock, ArrowRight, Store, Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRelatorios } from '@/hooks/useRelatorios'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { AiCard } from '@/components/ai/AiCard'
+import { useAI } from '@/hooks/useAI'
 
 const STATUS_PT: Record<string, string> = {
   rascunho: 'Rascunho', enviado: 'Enviado', aprovado: 'Aprovado',
@@ -76,6 +79,13 @@ const CustomTooltip = ({
 
 export default function RelatoriosPage() {
   const { kpis, vendasMes, topClientes, pipeline, proximasComissoes, loading } = useRelatorios()
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inteligencia'>('dashboard')
+  const insights = useAI()
+
+  function handleGerarInsights() {
+    if (!kpis) return
+    insights.generate('/api/ai/insights', { kpis, vendasMes, topClientes, pipeline, proximasComissoes })
+  }
 
   if (loading) return (
     <div className="space-y-4">
@@ -96,10 +106,60 @@ export default function RelatoriosPage() {
 
   return (
     <div className="max-w-5xl w-full space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-white tracking-tight">Dashboard</h1>
-        <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Visão geral do seu negócio</p>
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Relatórios</h1>
+          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Visão geral e inteligência do seu negócio</p>
+        </div>
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'dashboard'
+              ? { background: 'rgba(0,117,255,0.15)', color: '#0075FF', border: '1px solid rgba(0,117,255,0.3)' }
+              : { color: '#A0AEC0', border: '1px solid transparent' }
+            }
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('inteligencia')}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'inteligencia'
+              ? { background: 'rgba(109,40,217,0.15)', color: '#A78BFA', border: '1px solid rgba(109,40,217,0.3)' }
+              : { color: '#A0AEC0', border: '1px solid transparent' }
+            }
+          >
+            <Sparkles size={13} /> Inteligência IA
+          </button>
+        </div>
       </div>
+
+      {/* Aba Inteligência */}
+      {activeTab === 'inteligencia' && (
+        <div className="space-y-5">
+          <div className="rounded-2xl p-5" style={{ background: 'rgba(109,40,217,0.06)', border: '1px solid rgba(109,40,217,0.2)' }}>
+            <p className="text-sm font-semibold text-white mb-1">Análise Inteligente do Negócio</p>
+            <p className="text-xs" style={{ color: '#A0AEC0' }}>
+              A IA analisa seus dados em tempo real — faturamento, clientes, orçamentos e comissões — e gera insights acionáveis para você tomar decisões mais rápidas.
+            </p>
+          </div>
+          <AiCard
+            title="Insights do Negócio"
+            text={insights.text}
+            loading={insights.loading}
+            error={insights.error}
+            onGenerate={handleGerarInsights}
+            onReset={insights.reset}
+            generateLabel="Analisar meu negócio agora"
+          />
+        </div>
+      )}
+
+      {/* Aba Dashboard */}
+      {activeTab === 'dashboard' && (
+      <div className="space-y-6">
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -275,6 +335,8 @@ export default function RelatoriosPage() {
           )}
         </div>
       </div>
+      </div>
+      )}
     </div>
   )
 }

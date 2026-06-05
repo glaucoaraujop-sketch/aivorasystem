@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -12,36 +12,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useMyPermissions, type UserPermissions } from '@/hooks/useMyPermissions'
-
-function useCurrentUserName() {
-  const [name, setName] = useState<string | null>(null)
-  const supabase = createClient()
-
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Busca nome na tabela de membros da equipe
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase.from('team_members') as any)
-        .select('name')
-        .eq('email', user.email)
-        .maybeSingle()
-
-      if (data?.name) {
-        setName(data.name)
-      } else {
-        // Dono do sistema: usa a parte antes do @ ou "Glauco"
-        const emailName = user.email?.split('@')[0] ?? ''
-        setName(emailName === 'glaucoaraujop' ? 'Glauco' : emailName)
-      }
-    }
-    load()
-  }, [])
-
-  return name
-}
+import { useCurrentUserName } from '@/hooks/useCurrentUserName'
 
 const ALL_NAV = [
   { href: '/clientes',      label: 'Clientes',       icon: Users,        perm: 'perm_clientes'     },
@@ -97,7 +68,7 @@ export function Sidebar() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  const userName = useCurrentUserName()
+  const { name: userName } = useCurrentUserName()
   const perms = useMyPermissions()
 
   async function handleLogout() {
