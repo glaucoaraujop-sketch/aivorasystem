@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useMyPermissions, type UserPermissions } from '@/hooks/useMyPermissions'
 
 function useCurrentUserName() {
   const [name, setName] = useState<string | null>(null)
@@ -42,21 +43,22 @@ function useCurrentUserName() {
   return name
 }
 
-const nav = [
-  { href: '/clientes',     label: 'Clientes',        icon: Users },
-  { href: '/produtos',     label: 'Catálogo',         icon: Package },
-  { href: '/orcamentos',   label: 'Orçamentos',       icon: FileText },
-  { href: '/pedidos',      label: 'Pedidos',          icon: ShoppingCart },
-  { href: '/comissoes',    label: 'Comissões',        icon: DollarSign },
-  { href: '/visitas',      label: 'Visitas',          icon: MapPin },
-  { href: '/fornecedores', label: 'Fornecedores',     icon: Truck },
-  { href: '/assistencia',  label: 'Assist. Técnica',  icon: Wrench },
-  { href: '/relatorios',   label: 'Relatórios',       icon: BarChart2 },
-  { href: '/configuracoes', label: 'Configurações',   icon: Settings  },
-]
+const ALL_NAV = [
+  { href: '/clientes',      label: 'Clientes',       icon: Users,        perm: 'perm_clientes'     },
+  { href: '/produtos',      label: 'Catálogo',        icon: Package,      perm: 'perm_catalogo'     },
+  { href: '/orcamentos',    label: 'Orçamentos',      icon: FileText,     perm: 'perm_orcamentos'   },
+  { href: '/pedidos',       label: 'Pedidos',         icon: ShoppingCart, perm: 'perm_pedidos'      },
+  { href: '/comissoes',     label: 'Comissões',       icon: DollarSign,   perm: 'perm_comissoes'    },
+  { href: '/visitas',       label: 'Visitas',         icon: MapPin,       perm: 'perm_visitas'      },
+  { href: '/fornecedores',  label: 'Fornecedores',    icon: Truck,        perm: 'perm_fornecedores' },
+  { href: '/assistencia',   label: 'Assist. Técnica', icon: Wrench,       perm: 'perm_assistencia'  },
+  { href: '/relatorios',    label: 'Relatórios',      icon: BarChart2,    perm: 'perm_relatorios'   },
+  { href: '/configuracoes', label: 'Configurações',   icon: Settings,     perm: 'perm_configuracoes'},
+] as const
 
-function NavLinks({ onClick }: { onClick?: () => void }) {
+function NavLinks({ onClick, perms }: { onClick?: () => void; perms: UserPermissions }) {
   const pathname = usePathname()
+  const nav = ALL_NAV.filter(item => perms[item.perm as keyof UserPermissions])
   return (
     <div className="space-y-1">
       {nav.map(({ href, label, icon: Icon }) => {
@@ -96,6 +98,7 @@ export function Sidebar() {
   const router = useRouter()
   const supabase = createClient()
   const userName = useCurrentUserName()
+  const perms = useMyPermissions()
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -129,7 +132,7 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-5">
-          <NavLinks />
+          <NavLinks perms={perms} />
         </nav>
 
         {/* Footer */}
@@ -213,7 +216,7 @@ export function Sidebar() {
               </button>
             </div>
             <nav className="flex-1 px-3 py-5 overflow-y-auto">
-              <NavLinks onClick={() => setOpen(false)} />
+              <NavLinks perms={perms} onClick={() => setOpen(false)} />
             </nav>
             <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               {userName && (
