@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Settings, Save, CheckCircle, AlertTriangle, Calendar, MapPin, Users } from 'lucide-react'
+import { Settings, Save, CheckCircle, AlertTriangle, Calendar, MapPin, Users, UserCog, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useSystemSettings } from '@/hooks/useSystemSettings'
+import { useTeamMembers, useTeamMembersMutations, type TeamMember, type TeamMemberUpdate } from '@/hooks/useTeamMembers'
 
 type VisitDays = {
   visit_sun: boolean; visit_mon: boolean; visit_tue: boolean
@@ -26,6 +27,202 @@ const WEEK_DAYS: { key: keyof VisitDays; label: string; short: string }[] = [
   { key: 'visit_sat', label: 'Sábado',   short: 'S' },
 ]
 
+const MODULES: { key: keyof TeamMemberUpdate; label: string }[] = [
+  { key: 'perm_clientes',     label: 'Clientes' },
+  { key: 'perm_catalogo',     label: 'Catálogo' },
+  { key: 'perm_orcamentos',   label: 'Orçamentos' },
+  { key: 'perm_pedidos',      label: 'Pedidos' },
+  { key: 'perm_comissoes',    label: 'Comissões' },
+  { key: 'perm_visitas',      label: 'Visitas' },
+  { key: 'perm_fornecedores', label: 'Fornecedores' },
+  { key: 'perm_assistencia',  label: 'Assist. Técnica' },
+  { key: 'perm_relatorios',   label: 'Relatórios' },
+]
+
+function MemberCard({ member, onSaved }: { member: TeamMember; onSaved: () => void }) {
+  const { atualizar, remover } = useTeamMembersMutations()
+  const [perms, setPerms] = useState<TeamMemberUpdate>({
+    active:            member.active,
+    perm_clientes:     member.perm_clientes,
+    perm_catalogo:     member.perm_catalogo,
+    perm_orcamentos:   member.perm_orcamentos,
+    perm_pedidos:      member.perm_pedidos,
+    perm_comissoes:    member.perm_comissoes,
+    perm_visitas:      member.perm_visitas,
+    perm_fornecedores: member.perm_fornecedores,
+    perm_assistencia:  member.perm_assistencia,
+    perm_relatorios:   member.perm_relatorios,
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved,  setSaved]  = useState(false)
+  const [erro,   setErro]   = useState('')
+
+  function toggle(key: keyof TeamMemberUpdate) {
+    setPerms(prev => ({ ...prev, [key]: !prev[key] }))
+    setSaved(false)
+  }
+
+  async function handleSalvar() {
+    setSaving(true); setErro('')
+    try {
+      await atualizar(member.id, perms)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      onSaved()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar')
+    } finally { setSaving(false) }
+  }
+
+  async function handleRemover() {
+    if (!confirm(`Remover ${member.name} da equipe?`)) return
+    await remover(member.id)
+    onSaved()
+  }
+
+  const initials = member.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+
+  return (
+    <div className="rounded-2xl p-5 space-y-4"
+      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+
+      {/* Header do usuário */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #4318FF 0%, #0075FF 100%)' }}>
+            {initials}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-white text-sm">{member.name}</p>
+              <button
+                onClick={() => toggle('active')}
+                className="transition-all"
+                title={perms.active ? 'Desativar usuário' : 'Ativar usuário'}
+              >
+                {perms.active
+                  ? <ToggleRight size={20} style={{ color: '#01B574' }} />
+                  : <ToggleLeft  size={20} style={{ color: '#56577A' }} />}
+              </button>
+            </div>
+            <p className="text-xs" style={{ color: '#56577A' }}>{member.email}</p>
+          </div>
+        </div>
+        <button onClick={handleRemover}
+          className="p-1.5 rounded-lg transition-all"
+          style={{ color: '#56577A' }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#FC8181')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#56577A')}
+          title="Remover usuário">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* Permissões */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#56577A' }}>
+          Módulos com acesso
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {MODULES.map(mod => {
+            const on = !!perms[mod.key]
+            return (
+              <button
+                key={mod.key}
+                onClick={() => toggle(mod.key)}
+                disabled={!perms.active}
+                className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+                style={on ? {
+                  background: 'rgba(0,117,255,0.12)',
+                  border: '1px solid rgba(0,117,255,0.3)',
+                  color: '#0075FF',
+                } : {
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: '#56577A',
+                }}
+              >
+                <span>{mod.label}</span>
+                <span className="font-bold">{on ? '✓' : '—'}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Ações */}
+      {erro && <p className="text-xs" style={{ color: '#FC8181' }}>⚠ {erro}</p>}
+      <div className="flex items-center justify-end gap-2">
+        {saved && (
+          <span className="flex items-center gap-1 text-xs" style={{ color: '#01B574' }}>
+            <CheckCircle size={12} /> Salvo
+          </span>
+        )}
+        <button
+          onClick={handleSalvar}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-50"
+          style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
+          <Save size={11} />
+          {saving ? 'Salvando...' : 'Salvar'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AddMemberForm({ onAdded }: { onAdded: () => void }) {
+  const { adicionar } = useTeamMembersMutations()
+  const [form, setForm] = useState({ name: '', email: '' })
+  const [saving, setSaving] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.name.trim() || !form.email.trim()) { setErro('Nome e e-mail são obrigatórios'); return }
+    setSaving(true); setErro('')
+    try {
+      await adicionar(form)
+      setForm({ name: '', email: '' })
+      onAdded()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao adicionar')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-2xl p-4 space-y-3"
+      style={{ background: 'rgba(0,117,255,0.05)', border: '1px solid rgba(0,117,255,0.15)' }}>
+      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#0075FF' }}>
+        Adicionar usuário
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          value={form.name}
+          onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+          placeholder="Nome"
+          className="input-dark w-full px-3 py-2 rounded-xl text-sm"
+        />
+        <input
+          type="email"
+          value={form.email}
+          onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+          placeholder="E-mail"
+          className="input-dark w-full px-3 py-2 rounded-xl text-sm"
+        />
+      </div>
+      {erro && <p className="text-xs" style={{ color: '#FC8181' }}>⚠ {erro}</p>}
+      <button type="submit" disabled={saving}
+        className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold text-white disabled:opacity-50"
+        style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
+        <Plus size={11} />
+        {saving ? 'Adicionando...' : 'Adicionar'}
+      </button>
+    </form>
+  )
+}
+
 const cardStyle = {
   background: 'linear-gradient(127.09deg, rgba(6,11,40,0.94) 19.41%, rgba(10,14,35,0.49) 76.65%)',
   backdropFilter: 'blur(120px)',
@@ -34,6 +231,8 @@ const cardStyle = {
 
 export default function ConfiguracoesPage() {
   const { settings, loading, salvar } = useSystemSettings()
+  const { members, loading: loadingMembers, refetch: refetchMembers } = useTeamMembers()
+  const [showAddMember, setShowAddMember] = useState(false)
 
   const [days,     setDays]     = useState({ p1: 15, p2: 30, p3: 45, p4: 60 })
   const [perDay,   setPerDay]   = useState(5)
@@ -272,6 +471,50 @@ export default function ConfiguracoesPage() {
           <Save size={15} />
           {saving ? 'Salvando...' : 'Salvar configurações'}
         </button>
+
+        {/* Gerenciar Usuários */}
+        <section className="rounded-2xl p-6" style={cardStyle}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <UserCog size={16} style={{ color: '#9F7AEA' }} />
+              <h2 className="font-bold text-white text-base">Gerenciar Usuários</h2>
+            </div>
+            <button
+              onClick={() => setShowAddMember(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: 'rgba(159,122,234,0.12)', color: '#9F7AEA', border: '1px solid rgba(159,122,234,0.25)' }}>
+              <Plus size={12} />
+              Novo usuário
+            </button>
+          </div>
+          <p className="text-sm mb-5" style={{ color: '#A0AEC0' }}>
+            Defina o que cada membro da equipe pode acessar no sistema.
+          </p>
+
+          {showAddMember && (
+            <div className="mb-4">
+              <AddMemberForm onAdded={() => { refetchMembers(); setShowAddMember(false) }} />
+            </div>
+          )}
+
+          {loadingMembers ? (
+            <div className="space-y-3">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-40 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              ))}
+            </div>
+          ) : members.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: '#56577A' }}>
+              Nenhum usuário na equipe. Clique em "Novo usuário" para adicionar.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {members.map(m => (
+                <MemberCard key={m.id} member={m} onSaved={refetchMembers} />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )
