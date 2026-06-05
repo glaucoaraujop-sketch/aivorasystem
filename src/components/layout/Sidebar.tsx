@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -11,6 +11,36 @@ import {
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+
+function useCurrentUserName() {
+  const [name, setName] = useState<string | null>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Busca nome na tabela de membros da equipe
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from('team_members') as any)
+        .select('name')
+        .eq('email', user.email)
+        .maybeSingle()
+
+      if (data?.name) {
+        setName(data.name)
+      } else {
+        // Dono do sistema: usa a parte antes do @ ou "Glauco"
+        const emailName = user.email?.split('@')[0] ?? ''
+        setName(emailName === 'glaucoaraujop' ? 'Glauco' : emailName)
+      }
+    }
+    load()
+  }, [])
+
+  return name
+}
 
 const nav = [
   { href: '/clientes',     label: 'Clientes',        icon: Users },
@@ -65,6 +95,7 @@ export function Sidebar() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const userName = useCurrentUserName()
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -102,7 +133,19 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {userName && (
+            <div className="flex items-center gap-3 px-4 py-2.5">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #4318FF 0%, #0075FF 100%)' }}>
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs" style={{ color: '#56577A' }}>Logado como</p>
+                <p className="text-sm font-semibold text-white truncate">{userName}</p>
+              </div>
+            </div>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
@@ -172,7 +215,19 @@ export function Sidebar() {
             <nav className="flex-1 px-3 py-5 overflow-y-auto">
               <NavLinks onClick={() => setOpen(false)} />
             </nav>
-            <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              {userName && (
+                <div className="flex items-center gap-3 px-4 py-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #4318FF 0%, #0075FF 100%)' }}>
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs" style={{ color: '#56577A' }}>Logado como</p>
+                    <p className="text-sm font-semibold text-white truncate">{userName}</p>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
