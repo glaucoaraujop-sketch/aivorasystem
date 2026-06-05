@@ -126,7 +126,7 @@ export function Sidebar() {
             width={160}
             height={56}
             priority
-            style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+            style={{ objectFit: 'contain' }}
           />
         </div>
 
@@ -178,7 +178,7 @@ export function Sidebar() {
             alt="Aivora System"
             fill
             priority
-            style={{ objectFit: 'contain', objectPosition: 'left center', mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+            style={{ objectFit: 'contain', objectPosition: 'left center' }}
           />
         </div>
         <button
@@ -205,7 +205,7 @@ export function Sidebar() {
                 alt="Aivora System"
                 width={130}
                 height={46}
-                style={{ mixBlendMode: 'lighten', filter: 'invert(1) hue-rotate(180deg)' }}
+                style={{ objectFit: 'contain' }}
               />
               <button
                 onClick={() => setOpen(false)}
