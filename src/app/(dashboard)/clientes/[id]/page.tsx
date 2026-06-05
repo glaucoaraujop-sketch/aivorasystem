@@ -457,6 +457,7 @@ function ComercializacaoSection({ clientId }: { clientId: string }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const router = useRouter()
   const { cliente, loading } = useCliente(id)
   const { deletar } = useClientesMutations()
   const [editando, setEditando] = useState(false)
