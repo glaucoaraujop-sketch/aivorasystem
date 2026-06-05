@@ -62,7 +62,7 @@ export default function ClientesPage() {
   const metrics = [
     { label: 'Total',          value: clientes.length,  icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
     { label: 'Total de Lojas', value: totalLojas,        icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-    { label: 'Grupos',         value: totalGrupos,       icon: Store,     color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+    { label: 'Grupo de Lojas', value: totalGrupos,       icon: Store,     color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
     { label: 'Outros',         value: porTipo('outros'), icon: Users,     color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)' },
   ]
 
