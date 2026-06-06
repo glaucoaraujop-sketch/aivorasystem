@@ -50,11 +50,20 @@ function NavLinks({ onClick, perms, onAiva }: { onClick?: () => void; perms: Use
       {/* AIVA — sempre visível */}
       <button
         onClick={() => { onClick?.(); onAiva() }}
-        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-left"
-        style={{ background: 'linear-gradient(135deg, rgba(0,117,255,0.1) 0%, rgba(109,40,217,0.12) 100%)', border: '1px solid rgba(109,40,217,0.2)', color: '#A78BFA' }}
+        className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-left transition-all hover:opacity-90 active:scale-[0.99]"
+        style={{
+          background: 'linear-gradient(135deg, #0075FF 0%, #6D28D9 100%)',
+          boxShadow: '0 6px 24px rgba(109,40,217,0.45)',
+        }}
       >
-        <Sparkles size={17} style={{ color: '#A78BFA' }} />
-        Fale com a AIVA
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.18)' }}>
+          <Sparkles size={15} color="#fff" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white">Fale com a AIVA</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Sua assistente de IA</p>
+        </div>
       </button>
 
       <div className="pt-1 pb-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
