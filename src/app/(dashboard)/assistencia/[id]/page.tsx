@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { useAssistencia, useAssistenciasMutations } from '@/hooks/useAssistencias'
 import type { AssistenciaStatus } from '@/hooks/useAssistencias'
+import { useAI } from '@/hooks/useAI'
+import { AiCard } from '@/components/ai/AiCard'
 
 const STATUS_CONFIG: Record<AssistenciaStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   aberta:       { label: 'Aberta',       color: '#F6AD55', bg: 'rgba(246,173,85,0.15)',   icon: AlertCircle },
@@ -28,6 +30,19 @@ export default function AssistenciaDetalhe() {
   const [showResolve, setShowResolve] = useState(false)
   const [resolution, setResolution]   = useState('')
   const [imageZoom, setImageZoom]     = useState(false)
+
+  const { text: aiText, loading: aiLoading, error: aiError, generate: aiGenerate, reset: aiReset } = useAI()
+
+  async function handleAnalise() {
+    await aiGenerate('/api/ai/analise-assistencia', {
+      descricao: assistencia?.description,
+      notas: assistencia?.notes,
+      imageUrl: assistencia?.image_url,
+      produto: assistencia?.products?.name ?? assistencia?.product_name,
+      fornecedor: assistencia?.suppliers?.name,
+      cliente: assistencia?.clients?.name,
+    })
+  }
 
   async function handleStatus(status: AssistenciaStatus) {
     if (status === 'resolvida') { setShowResolve(true); return }
@@ -199,6 +214,18 @@ export default function AssistenciaDetalhe() {
             )}
           </div>
         )}
+
+        {/* AIVA — Diagnóstico técnico */}
+        <AiCard
+          title="AIVA · Diagnóstico técnico"
+          text={aiText}
+          loading={aiLoading}
+          error={aiError}
+          onGenerate={handleAnalise}
+          onReset={aiReset}
+          generateLabel={assistencia.image_url ? 'Analisar imagem e defeito' : 'Analisar defeito'}
+          placeholder="A AIVA vai diagnosticar o defeito, sugerir a solução e orientar como acionar o fornecedor."
+        />
 
         {/* Resolução */}
         {assistencia.status === 'resolvida' && assistencia.resolution && (

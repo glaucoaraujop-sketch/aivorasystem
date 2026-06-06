@@ -2,10 +2,12 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Send, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Send, ThumbsUp, ThumbsDown, MessageCircle, FileDown } from 'lucide-react'
 import { useOrcamento, useOrcamentosMutations } from '@/hooks/useOrcamentos'
 import { formatCurrency, formatDate, formatPhone } from '@/lib/utils'
 import type { QuoteStatus } from '@/types/database'
+import { AiMensagem } from '@/components/ai/AiMensagem'
+import { gerarPropostaPDF } from '@/lib/gerarProposta'
 
 const STATUS_CONFIG: Record<QuoteStatus, { label: string; color: string; bg: string }> = {
   rascunho: { label: 'Rascunho', color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
@@ -20,6 +22,32 @@ export default function OrcamentoPage({ params }: { params: Promise<{ id: string
   const { orcamento, loading, refetch } = useOrcamento(id)
   const { atualizarStatus } = useOrcamentosMutations()
   const [updating, setUpdating] = useState(false)
+
+  function handleDownloadPDF() {
+    if (!orcamento) return
+    gerarPropostaPDF({
+      numero: orcamento.number,
+      clienteNome: orcamento.clients?.name ?? '',
+      clienteEmpresa: orcamento.clients?.company_name,
+      clienteWhatsapp: orcamento.clients?.whatsapp,
+      tabelaPreco: orcamento.price_tables?.name,
+      validoAte: orcamento.valid_until,
+      itens: (orcamento.quote_items ?? []).map(item => ({
+        nome: item.products?.name ?? '',
+        codigo: item.products?.code,
+        quantidade: item.quantity,
+        unidade: item.products?.unit,
+        precoUnit: item.unit_price,
+        desconto: item.discount_pct,
+        total: item.total,
+      })),
+      subtotal: orcamento.subtotal,
+      descontoPct: orcamento.discount_pct,
+      total: orcamento.total,
+      notas: orcamento.notes,
+      criadoEm: orcamento.created_at,
+    })
+  }
 
   async function mudarStatus(status: QuoteStatus) {
     setUpdating(true)
@@ -90,6 +118,11 @@ export default function OrcamentoPage({ params }: { params: Promise<{ id: string
               </button>
             </>
           )}
+          <button onClick={handleDownloadPDF}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+            style={{ color: '#9F7AEA', background: 'rgba(159,122,234,0.12)', border: '1px solid rgba(159,122,234,0.2)' }}>
+            <FileDown size={14} /> Proposta PDF
+          </button>
           {orcamento.clients?.whatsapp && (
             <a href={`https://wa.me/55${orcamento.clients.whatsapp.replace(/\D/g, '')}`}
               target="_blank" rel="noreferrer"
@@ -210,6 +243,14 @@ export default function OrcamentoPage({ params }: { params: Promise<{ id: string
           </p>
         </div>
       )}
+
+      {/* AIVA — Mensagem WhatsApp */}
+      <AiMensagem
+        clienteName={orcamento.clients?.name ?? ''}
+        clienteWhatsapp={orcamento.clients?.whatsapp}
+        tiposDisponiveis={['follow_up_orcamento', 'reengajamento']}
+        contextoBase={`Orçamento ${orcamento.number ?? ''} — Total: R$ ${orcamento.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+      />
     </div>
   )
 }

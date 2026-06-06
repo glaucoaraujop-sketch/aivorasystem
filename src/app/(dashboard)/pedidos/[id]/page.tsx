@@ -6,6 +6,7 @@ import { ArrowLeft, Truck, MessageCircle, CheckCircle } from 'lucide-react'
 import { usePedido, usePedidosMutations } from '@/hooks/usePedidos'
 import { formatCurrency, formatDate, formatPhone } from '@/lib/utils'
 import type { OrderStatus } from '@/types/database'
+import { AiMensagem } from '@/components/ai/AiMensagem'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   pendente:    { label: 'Pendente',     color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
@@ -247,6 +248,14 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
           </p>
         </div>
       )}
+
+      {/* AIVA — Mensagem WhatsApp */}
+      <AiMensagem
+        clienteName={pedido.clients?.name ?? ''}
+        clienteWhatsapp={pedido.clients?.whatsapp}
+        tiposDisponiveis={['atualizacao_pedido', 'follow_up_visita']}
+        contextoBase={`Pedido ${pedido.number ?? ''} — Status: ${STATUS_CONFIG[pedido.status].label} — Total: R$ ${pedido.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+      />
     </div>
   )
 }

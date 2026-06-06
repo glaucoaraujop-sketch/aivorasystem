@@ -34,7 +34,7 @@ function buildPrompt(body: {
   const periodo = hora < 12 ? 'manhã' : hora < 18 ? 'tarde' : 'noite'
   const tipicamenteMovimentado = [8, 9, 17, 18, 19].includes(hora)
 
-  return `Você é AIRA, a inteligência artificial da Aivora Tecnologia, assistente estratégica de ${userName}.
+  return `Você é AIVA, a inteligência artificial da Aivora Tecnologia, assistente estratégica de ${userName}.
 Gere uma mensagem de boas-vindas breve e prática para o início do dia de trabalho.
 
 CONTEXTO:

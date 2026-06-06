@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCurrentUserName } from '@/hooks/useCurrentUserName'
 import { useSystemSettings } from '@/hooks/useSystemSettings'
 import { useAI } from '@/hooks/useAI'
-import { AiraChat } from '@/components/ai/AiraChat'
+import { AivaChat } from '@/components/ai/AivaChat'
 
 function getSaudacao() {
   const h = new Date().getHours()
@@ -88,7 +88,7 @@ export default function InicioPage() {
               </div>
             )}
 
-            {/* Briefing AIRA */}
+            {/* Briefing AIVA */}
             <div
               className="rounded-2xl p-4 mb-6"
               style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -96,7 +96,7 @@ export default function InicioPage() {
               <div className="flex items-center gap-2 mb-2">
                 <Cloud size={13} style={{ color: '#A78BFA' }} />
                 <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
-                  AIRA · Contexto do dia
+                  AIVA · Contexto do dia
                 </span>
               </div>
               {bomDia.loading && !bomDia.text && (
@@ -128,7 +128,7 @@ export default function InicioPage() {
               )}
             </div>
 
-            {/* Botão AIRA */}
+            {/* Botão AIVA */}
             <button
               onClick={() => setChatOpen(true)}
               className="flex items-center gap-3 w-full py-4 px-5 rounded-2xl text-left transition-all hover:opacity-90 active:scale-[0.99]"
@@ -142,7 +142,7 @@ export default function InicioPage() {
                 <Sparkles size={18} color="#fff" />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-white text-sm">Fale com a AIRA</p>
+                <p className="font-bold text-white text-sm">Fale com a AIVA</p>
                 <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
                   Sua assistente estratégica de IA · Pergunte qualquer coisa
                 </p>
@@ -187,7 +187,7 @@ export default function InicioPage() {
               <div>
                 <p className="text-sm font-semibold text-white">Configure sua área de atuação</p>
                 <p className="text-xs mt-0.5" style={{ color: '#A0AEC0' }}>
-                  Permite que a AIRA traga clima e contexto personalizado
+                  Permite que a AIVA traga clima e contexto personalizado
                 </p>
               </div>
             </div>
@@ -196,7 +196,7 @@ export default function InicioPage() {
         )}
       </div>
 
-      <AiraChat
+      <AivaChat
         open={chatOpen}
         onClose={() => setChatOpen(false)}
         userName={userName ?? undefined}

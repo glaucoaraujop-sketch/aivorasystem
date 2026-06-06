@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, MessageCircle, Phone, Mail, MapPin, Edit, Check, X, Percent, Tag, ShoppingBag, Building2, Plus, Star, Trash2, AlertTriangle } from 'lucide-react'
@@ -8,6 +8,9 @@ import { useCliente, useClientesMutations } from '@/hooks/useClientes'
 import { clientEngagement } from '@/lib/engagement'
 import { ClienteForm } from '@/components/forms/ClienteForm'
 import { formatPhone } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { useAI } from '@/hooks/useAI'
+import { AiCard } from '@/components/ai/AiCard'
 import { useFornecedores, type Supplier } from '@/hooks/useFornecedores'
 import {
   useClientSupplierTerms, useClientSupplierTermsMutations,
@@ -463,6 +466,41 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
   const [editando, setEditando] = useState(false)
   const [deletando, setDeletando] = useState(false)
 
+  const { text: aiSug, loading: aiSugLoading, error: aiSugError, generate: aiSugGenerate, reset: aiSugReset } = useAI()
+  const [pedidosCliente, setPedidosCliente] = useState<Array<{ produtos: string[]; total: number; data: string }>>([])
+
+  useEffect(() => {
+    const sb = createClient()
+    sb.from('orders')
+      .select('total, created_at, order_items(products(name))')
+      .eq('client_id', id)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (!data) return
+        setPedidosCliente(data.map((p: Record<string, unknown>) => ({
+          produtos: ((p.order_items as Array<{ products: { name: string } | null }>) ?? [])
+            .map(i => i.products?.name ?? '').filter(Boolean),
+          total: (p.total as number) ?? 0,
+          data: new Date(p.created_at as string).toLocaleDateString('pt-BR'),
+        })))
+      })
+  }, [id])
+
+  async function handleSugestoes() {
+    await aiSugGenerate('/api/ai/sugestao-produtos', {
+      cliente: {
+        name: cliente?.name ?? '',
+        company_name: cliente?.company_name,
+        type: cliente?.type ?? '',
+        city: cliente?.city,
+        state: cliente?.state,
+        last_order_at: (cliente as unknown as { last_order_at: string | null })?.last_order_at,
+      },
+      ultimosPedidos: pedidosCliente,
+    })
+  }
+
   async function handleDeletar() {
     if (!confirm(`Deletar o cliente "${cliente?.name}" permanentemente?\n\nEssa ação não pode ser desfeita.`)) return
     setDeletando(true)
@@ -645,6 +683,20 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
 
           {/* Comercialização por fábrica */}
           <ComercializacaoSection clientId={id} />
+
+          {/* AIVA — Sugestões de produtos */}
+          <div className="col-span-1 sm:col-span-3">
+            <AiCard
+              title="AIVA · Análise e sugestões para este cliente"
+              text={aiSug}
+              loading={aiSugLoading}
+              error={aiSugError}
+              onGenerate={handleSugestoes}
+              onReset={aiSugReset}
+              generateLabel="Analisar cliente"
+              placeholder="A AIVA vai analisar o histórico e perfil desse cliente para sugerir produtos, estratégias de abordagem e oportunidades de venda."
+            />
+          </div>
 
           {/* Notas */}
           {cliente.notes && (

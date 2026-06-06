@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useMyPermissions, type UserPermissions } from '@/hooks/useMyPermissions'
 import { useCurrentUserName } from '@/hooks/useCurrentUserName'
-import { AiraChat } from '@/components/ai/AiraChat'
+import { AivaChat } from '@/components/ai/AivaChat'
 
 const ALL_NAV = [
   { href: '/clientes',      label: 'Clientes',       icon: Users,        perm: 'perm_clientes'     },
@@ -29,7 +29,7 @@ const ALL_NAV = [
   { href: '/configuracoes', label: 'Configurações',   icon: Settings,     perm: 'perm_configuracoes'},
 ] as const
 
-function NavLinks({ onClick, perms, onAira }: { onClick?: () => void; perms: UserPermissions; onAira: () => void }) {
+function NavLinks({ onClick, perms, onAiva }: { onClick?: () => void; perms: UserPermissions; onAiva: () => void }) {
   const pathname = usePathname()
   const nav = ALL_NAV.filter(item => perms[item.perm as keyof UserPermissions])
   const inicioActive = pathname === '/inicio' || pathname === '/'
@@ -47,14 +47,14 @@ function NavLinks({ onClick, perms, onAira }: { onClick?: () => void; perms: Use
         Início
       </Link>
 
-      {/* AIRA — sempre visível */}
+      {/* AIVA — sempre visível */}
       <button
-        onClick={() => { onClick?.(); onAira() }}
+        onClick={() => { onClick?.(); onAiva() }}
         className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-left"
         style={{ background: 'linear-gradient(135deg, rgba(0,117,255,0.1) 0%, rgba(109,40,217,0.12) 100%)', border: '1px solid rgba(109,40,217,0.2)', color: '#A78BFA' }}
       >
         <Sparkles size={17} style={{ color: '#A78BFA' }} />
-        Fale com a AIRA
+        Fale com a AIVA
       </button>
 
       <div className="pt-1 pb-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
@@ -87,12 +87,35 @@ function NavLinks({ onClick, perms, onAira }: { onClick?: () => void; perms: Use
 }
 
 export function Sidebar() {
-  const [open, setOpen]     = useState(false)
-  const [airaOpen, setAiraOpen] = useState(false)
+  const [open, setOpen]         = useState(false)
+  const [aivaOpen, setAivaOpen] = useState(false)
+  const [aivaContext, setAivaContext] = useState<string | undefined>(undefined)
   const router = useRouter()
   const supabase = createClient()
   const { name: userName } = useCurrentUserName()
   const perms = useMyPermissions()
+
+  useEffect(() => {
+    const sb = createClient()
+    Promise.all([
+      sb.from('clients').select('id', { count: 'exact', head: true }).eq('active', true),
+      sb.from('orders').select('id', { count: 'exact', head: true }).not('status', 'in', '("entregue","cancelado")'),
+      sb.from('quotes').select('id', { count: 'exact', head: true }).eq('status', 'enviado'),
+      sb.from('visits')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['agendada', 'reagendada'])
+        .gte('scheduled_at', new Date().toISOString().split('T')[0]),
+    ]).then(([clients, orders, quotes, visits]) => {
+      const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
+      setAivaContext(
+        `Data atual: ${hoje}\n` +
+        `Clientes ativos: ${clients.count ?? 0}\n` +
+        `Pedidos em andamento: ${orders.count ?? 0}\n` +
+        `Orçamentos aguardando resposta: ${quotes.count ?? 0}\n` +
+        `Visitas agendadas a partir de hoje: ${visits.count ?? 0}`
+      )
+    }).catch(() => undefined)
+  }, [])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -126,7 +149,7 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-5">
-          <NavLinks perms={perms} onAira={() => setAiraOpen(true)} />
+          <NavLinks perms={perms} onAiva={() => setAivaOpen(true)} />
         </nav>
 
         {/* Footer */}
@@ -210,7 +233,7 @@ export function Sidebar() {
               </button>
             </div>
             <nav className="flex-1 px-3 py-5 overflow-y-auto">
-              <NavLinks perms={perms} onClick={() => setOpen(false)} onAira={() => { setOpen(false); setAiraOpen(true) }} />
+              <NavLinks perms={perms} onClick={() => setOpen(false)} onAiva={() => { setOpen(false); setAivaOpen(true) }} />
             </nav>
             <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               {userName && (
@@ -238,10 +261,11 @@ export function Sidebar() {
         </div>
       )}
 
-      <AiraChat
-        open={airaOpen}
-        onClose={() => setAiraOpen(false)}
+      <AivaChat
+        open={aivaOpen}
+        onClose={() => setAivaOpen(false)}
         userName={userName ?? undefined}
+        context={aivaContext}
       />
     </>
   )

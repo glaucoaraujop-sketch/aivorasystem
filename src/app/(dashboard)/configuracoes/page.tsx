@@ -339,7 +339,7 @@ export default function ConfiguracoesPage() {
             <h2 className="font-bold text-white text-base">Área de Atuação</h2>
           </div>
           <p className="text-sm mb-5" style={{ color: '#A0AEC0' }}>
-            Informe a cidade ou região onde você atua. A AIRA usará essa informação para trazer clima e contexto personalizado na tela inicial.
+            Informe a cidade ou região onde você atua. A AIVA usará essa informação para trazer clima e contexto personalizado na tela inicial.
           </p>
           <div className="flex gap-3">
             <input

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { anthropic } from '@/lib/anthropic'
 
-const SYSTEM = `Você é AIRA (Artificial Intelligence for Representative Agents), a inteligência artificial estratégica da Aivora Tecnologia.
+const SYSTEM = `Você é AIVA (Artificial Intelligence for Representative Agents), a inteligência artificial estratégica da Aivora Tecnologia.
 
 Você é assistente pessoal de um representante comercial de móveis. Seu papel:
 - Ajudar a tomar decisões comerciais mais inteligentes

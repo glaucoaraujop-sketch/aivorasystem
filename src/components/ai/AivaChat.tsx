@@ -8,14 +8,14 @@ interface Message {
   content: string
 }
 
-interface AiraChatProps {
+interface AivaChatProps {
   open: boolean
   onClose: () => void
   context?: string
   userName?: string
 }
 
-export function AiraChat({ open, onClose, context, userName }: AiraChatProps) {
+export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -28,7 +28,7 @@ export function AiraChat({ open, onClose, context, userName }: AiraChatProps) {
       const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
       setMessages([{
         role: 'assistant',
-        content: `${saudacao}${userName ? `, ${userName}` : ''}! Sou a AIRA, sua assistente estratégica. Como posso ajudar hoje? 🤝`,
+        content: `${saudacao}${userName ? `, ${userName}` : ''}! Sou a AIVA, sua assistente estratégica. Como posso ajudar hoje? 🤝`,
       }])
     }
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
@@ -121,7 +121,7 @@ export function AiraChat({ open, onClose, context, userName }: AiraChatProps) {
               <Sparkles size={16} color="#fff" />
             </div>
             <div>
-              <p className="font-bold text-white text-sm">AIRA</p>
+              <p className="font-bold text-white text-sm">AIVA</p>
               <p className="text-xs" style={{ color: '#A78BFA' }}>Assistente Estratégica · Aivora</p>
             </div>
           </div>
@@ -214,7 +214,7 @@ export function AiraChat({ open, onClose, context, userName }: AiraChatProps) {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Pergunte à AIRA…"
+              placeholder="Pergunte à AIVA…"
               disabled={loading}
               className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none"
             />
@@ -228,7 +228,7 @@ export function AiraChat({ open, onClose, context, userName }: AiraChatProps) {
             </button>
           </div>
           <p className="text-center text-xs mt-2" style={{ color: '#56577A' }}>
-            AIRA pode cometer erros — valide decisões importantes
+            AIVA pode cometer erros — valide decisões importantes
           </p>
         </div>
       </div>
