@@ -18,7 +18,6 @@ import { AivaChat } from '@/components/ai/AivaChat'
 
 const ALL_NAV = [
   { href: '/clientes',      label: 'Clientes',       icon: Users,        perm: 'perm_clientes'     },
-  { href: '/produtos',      label: 'Catálogo',        icon: Package,      perm: 'perm_catalogo'     },
   { href: '/orcamentos',    label: 'Orçamentos',      icon: FileText,     perm: 'perm_orcamentos'   },
   { href: '/pedidos',       label: 'Pedidos',         icon: ShoppingCart, perm: 'perm_pedidos'      },
   { href: '/comissoes',     label: 'Comissões',       icon: DollarSign,   perm: 'perm_comissoes'    },
