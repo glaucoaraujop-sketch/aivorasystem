@@ -1,6 +1,52 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type ClientType = 'loja' | 'outros'
+export type UserRole = 'user' | 'master'
+
+export interface UserProfile {
+  id: string
+  full_name: string | null
+  display_name: string | null
+  area: string | null
+  cnpj: string | null
+  phone: string | null
+  whatsapp_number: string | null
+  address: string | null
+  city: string | null
+  state: string | null
+  cep: string | null
+  photo_url: string | null
+  logo_url: string | null
+  evolution_instance_id: string | null
+  whatsapp_notifications: boolean
+  role: UserRole
+  created_at: string
+  updated_at: string
+}
+
+export interface SpecialDate {
+  id: string
+  user_id: string
+  title: string
+  date: string
+  recurring: boolean
+  notify_whatsapp: boolean
+  notes: string | null
+  created_at: string
+}
+
+export interface MonthlyGoal {
+  id: string
+  user_id: string
+  year: number
+  month: number
+  orders_goal: number
+  visits_goal: number
+  revenue_goal: number
+  created_at: string
+  updated_at: string
+}
+
+export type ClientType = 'loja' | 'arquiteto' | 'decorador' | 'distribuidor' | 'outros'
 export type QuoteStatus = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'expirado'
 export type OrderStatus = 'pendente' | 'confirmado' | 'em_producao' | 'pronto' | 'entregue' | 'cancelado'
 export type CommissionStatus = 'prevista' | 'aprovada' | 'paga' | 'cancelada'
@@ -32,6 +78,7 @@ export interface Database {
           endereco_entrega: string | null
           cep_entrega: string | null
           area_restrita: boolean | null
+          num_lojas: number | null
           email_compras: string | null
           telefone_compras: string | null
           email_assistencia: string | null
@@ -70,6 +117,7 @@ export interface Database {
           endereco_entrega?: string | null
           cep_entrega?: string | null
           area_restrita?: boolean | null
+          num_lojas?: number | null
           email_compras?: string | null
           telefone_compras?: string | null
           email_assistencia?: string | null
@@ -104,6 +152,7 @@ export interface Database {
           endereco_entrega?: string | null
           cep_entrega?: string | null
           area_restrita?: boolean | null
+          num_lojas?: number | null
           email_compras?: string | null
           telefone_compras?: string | null
           email_assistencia?: string | null
@@ -118,36 +167,6 @@ export interface Database {
           notes?: string | null
           active?: boolean
           priority?: number | null
-        }
-      }
-      client_cnpjs: {
-        Row: {
-          id: string
-          client_id: string
-          razao_social: string
-          cnpj: string | null
-          inscricao_estadual: string | null
-          is_primary: boolean
-          num_lojas: number | null
-          notes: string | null
-          created_at: string
-        }
-        Insert: {
-          client_id: string
-          razao_social: string
-          cnpj?: string | null
-          inscricao_estadual?: string | null
-          is_primary?: boolean
-          num_lojas?: number | null
-          notes?: string | null
-        }
-        Update: {
-          razao_social?: string
-          cnpj?: string | null
-          inscricao_estadual?: string | null
-          is_primary?: boolean
-          num_lojas?: number | null
-          notes?: string | null
         }
       }
       products: {
@@ -196,7 +215,6 @@ export interface Database {
           id: string
           user_id: string
           client_id: string
-          client_cnpj_id: string | null
           number: string | null
           status: QuoteStatus
           price_table_id: string | null
@@ -218,7 +236,6 @@ export interface Database {
           id: string
           user_id: string
           client_id: string
-          client_cnpj_id: string | null
           quote_id: string | null
           number: string | null
           status: OrderStatus

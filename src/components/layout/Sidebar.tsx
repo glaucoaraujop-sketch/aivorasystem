@@ -5,15 +5,16 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Users, Package, FileText, ShoppingCart,
+  Users, FileText, ShoppingCart,
   DollarSign, MapPin, BarChart2, Truck, Wrench, LogOut, Menu, X, Settings,
-  Home, Sparkles,
+  Home, Sparkles, UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useMyPermissions, type UserPermissions } from '@/hooks/useMyPermissions'
 import { useCurrentUserName } from '@/hooks/useCurrentUserName'
+import { useUserProfile } from '@/hooks/useUserProfile'
 import { AivaChat } from '@/components/ai/AivaChat'
 
 const ALL_NAV = [
@@ -94,6 +95,31 @@ function NavLinks({ onClick, perms, onAiva }: { onClick?: () => void; perms: Use
   )
 }
 
+function UserCard() {
+  const { profile } = useUserProfile()
+  const name = profile?.display_name || profile?.full_name || 'Usuário'
+  const area = profile?.area || ''
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-2"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      {profile?.photo_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={profile.photo_url} alt={name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+      ) : (
+        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: 'rgba(0,117,255,0.15)' }}>
+          <UserCircle size={20} style={{ color: '#0075FF' }} />
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{name}</p>
+        {area && <p className="text-xs truncate" style={{ color: '#A0AEC0' }}>{area}</p>}
+      </div>
+    </div>
+  )
+}
+
 export function Sidebar() {
   const [open, setOpen]         = useState(false)
   const [aivaOpen, setAivaOpen] = useState(false)
@@ -157,6 +183,7 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-5">
+          <UserCard />
           <NavLinks perms={perms} onAiva={() => setAivaOpen(true)} />
         </nav>
 
@@ -241,6 +268,7 @@ export function Sidebar() {
               </button>
             </div>
             <nav className="flex-1 px-3 py-5 overflow-y-auto">
+              <UserCard />
               <NavLinks perms={perms} onClick={() => setOpen(false)} onAiva={() => { setOpen(false); setAivaOpen(true) }} />
             </nav>
             <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
