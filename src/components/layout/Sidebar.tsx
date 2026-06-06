@@ -35,19 +35,7 @@ function NavLinks({ onClick, perms, onAiva }: { onClick?: () => void; perms: Use
   const inicioActive = pathname === '/inicio' || pathname === '/'
   return (
     <div className="space-y-1">
-      {/* Início — sempre visível */}
-      <Link
-        href="/inicio"
-        onClick={onClick}
-        className={cn('flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-          inicioActive ? 'text-white' : 'text-slate-400 hover:text-white')}
-        style={inicioActive ? { background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 2px 12px rgba(0,117,255,0.15)' } : undefined}
-      >
-        <Home size={17} style={inicioActive ? { color: '#0075FF' } : undefined} />
-        Início
-      </Link>
-
-      {/* AIVA — sempre visível */}
+      {/* AIVA — topo, sempre visível */}
       <button
         onClick={() => { onClick?.(); onAiva() }}
         className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-left transition-all hover:opacity-90 active:scale-[0.99]"
@@ -65,6 +53,18 @@ function NavLinks({ onClick, perms, onAiva }: { onClick?: () => void; perms: Use
           <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Sua assistente de IA</p>
         </div>
       </button>
+
+      {/* Início — sempre visível */}
+      <Link
+        href="/inicio"
+        onClick={onClick}
+        className={cn('flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+          inicioActive ? 'text-white' : 'text-slate-400 hover:text-white')}
+        style={inicioActive ? { background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 2px 12px rgba(0,117,255,0.15)' } : undefined}
+      >
+        <Home size={17} style={inicioActive ? { color: '#0075FF' } : undefined} />
+        Início
+      </Link>
 
       <div className="pt-1 pb-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} />
 
