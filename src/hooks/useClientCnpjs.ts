@@ -2,13 +2,18 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Database } from '@/types/database'
 
-type ClientCnpj = Database['public']['Tables']['client_cnpjs']['Row']
-type ClientCnpjInsert = Database['public']['Tables']['client_cnpjs']['Insert']
-type ClientCnpjUpdate = Database['public']['Tables']['client_cnpjs']['Update']
-
-export type { ClientCnpj }
+export interface ClientCnpj {
+  id: string
+  client_id: string
+  cnpj: string
+  razao_social: string | null
+  is_primary: boolean
+  created_at: string
+  updated_at: string
+}
+type ClientCnpjInsert = Omit<ClientCnpj, 'id' | 'created_at' | 'updated_at'>
+type ClientCnpjUpdate = Partial<ClientCnpjInsert>
 
 export function useClientCnpjs(clientId: string) {
   const [cnpjs, setCnpjs] = useState<ClientCnpj[]>([])
