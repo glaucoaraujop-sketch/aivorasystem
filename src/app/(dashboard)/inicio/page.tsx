@@ -5,6 +5,7 @@ import { Sparkles, MapPin, Cloud, Settings, ArrowRight, Users, ShoppingCart, Dol
 import Link from 'next/link'
 import { useCurrentUserName } from '@/hooks/useCurrentUserName'
 import { useSystemSettings } from '@/hooks/useSystemSettings'
+import { useUserProfile } from '@/hooks/useUserProfile'
 import { useAI } from '@/hooks/useAI'
 import { AivaChat } from '@/components/ai/AivaChat'
 
@@ -29,25 +30,27 @@ const QUICK_LINKS = [
 export default function InicioPage() {
   const { name: userName }       = useCurrentUserName()
   const { settings, loading: settingsLoading } = useSystemSettings()
+  const { profile, loading: profileLoading } = useUserProfile()
   const bomDia = useAI()
   const [chatOpen, setChatOpen]  = useState(false)
   const [generated, setGenerated] = useState(false)
 
-  const area = settings.area_atuacao
+  const displayName = profile?.display_name || profile?.full_name || userName
+  const area = profile?.area ?? settings.area_atuacao
 
   useEffect(() => {
-    if (settingsLoading || generated) return
-    if (!userName) return
+    if (settingsLoading || profileLoading || generated) return
+    if (!displayName) return
     setGenerated(true)
     const h = new Date().getHours()
     const dia = new Date().toLocaleDateString('pt-BR', { weekday: 'long' })
     bomDia.generate('/api/ai/bom-dia', {
-      userName,
+      userName: displayName,
       area: area ?? 'São Paulo',
       hora: h,
       diaSemana: dia,
     })
-  }, [userName, settingsLoading, area])
+  }, [displayName, settingsLoading, profileLoading, area])
 
   return (
     <>
@@ -68,15 +71,15 @@ export default function InicioPage() {
           <div className="relative">
             <p className="text-sm font-medium mb-1 capitalize" style={{ color: '#A78BFA' }}>{getDiaSemana()}</p>
             <h1 className="text-4xl font-bold text-white mb-1">
-              {getSaudacao()}{userName ? `,` : '!'}
+              {getSaudacao()}{displayName ? `,` : '!'}
             </h1>
-            {userName && (
+            {displayName && (
               <h1 className="text-4xl font-bold mb-5" style={{
                 background: 'linear-gradient(90deg, #0075FF, #A78BFA)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}>
-                {userName}
+                {displayName}
               </h1>
             )}
 
