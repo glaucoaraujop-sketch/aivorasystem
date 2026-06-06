@@ -6,8 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 export interface ClientCnpj {
   id: string
   client_id: string
-  cnpj: string
+  cnpj: string | null
   razao_social: string | null
+  inscricao_estadual: string | null
+  num_lojas: number
+  notes: string | null
   is_primary: boolean
   created_at: string
   updated_at: string
