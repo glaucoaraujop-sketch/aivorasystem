@@ -54,7 +54,7 @@ export type VisitStatus = 'agendada' | 'realizada' | 'cancelada' | 'reagendada'
 export type ContactChannel = 'whatsapp' | 'telefone' | 'email' | 'visita' | 'outro'
 
 export interface Database {
-  public: {
+  aivora_rep: {
     Tables: {
       clients: {
         Row: {
@@ -228,8 +228,8 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['quotes']['Row'], 'id' | 'number' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['quotes']['Insert']>
+        Insert: Omit<Database['aivora_rep']['Tables']['quotes']['Row'], 'id' | 'number' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['aivora_rep']['Tables']['quotes']['Insert']>
       }
       orders: {
         Row: {
@@ -254,8 +254,8 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['orders']['Row'], 'id' | 'number' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['orders']['Insert']>
+        Insert: Omit<Database['aivora_rep']['Tables']['orders']['Row'], 'id' | 'number' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['aivora_rep']['Tables']['orders']['Insert']>
       }
       commissions: {
         Row: {
@@ -270,8 +270,8 @@ export interface Database {
           notes: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['commissions']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['commissions']['Insert']>
+        Insert: Omit<Database['aivora_rep']['Tables']['commissions']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['aivora_rep']['Tables']['commissions']['Insert']>
       }
       visits: {
         Row: {
@@ -287,8 +287,8 @@ export interface Database {
           next_action: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['visits']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['visits']['Insert']>
+        Insert: Omit<Database['aivora_rep']['Tables']['visits']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['aivora_rep']['Tables']['visits']['Insert']>
       }
     }
     Views: {

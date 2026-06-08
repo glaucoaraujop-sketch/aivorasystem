@@ -5,10 +5,11 @@ import type { Database } from '@/types/database'
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient<Database>(
+  return createServerClient<Database, 'aivora_rep'>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      db: { schema: 'aivora_rep' },
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
