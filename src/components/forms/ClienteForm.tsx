@@ -6,7 +6,7 @@ import { useClientesMutations } from '@/hooks/useClientes'
 import { maskCpfCnpj, maskPhone, maskCep } from '@/lib/masks'
 import type { Database, ClientType } from '@/types/database'
 
-type Client = Database['public']['Tables']['clients']['Row']
+type Client = Database['aivora_rep']['Tables']['clients']['Row']
 
 const TIPOS: { value: ClientType; label: string }[] = [
   { value: 'loja',   label: 'Loja' },

@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Database, ClientType } from '@/types/database'
 
-type Client = Database['public']['Tables']['clients']['Row']
-type ClientInsert = Database['public']['Tables']['clients']['Insert']
-type ClientUpdate = Database['public']['Tables']['clients']['Update']
+type Client = Database['aivora_rep']['Tables']['clients']['Row']
+type ClientInsert = Database['aivora_rep']['Tables']['clients']['Insert']
+type ClientUpdate = Database['aivora_rep']['Tables']['clients']['Update']
 
 export type ClientWithCnpjCount = Client & {
   client_cnpjs: Array<{ id: string; num_lojas: number | null }>

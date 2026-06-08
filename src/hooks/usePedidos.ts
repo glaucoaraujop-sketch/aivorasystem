@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Database, OrderStatus } from '@/types/database'
 import type { VariationOption } from './useVariacoes'
 
-type Order = Database['public']['Tables']['orders']['Row']
+type Order = Database['aivora_rep']['Tables']['orders']['Row']
 
 export type OrderWithDetails = Order & {
   clients: { name: string; company_name: string | null; whatsapp: string | null } | null

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Database, QuoteStatus } from '@/types/database'
 
-type Quote = Database['public']['Tables']['quotes']['Row']
+type Quote = Database['aivora_rep']['Tables']['quotes']['Row']
 
 export type QuoteWithDetails = Quote & {
   clients: { name: string; company_name: string | null; whatsapp: string | null } | null

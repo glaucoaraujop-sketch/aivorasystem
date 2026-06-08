@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/types/database'
 
-type Product = Database['public']['Tables']['products']['Row']
-type ProductInsert = Database['public']['Tables']['products']['Insert']
-type ProductUpdate = Database['public']['Tables']['products']['Update']
+type Product = Database['aivora_rep']['Tables']['products']['Row']
+type ProductInsert = Database['aivora_rep']['Tables']['products']['Insert']
+type ProductUpdate = Database['aivora_rep']['Tables']['products']['Update']
 
 export type ProductWithPrices = Product & {
   product_categories: { name: string } | null
