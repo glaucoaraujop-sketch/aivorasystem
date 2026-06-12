@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useClientesMutations } from '@/hooks/useClientes'
 import { maskCpfCnpj, maskPhone, maskCep } from '@/lib/masks'
 import type { Database, ClientType } from '@/types/database'
+import { createClient } from '@/lib/supabase/client'
 
 type Client = Database['aivora_rep']['Tables']['clients']['Row']
 
@@ -48,6 +49,26 @@ export function ClienteForm({ cliente }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [cepLoading, setCepLoading] = useState<'fat' | 'ent' | null>(null)
+  const [cnpjError, setCnpjError] = useState('')
+  const [cnpjChecking, setCnpjChecking] = useState(false)
+
+  async function verificarCnpjDuplicado(valor: string) {
+    const digits = valor.replace(/\D/g, '')
+    if (digits.length !== 11 && digits.length !== 14) return
+    if (cliente && cliente.cpf_cnpj === valor) return
+    setCnpjChecking(true)
+    setCnpjError('')
+    try {
+      const sb = createClient()
+      let query = sb.from('clients').select('id, name').eq('cpf_cnpj', valor)
+      if (cliente) query = query.neq('id', cliente.id)
+      const { data } = await query.limit(1)
+      if (data && data.length > 0)
+        setCnpjError(`Já cadastrado para o cliente "${(data[0] as { id: string; name: string }).name}"`)
+
+    } catch { /* silencioso */ }
+    finally { setCnpjChecking(false) }
+  }
 
   const [form, setForm] = useState({
     priority:             String(cliente?.priority ?? ''),
@@ -113,6 +134,7 @@ export function ClienteForm({ cliente }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (cnpjError) return
     setSaving(true); setError('')
     try {
       const n = (v: string) => v.trim() || null
@@ -172,7 +194,26 @@ export function ClienteForm({ cliente }: Props) {
             <input value={form.company_name} onChange={e => set('company_name', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
           <Field label="CPF / CNPJ">
-            <input value={form.cpf_cnpj} onChange={e => set('cpf_cnpj', maskCpfCnpj(e.target.value))} placeholder="000.000.000-00 ou 00.000.000/0000-00" className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
+            <div className="relative">
+              <input
+                value={form.cpf_cnpj}
+                onChange={e => { set('cpf_cnpj', maskCpfCnpj(e.target.value)); setCnpjError('') }}
+                onBlur={e => verificarCnpjDuplicado(e.target.value)}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+                style={cnpjError ? { border: '1px solid rgba(252,129,129,0.6)' } : undefined}
+              />
+              {cnpjChecking && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#0075FF' }}>
+                  verificando…
+                </span>
+              )}
+            </div>
+            {cnpjError && (
+              <p className="mt-1.5 text-xs px-1 flex items-center gap-1" style={{ color: '#FC8181' }}>
+                ⚠ {cnpjError}
+              </p>
+            )}
           </Field>
           <Field label="Inscrição Estadual">
             <input value={form.inscricao_estadual} onChange={e => set('inscricao_estadual', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
