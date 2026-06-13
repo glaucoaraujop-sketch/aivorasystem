@@ -20,7 +20,9 @@ interface PedidoExtraido {
   data: string
   cliente_nome: string
   cliente_empresa: string
+  cliente_cnpj: string | null
   fornecedor_nome: string
+  fornecedor_cnpj: string | null
   payment_terms: string
   delivery_date: string | null
   notes: string
@@ -76,73 +78,83 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
       // Tentar resolver clientes e fornecedores automaticamente
       const sb = createClient()
 
-      // Remove acentos para busca tolerante (PDF pode ter "MÓVEIS", banco tem "MOVEIS")
+      // Normaliza CNPJ/CPF para só dígitos
+      function soDig(s: string | null | undefined): string {
+        return (s ?? '').replace(/\D/g, '')
+      }
+
+      // Remove acentos (fallback por nome)
       function sem(s: string): string {
         return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
       }
 
-      // Palavras genéricas a ignorar como chave de busca
+      // Palavras genéricas a ignorar
       const STOPWORDS = new Set([
         'E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'NO', 'NA', 'OS', 'AS',
         'LTDA', 'EIRELI', 'EIRELE', 'ME', 'SA', 'SS', 'EPP', 'SRL',
         'MOVEIS', 'MOVEL', 'FURNITURE', 'INDUSTRIA', 'COMERCIO', 'COM',
       ])
 
-      // Retorna todas as palavras significativas do nome (para busca multi-tentativa)
       function palavrasChave(s: string): string[] {
         return sem(s).toUpperCase().split(' ').filter(w => w.length > 3 && !STOPWORDS.has(w))
-      }
-
-      // Busca por qualquer palavra chave (OR) em um campo
-      async function buscarPorPalavras(
-        tabela: 'clients' | 'suppliers',
-        palavras: string[],
-        campos: string[],
-      ): Promise<string | null> {
-        if (palavras.length === 0) return null
-        const partes = palavras.flatMap(w => campos.map(c => `${c}.ilike.%${w}%`))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data } = await (sb.from(tabela) as any).select('id').or(partes.join(',')).limit(1)
-        return data && data.length > 0 ? (data[0] as { id: string }).id : null
       }
 
       const resolved = await Promise.all(extraidos.map(async p => {
         let clienteId: string | null = null
         let fornecedorId: string | null = null
 
-        if (p.cliente_nome) {
+        // ── Cliente: CNPJ primeiro, nome como fallback ──────────────────
+        const cnpjCliente = soDig(p.cliente_cnpj)
+        if (cnpjCliente.length >= 11) {
+          // Busca exata por CNPJ (campo armazena só dígitos ou com formatação)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: c0 } = await (sb.from('clients') as any)
+            .select('id')
+            .or(`cpf_cnpj.eq.${cnpjCliente},cpf_cnpj.ilike.%${cnpjCliente}%`)
+            .limit(1)
+          if (c0 && c0.length > 0) clienteId = (c0[0] as { id: string }).id
+        }
+
+        if (!clienteId && p.cliente_nome) {
+          // Fallback 1: nome/empresa normalizado (sem acento)
           const nomeNorm    = sem(p.cliente_nome)
           const empresaNorm = p.cliente_empresa ? sem(p.cliente_empresa) : ''
-
-          // Tentativa 1: nome/empresa normalizado como substring em name ou company_name
-          const partes1 = [
+          const partes = [
             `name.ilike.%${nomeNorm}%`,
             `company_name.ilike.%${nomeNorm}%`,
             ...(empresaNorm ? [`name.ilike.%${empresaNorm}%`, `company_name.ilike.%${empresaNorm}%`] : []),
           ]
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: c1 } = await (sb.from('clients') as any).select('id').or(partes1.join(',')).limit(1)
+          const { data: c1 } = await (sb.from('clients') as any).select('id').or(partes.join(',')).limit(1)
           if (c1 && c1.length > 0) {
             clienteId = (c1[0] as { id: string }).id
           } else {
-            // Tentativa 2: palavras-chave individualmente (ex: "TUTTI", "RAFANA")
+            // Fallback 2: palavras-chave individuais
             const chaves = palavrasChave(p.cliente_nome + ' ' + (p.cliente_empresa ?? ''))
-            clienteId = await buscarPorPalavras('clients', chaves, ['name', 'company_name'])
+            if (chaves.length > 0) {
+              const partes2 = chaves.flatMap(w => [`name.ilike.%${w}%`, `company_name.ilike.%${w}%`])
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { data: c2 } = await (sb.from('clients') as any).select('id').or(partes2.join(',')).limit(1)
+              if (c2 && c2.length > 0) clienteId = (c2[0] as { id: string }).id
+            }
           }
         }
 
+        // ── Fornecedor: nome (sem CNPJ no cadastro de suppliers normalmente) ──
         if (p.fornecedor_nome) {
           const fornNorm = sem(p.fornecedor_nome)
-
-          // Tentativa 1: nome normalizado como substring
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data: f1 } = await (sb.from('suppliers') as any).select('id').ilike('name', `%${fornNorm}%`).limit(1)
           if (f1 && f1.length > 0) {
             fornecedorId = (f1[0] as { id: string }).id
           } else {
-            // Tentativa 2: cada palavra significativa do nome do fornecedor
             const chaves = palavrasChave(p.fornecedor_nome)
-            fornecedorId = await buscarPorPalavras('suppliers', chaves, ['name'])
+            if (chaves.length > 0) {
+              const partes = chaves.map(w => `name.ilike.%${w}%`)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { data: f2 } = await (sb.from('suppliers') as any).select('id').or(partes.join(',')).limit(1)
+              if (f2 && f2.length > 0) fornecedorId = (f2[0] as { id: string }).id
+            }
           }
         }
 
