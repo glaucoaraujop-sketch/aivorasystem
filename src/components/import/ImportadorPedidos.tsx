@@ -75,26 +75,64 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
 
       // Tentar resolver clientes e fornecedores automaticamente
       const sb = createClient()
+
+      // Remove acentos para busca tolerante (PDF pode ter acentos diferentes do banco)
+      function sem(s: string) {
+        return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
+      }
+
+      // Extrai a primeira palavra "chave" (>3 chars, não artigo)
+      const STOPWORDS = new Set(['E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'NO', 'NA', 'OS', 'AS', 'THE', 'LTDA', 'ME', 'SA', 'SS'])
+      function primeiraChave(s: string) {
+        return sem(s).toUpperCase().split(' ').find(w => w.length > 3 && !STOPWORDS.has(w)) ?? sem(s).split(' ')[0]
+      }
+
       const resolved = await Promise.all(extraidos.map(async p => {
         let clienteId: string | null = null
         let fornecedorId: string | null = null
 
         if (p.cliente_nome) {
-          const { data: c } = await sb
+          const nomeNorm    = sem(p.cliente_nome)
+          const empresaNorm = p.cliente_empresa ? sem(p.cliente_empresa) : nomeNorm
+          const chave       = primeiraChave(p.cliente_nome)
+
+          // Tentativa 1: busca com nome normalizado (sem acento) em name e company_name
+          const { data: c1 } = await sb
             .from('clients')
             .select('id')
-            .or(`name.ilike.%${p.cliente_nome}%,company_name.ilike.%${p.cliente_empresa ?? p.cliente_nome}%`)
+            .or(`name.ilike.%${nomeNorm}%,company_name.ilike.%${empresaNorm}%,name.ilike.%${empresaNorm}%,company_name.ilike.%${nomeNorm}%`)
             .limit(1)
-          if (c && c.length > 0) clienteId = (c[0] as { id: string }).id
+          if (c1 && c1.length > 0) {
+            clienteId = (c1[0] as { id: string }).id
+          } else {
+            // Tentativa 2: busca pela primeira palavra chave (ex: "TUTTI")
+            const { data: c2 } = await sb
+              .from('clients')
+              .select('id')
+              .or(`name.ilike.%${chave}%,company_name.ilike.%${chave}%`)
+              .limit(1)
+            if (c2 && c2.length > 0) clienteId = (c2[0] as { id: string }).id
+          }
         }
 
         if (p.fornecedor_nome) {
-          const { data: f } = await sb
+          const fornNorm = sem(p.fornecedor_nome)
+          const { data: f1 } = await sb
             .from('suppliers')
             .select('id')
-            .ilike('name', `%${p.fornecedor_nome}%`)
+            .ilike('name', `%${fornNorm}%`)
             .limit(1)
-          if (f && f.length > 0) fornecedorId = (f[0] as { id: string }).id
+          if (f1 && f1.length > 0) {
+            fornecedorId = (f1[0] as { id: string }).id
+          } else {
+            const chaveF = primeiraChave(p.fornecedor_nome)
+            const { data: f2 } = await sb
+              .from('suppliers')
+              .select('id')
+              .ilike('name', `%${chaveF}%`)
+              .limit(1)
+            if (f2 && f2.length > 0) fornecedorId = (f2[0] as { id: string }).id
+          }
         }
 
         return { ...p, _clienteId: clienteId, _fornecedorId: fornecedorId }
