@@ -83,6 +83,13 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
         return (s ?? '').replace(/\D/g, '')
       }
 
+      // Formata CNPJ para o padrão brasileiro (como fica salvo no banco)
+      function fmtCnpj(d: string): string {
+        if (d.length === 14) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`
+        if (d.length === 11) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`
+        return d
+      }
+
       // Remove acentos (fallback por nome)
       function sem(s: string): string {
         return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
@@ -106,11 +113,12 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
         // ── Cliente: CNPJ primeiro, nome como fallback ──────────────────
         const cnpjCliente = soDig(p.cliente_cnpj)
         if (cnpjCliente.length >= 11) {
-          // Busca exata por CNPJ (campo armazena só dígitos ou com formatação)
+          // Busca pelos dois formatos: dígitos puros e formatado (XX.XXX.XXX/XXXX-XX)
+          const cnpjFmt = fmtCnpj(cnpjCliente)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data: c0 } = await (sb.from('clients') as any)
             .select('id')
-            .or(`cpf_cnpj.eq.${cnpjCliente},cpf_cnpj.ilike.%${cnpjCliente}%`)
+            .or(`cpf_cnpj.eq.${cnpjCliente},cpf_cnpj.eq.${cnpjFmt}`)
             .limit(1)
           if (c0 && c0.length > 0) clienteId = (c0[0] as { id: string }).id
         }
