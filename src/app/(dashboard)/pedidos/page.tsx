@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ShoppingCart, Plus, Truck, DollarSign, Clock } from 'lucide-react'
+import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload } from 'lucide-react'
 import { usePedidos } from '@/hooks/usePedidos'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { OrderStatus } from '@/types/database'
+import { ImportadorPedidos } from '@/components/import/ImportadorPedidos'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   pendente:    { label: 'Pendente',    color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
@@ -27,7 +28,8 @@ const FILTROS: { value: OrderStatus | ''; label: string }[] = [
 
 export default function PedidosPage() {
   const [status, setStatus] = useState<OrderStatus | ''>('')
-  const { pedidos, loading } = usePedidos({ status })
+  const [importOpen, setImportOpen] = useState(false)
+  const { pedidos, loading, refetch } = usePedidos({ status })
 
   const emAberto = pedidos.filter(p => !['entregue', 'cancelado'].includes(p.status))
   const totalAberto = emAberto.reduce((acc, p) => acc + p.total, 0)
@@ -49,17 +51,30 @@ export default function PedidosPage() {
             {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link
-          href="/pedidos/novo"
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 sm:flex-shrink-0"
-          style={{
-            background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
-            boxShadow: '0 4px 20px rgba(0, 117, 255, 0.3)',
-          }}
-        >
-          <Plus size={16} />
-          Novo Pedido
-        </Link>
+        <div className="flex gap-2 sm:flex-shrink-0">
+          <button
+            onClick={() => setImportOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+            style={{
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <Upload size={15} />
+            Importar
+          </button>
+          <Link
+            href="/pedidos/novo"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+            style={{
+              background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)',
+              boxShadow: '0 4px 20px rgba(0, 117, 255, 0.3)',
+            }}
+          >
+            <Plus size={16} />
+            Novo Pedido
+          </Link>
+        </div>
       </div>
 
       {/* Métricas */}
@@ -182,6 +197,13 @@ export default function PedidosPage() {
             )
           })}
         </div>
+      )}
+
+      {importOpen && (
+        <ImportadorPedidos
+          onClose={() => setImportOpen(false)}
+          onImported={() => { refetch(); }}
+        />
       )}
     </div>
   )
