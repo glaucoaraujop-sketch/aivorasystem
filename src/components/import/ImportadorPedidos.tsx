@@ -76,15 +76,34 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
       // Tentar resolver clientes e fornecedores automaticamente
       const sb = createClient()
 
-      // Remove acentos para busca tolerante (PDF pode ter acentos diferentes do banco)
-      function sem(s: string) {
+      // Remove acentos para busca tolerante (PDF pode ter "MÓVEIS", banco tem "MOVEIS")
+      function sem(s: string): string {
         return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
       }
 
-      // Extrai a primeira palavra "chave" (>3 chars, não artigo)
-      const STOPWORDS = new Set(['E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'NO', 'NA', 'OS', 'AS', 'THE', 'LTDA', 'ME', 'SA', 'SS'])
-      function primeiraChave(s: string) {
-        return sem(s).toUpperCase().split(' ').find(w => w.length > 3 && !STOPWORDS.has(w)) ?? sem(s).split(' ')[0]
+      // Palavras genéricas a ignorar como chave de busca
+      const STOPWORDS = new Set([
+        'E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'NO', 'NA', 'OS', 'AS',
+        'LTDA', 'EIRELI', 'EIRELE', 'ME', 'SA', 'SS', 'EPP', 'SRL',
+        'MOVEIS', 'MOVEL', 'FURNITURE', 'INDUSTRIA', 'COMERCIO', 'COM',
+      ])
+
+      // Retorna todas as palavras significativas do nome (para busca multi-tentativa)
+      function palavrasChave(s: string): string[] {
+        return sem(s).toUpperCase().split(' ').filter(w => w.length > 3 && !STOPWORDS.has(w))
+      }
+
+      // Busca por qualquer palavra chave (OR) em um campo
+      async function buscarPorPalavras(
+        tabela: 'clients' | 'suppliers',
+        palavras: string[],
+        campos: string[],
+      ): Promise<string | null> {
+        if (palavras.length === 0) return null
+        const partes = palavras.flatMap(w => campos.map(c => `${c}.ilike.%${w}%`))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (sb.from(tabela) as any).select('id').or(partes.join(',')).limit(1)
+        return data && data.length > 0 ? (data[0] as { id: string }).id : null
       }
 
       const resolved = await Promise.all(extraidos.map(async p => {
@@ -93,45 +112,37 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
 
         if (p.cliente_nome) {
           const nomeNorm    = sem(p.cliente_nome)
-          const empresaNorm = p.cliente_empresa ? sem(p.cliente_empresa) : nomeNorm
-          const chave       = primeiraChave(p.cliente_nome)
+          const empresaNorm = p.cliente_empresa ? sem(p.cliente_empresa) : ''
 
-          // Tentativa 1: busca com nome normalizado (sem acento) em name e company_name
-          const { data: c1 } = await sb
-            .from('clients')
-            .select('id')
-            .or(`name.ilike.%${nomeNorm}%,company_name.ilike.%${empresaNorm}%,name.ilike.%${empresaNorm}%,company_name.ilike.%${nomeNorm}%`)
-            .limit(1)
+          // Tentativa 1: nome/empresa normalizado como substring em name ou company_name
+          const partes1 = [
+            `name.ilike.%${nomeNorm}%`,
+            `company_name.ilike.%${nomeNorm}%`,
+            ...(empresaNorm ? [`name.ilike.%${empresaNorm}%`, `company_name.ilike.%${empresaNorm}%`] : []),
+          ]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: c1 } = await (sb.from('clients') as any).select('id').or(partes1.join(',')).limit(1)
           if (c1 && c1.length > 0) {
             clienteId = (c1[0] as { id: string }).id
           } else {
-            // Tentativa 2: busca pela primeira palavra chave (ex: "TUTTI")
-            const { data: c2 } = await sb
-              .from('clients')
-              .select('id')
-              .or(`name.ilike.%${chave}%,company_name.ilike.%${chave}%`)
-              .limit(1)
-            if (c2 && c2.length > 0) clienteId = (c2[0] as { id: string }).id
+            // Tentativa 2: palavras-chave individualmente (ex: "TUTTI", "RAFANA")
+            const chaves = palavrasChave(p.cliente_nome + ' ' + (p.cliente_empresa ?? ''))
+            clienteId = await buscarPorPalavras('clients', chaves, ['name', 'company_name'])
           }
         }
 
         if (p.fornecedor_nome) {
           const fornNorm = sem(p.fornecedor_nome)
-          const { data: f1 } = await sb
-            .from('suppliers')
-            .select('id')
-            .ilike('name', `%${fornNorm}%`)
-            .limit(1)
+
+          // Tentativa 1: nome normalizado como substring
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: f1 } = await (sb.from('suppliers') as any).select('id').ilike('name', `%${fornNorm}%`).limit(1)
           if (f1 && f1.length > 0) {
             fornecedorId = (f1[0] as { id: string }).id
           } else {
-            const chaveF = primeiraChave(p.fornecedor_nome)
-            const { data: f2 } = await sb
-              .from('suppliers')
-              .select('id')
-              .ilike('name', `%${chaveF}%`)
-              .limit(1)
-            if (f2 && f2.length > 0) fornecedorId = (f2[0] as { id: string }).id
+            // Tentativa 2: cada palavra significativa do nome do fornecedor
+            const chaves = palavrasChave(p.fornecedor_nome)
+            fornecedorId = await buscarPorPalavras('suppliers', chaves, ['name'])
           }
         }
 
