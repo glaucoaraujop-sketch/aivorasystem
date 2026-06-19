@@ -35,10 +35,10 @@ export default function PedidosPage() {
   const totalAberto = emAberto.reduce((acc, p) => acc + p.total, 0)
 
   const metrics = [
-    { label: 'Total',      value: pedidos.length,                                         icon: ShoppingCart, color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
-    { label: 'Em Aberto',  value: emAberto.length,                                        icon: Clock,        color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
-    { label: 'Prontos',    value: pedidos.filter(p => p.status === 'pronto').length,       icon: Truck,        color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-    { label: 'Faturado',   value: formatCurrency(totalAberto),                            icon: DollarSign,   color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+    { label: 'Total de Pedidos', value: pedidos.length,                                   icon: ShoppingCart, color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+    { label: 'Em Aberto',        value: emAberto.length,                                  icon: Clock,        color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
+    { label: 'Prontos',          value: pedidos.filter(p => p.status === 'pronto').length, icon: Truck,        color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+    { label: 'Total de Vendas',  value: formatCurrency(totalAberto),                      icon: DollarSign,   color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
   ]
 
   return (
@@ -46,10 +46,7 @@ export default function PedidosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Pedidos</h1>
-          <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
-            {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''}
-          </p>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">PEDIDOS</h1>
         </div>
         <div className="flex gap-2 sm:flex-shrink-0">
           <button

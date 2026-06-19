@@ -199,7 +199,7 @@ export default function VisitasPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Visitas</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">VISITAS</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             Gerencie visitas e cronogramas de visitação
           </p>

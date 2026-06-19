@@ -108,7 +108,7 @@ export default function RelatoriosPage() {
     <div className="max-w-5xl w-full space-y-6">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Relatórios</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">RELATÓRIOS</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Visão geral e inteligência do seu negócio</p>
         </div>
         {/* Tabs */}

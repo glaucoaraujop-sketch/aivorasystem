@@ -74,7 +74,7 @@ export default function ClientesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Clientes</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">CLIENTES</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Gerencie sua base de clientes</p>
         </div>
         <Link

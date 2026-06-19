@@ -42,7 +42,7 @@ export default function OrcamentosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Orçamentos</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">ORÇAMENTOS</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             {orcamentos.length} orçamento{orcamentos.length !== 1 ? 's' : ''}
           </p>

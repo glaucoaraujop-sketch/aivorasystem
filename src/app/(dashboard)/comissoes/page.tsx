@@ -68,7 +68,7 @@ export default function ComissoesPage() {
     <div className="max-w-5xl w-full">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-white tracking-tight">Comissões</h1>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">COMISSÕES</h1>
         <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Acompanhe suas comissões por pedido</p>
       </div>
 

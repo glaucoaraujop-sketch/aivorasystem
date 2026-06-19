@@ -802,7 +802,7 @@ export default function ConfiguracoesPage() {
           <Settings size={22} style={{ color: '#0075FF' }} />
         </div>
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Configurações</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">CONFIGURAÇÕES</h1>
           <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>Perfil, datas, metas, preferências e equipe</p>
         </div>
       </div>

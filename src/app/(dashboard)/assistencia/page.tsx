@@ -32,7 +32,7 @@ export default function AssistenciaPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Assistência Técnica</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">ASSISTÊNCIA TÉCNICA</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
             {assistencias.length} solicitaç{assistencias.length !== 1 ? 'ões' : 'ão'}
           </p>

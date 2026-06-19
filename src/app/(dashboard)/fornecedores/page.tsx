@@ -19,7 +19,7 @@ export default function FornecedoresPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">Fornecedores</h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">FORNECEDORES</h1>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>Fábricas parceiras e prazos de produção</p>
         </div>
       </div>
