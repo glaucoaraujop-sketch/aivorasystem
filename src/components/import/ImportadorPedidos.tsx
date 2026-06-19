@@ -320,7 +320,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
               <Loader2 size={32} className="animate-spin mx-auto mb-4" style={{ color: '#0075FF' }} />
               <p className="text-white font-semibold mb-1">Analisando arquivo...</p>
               <p className="text-xs" style={{ color: '#56577A' }}>{file?.name}</p>
-              <p className="text-xs mt-1" style={{ color: '#56577A' }}>A AIVA está lendo e extraindo os dados do pedido</p>
+              <p className="text-xs mt-1" style={{ color: '#56577A' }}>A AIVA está lendo e extraindo os pedidos. Arquivos com muitas páginas podem levar alguns minutos.</p>
             </div>
           )}
 
