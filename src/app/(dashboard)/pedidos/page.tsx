@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload } from 'lucide-react'
+import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload, Search } from 'lucide-react'
 import { usePedidos } from '@/hooks/usePedidos'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { OrderStatus } from '@/types/database'
@@ -28,16 +28,26 @@ const FILTROS: { value: OrderStatus | ''; label: string }[] = [
 
 export default function PedidosPage() {
   const [status, setStatus] = useState<OrderStatus | ''>('')
+  const [busca, setBusca] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const { pedidos, loading, refetch } = usePedidos({ status })
 
   const emAberto = pedidos.filter(p => !['entregue', 'cancelado'].includes(p.status))
   const totalAberto = emAberto.reduce((acc, p) => acc + p.total, 0)
 
+  const termo = busca.trim().toLowerCase()
+  const pedidosFiltrados = termo
+    ? pedidos.filter(p =>
+        (p.number ?? '').toLowerCase().includes(termo) ||
+        (p.clients?.name ?? '').toLowerCase().includes(termo) ||
+        (p.clients?.company_name ?? '').toLowerCase().includes(termo) ||
+        (p.suppliers?.name ?? '').toLowerCase().includes(termo)
+      )
+    : pedidos
+
   const metrics = [
     { label: 'Total de Pedidos', value: pedidos.length,                                   icon: ShoppingCart, color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
     { label: 'Em Aberto',        value: emAberto.length,                                  icon: Clock,        color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
-    { label: 'Prontos',          value: pedidos.filter(p => p.status === 'pronto').length, icon: Truck,        color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
     { label: 'Total de Vendas',  value: formatCurrency(totalAberto),                      icon: DollarSign,   color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
   ]
 
@@ -75,7 +85,7 @@ export default function PedidosPage() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         {metrics.map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="glass-card rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -87,6 +97,19 @@ export default function PedidosPage() {
             <p className="text-2xl font-bold text-white">{loading ? '—' : value}</p>
           </div>
         ))}
+      </div>
+
+      {/* Busca */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#56577A' }} />
+        <input
+          type="text"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Pesquisar por número, cliente ou fornecedor..."
+          className="w-full pl-11 pr-4 py-3 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-blue-500/50"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+        />
       </div>
 
       {/* Filtros */}
@@ -128,7 +151,7 @@ export default function PedidosPage() {
             </div>
           ))}
         </div>
-      ) : pedidos.length === 0 ? (
+      ) : pedidosFiltrados.length === 0 ? (
         <div className="glass-card rounded-2xl p-16 text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -136,12 +159,12 @@ export default function PedidosPage() {
           </div>
           <p className="text-white font-semibold text-lg">Nenhum pedido encontrado</p>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
-            {status ? 'Tente outro filtro' : 'Clique em "Novo Pedido" para começar'}
+            {termo ? 'Tente outra pesquisa' : status ? 'Tente outro filtro' : 'Clique em "Novo Pedido" para começar'}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {pedidos.map(p => {
+          {pedidosFiltrados.map(p => {
             const cfg = STATUS_CONFIG[p.status]
             return (
               <Link

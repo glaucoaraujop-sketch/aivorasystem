@@ -12,6 +12,9 @@ Retorne um JSON com a seguinte estrutura exata (sem markdown, apenas JSON puro):
   "pedidos": [
     {
       "numero": "número do pedido (string, ex: PED-001)",
+      "numero_pedido_fabrica": "número do pedido gerado pela fábrica/fornecedor (string) ou null se não encontrado",
+      "numero_ordem_compra": "número da ordem de compra (OC / PO / purchase order) do cliente (string) ou null se não encontrado",
+      "showroom": "nome ou identificação do showroom do pedido (string) ou null se não encontrado",
       "data": "data no formato YYYY-MM-DD",
       "cliente_nome": "nome do cliente",
       "cliente_empresa": "nome da empresa/loja do cliente",
@@ -44,6 +47,7 @@ Regras:
 - Valores monetários como números (sem símbolo de moeda, sem ponto de milhar, use ponto decimal)
 - Se um campo não existir no documento, use null ou 0 conforme o tipo
 - Extraia TODOS os itens/produtos encontrados
+- Os campos "numero_pedido_fabrica", "numero_ordem_compra" e "showroom" são importantes: procure por rótulos como "Pedido Fábrica", "Nº Fábrica", "Ordem de Compra", "OC", "PO", "Purchase Order", "Showroom". Se não houver, use null
 - Não invente dados — apenas extraia o que está explícito no documento
 - Para datas, converta para YYYY-MM-DD. Se apenas mês/ano, use o dia 01.`
 

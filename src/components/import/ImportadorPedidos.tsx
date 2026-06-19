@@ -17,6 +17,9 @@ interface ItemExtraido {
 
 interface PedidoExtraido {
   numero: string
+  numero_pedido_fabrica: string | null
+  numero_ordem_compra: string | null
+  showroom: string | null
   data: string
   cliente_nome: string
   cliente_empresa: string
@@ -228,7 +231,18 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
           `• ${it.codigo ? `[${it.codigo}] ` : ''}${it.nome} — Qtd: ${it.quantidade} × ${formatCurrency(it.unit_price)} = ${formatCurrency(it.total)}${it.notas ? ` (${it.notas})` : ''}`
         ).join('\n')
 
-        const notasFinal = [p.notes, '\n--- Itens importados ---\n' + itensTexto].filter(Boolean).join('\n\n')
+        // Dados do pedido capturados pela AIVA (guardados nas observações)
+        const dadosTexto = [
+          p.numero_pedido_fabrica ? `Nº pedido fábrica: ${p.numero_pedido_fabrica}` : null,
+          p.numero_ordem_compra   ? `Nº ordem de compra: ${p.numero_ordem_compra}` : null,
+          p.showroom              ? `Showroom: ${p.showroom}` : null,
+        ].filter(Boolean).join('\n')
+
+        const notasFinal = [
+          p.notes,
+          dadosTexto ? '--- Dados do pedido ---\n' + dadosTexto : null,
+          '--- Itens importados ---\n' + itensTexto,
+        ].filter(Boolean).join('\n\n')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sb.from('orders') as any).update({ notes: notasFinal }).eq('id', (order as { id: string }).id)
 
@@ -343,6 +357,9 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
                   <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: '#A0AEC0' }}>
                     {p.numero && <span>Nº: <span className="text-white">{p.numero}</span></span>}
                     {p.data && <span>Data: <span className="text-white">{p.data}</span></span>}
+                    {p.numero_pedido_fabrica && <span>Nº fábrica: <span className="text-white">{p.numero_pedido_fabrica}</span></span>}
+                    {p.numero_ordem_compra && <span>Ordem de compra: <span className="text-white">{p.numero_ordem_compra}</span></span>}
+                    {p.showroom && <span>Showroom: <span className="text-white">{p.showroom}</span></span>}
                     {p.fornecedor_nome && <span>Fornecedor: <span className="text-white">{p.fornecedor_nome}</span></span>}
                     {p.payment_terms && <span>Pagamento: <span className="text-white">{p.payment_terms}</span></span>}
                   </div>
