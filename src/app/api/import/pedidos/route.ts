@@ -11,7 +11,7 @@ Retorne um JSON com a seguinte estrutura exata (sem markdown, apenas JSON puro):
 {
   "pedidos": [
     {
-      "numero": "número do pedido (string, ex: PED-001)",
+      "numero": "NÚMERO PRINCIPAL do pedido exatamente como consta no documento, apenas o identificador (ex: 148179). NÃO invente e NÃO gere um código novo. null se não encontrar",
       "numero_pedido_fabrica": "número do pedido gerado pela fábrica/fornecedor (string) ou null se não encontrado",
       "numero_ordem_compra": "número da ordem de compra (OC / PO / purchase order) do cliente (string) ou null se não encontrado",
       "showroom": "nome ou identificação do showroom do pedido (string) ou null se não encontrado",
@@ -48,6 +48,13 @@ Regras:
 - Se um campo não existir no documento, use null ou 0 conforme o tipo
 - Extraia TODOS os itens/produtos encontrados
 - Os campos "numero_pedido_fabrica", "numero_ordem_compra" e "showroom" são importantes: procure por rótulos como "Pedido Fábrica", "Nº Fábrica", "Ordem de Compra", "OC", "PO", "Purchase Order", "Showroom". Se não houver, use null
+- O NÚMERO PRINCIPAL do pedido (campo "numero") é rotulado de forma diferente conforme a fábrica/fornecedor. Identifique o fornecedor e use a regra correta:
+  • Rafana: rótulo "Pedido" (ex: "Pedido 148179" → numero = "148179"). O número de ordem de compra / referência vai em "numero_ordem_compra"
+  • Feroni: rótulo "Pedido de Venda" (ex: "Pedido de Venda 104065" → numero = "104065")
+  • Fine Decor: rótulo "Pedido de Venda" (ex: "Pedido de Venda 8287" → numero = "8287")
+  • Cyrne Decor: rótulo "Pedido de Venda" (ex: "Pedido de Venda 48657" → numero = "48657")
+  • Outras fábricas: use o número de pedido mais proeminente do documento
+  • Extraia apenas o identificador numérico, sem o rótulo (ex: "148179", não "Pedido 148179")
 - Não invente dados — apenas extraia o que está explícito no documento
 - Para datas, converta para YYYY-MM-DD. Se apenas mês/ano, use o dia 01.`
 

@@ -213,6 +213,8 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
             user_id: user.id,
             client_id: p._clienteId,
             supplier_id: p._fornecedorId ?? null,
+            // Número principal lido do documento pela AIVA; se vazio, o banco gera automaticamente
+            number: p.numero?.trim() || null,
             status: 'confirmado',
             subtotal: p.subtotal || p.total,
             discount_pct: p.discount_pct ?? 0,
@@ -224,7 +226,13 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
           .select('id')
           .single()
 
-        if (oErr || !order) throw new Error(oErr?.message || 'Falha ao criar pedido')
+        if (oErr || !order) {
+          // number é UNIQUE — pedido com o mesmo número já existe
+          if (oErr?.code === '23505' || /duplicate|unique/i.test(oErr?.message ?? '')) {
+            throw new Error(`Pedido nº ${p.numero} já existe no sistema`)
+          }
+          throw new Error(oErr?.message || 'Falha ao criar pedido')
+        }
 
         // Produtos sem product_id — registramos os itens nas notas do pedido
         const itensTexto = p.itens.map(it =>
