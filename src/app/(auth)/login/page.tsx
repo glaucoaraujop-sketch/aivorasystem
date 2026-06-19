@@ -99,7 +99,7 @@ export default function LoginPage() {
     }
 
     limparLockout()
-    router.push('/clientes')
+    router.push('/inicio')
   }
 
   const inputStyle = 'input-dark w-full px-4 py-3 rounded-xl text-sm'

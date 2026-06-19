@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL('/clientes', request.url))
+    return NextResponse.redirect(new URL('/inicio', request.url))
   }
 
   return supabaseResponse
