@@ -55,18 +55,17 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
   const [error, setError]           = useState('')
   const [importing, setImporting]   = useState(false)
   const [done, setDone]             = useState(false)
+  const [modo, setModo]             = useState<'arquivo' | 'texto'>('arquivo')
+  const [texto, setTexto]           = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const processFile = useCallback(async (f: File) => {
-    setFile(f)
+  const processBody = useCallback(async (fd: FormData) => {
     setError('')
     setPedidos([])
     setExtracting(true)
     setDone(false)
 
     try {
-      const fd = new FormData()
-      fd.append('file', f)
       const res = await fetch('/api/import/pedidos', { method: 'POST', body: fd })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
@@ -206,6 +205,21 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
     }
   }, [])
 
+  const processFile = useCallback((f: File) => {
+    setFile(f)
+    const fd = new FormData()
+    fd.append('file', f)
+    processBody(fd)
+  }, [processBody])
+
+  const processText = useCallback(() => {
+    if (!texto.trim()) return
+    setFile(null)
+    const fd = new FormData()
+    fd.append('text', texto)
+    processBody(fd)
+  }, [texto, processBody])
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setDragging(false)
@@ -309,7 +323,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
             </div>
             <div>
               <p className="text-sm font-semibold text-white">Importar Pedidos</p>
-              <p className="text-xs" style={{ color: '#56577A' }}>PDF, DOCX, XLSX ou CSV</p>
+              <p className="text-xs" style={{ color: '#56577A' }}>Arquivo (PDF, DOCX, XLSX, CSV) ou texto colado</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl transition-colors" style={{ color: '#A0AEC0' }}>
@@ -318,25 +332,68 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Drop zone */}
+          {/* Entrada: arquivo ou texto */}
           {!extracting && pedidos.length === 0 && (
-            <div
-              onDragOver={e => { e.preventDefault(); setDragging(true) }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => inputRef.current?.click()}
-              className="cursor-pointer rounded-2xl p-10 text-center transition-all"
-              style={{
-                border: dragging ? '2px dashed #0075FF' : '2px dashed rgba(255,255,255,0.12)',
-                background: dragging ? 'rgba(0,117,255,0.06)' : 'rgba(255,255,255,0.02)',
-              }}
-            >
-              <input ref={inputRef} type="file" accept={ACCEPTED} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f) }} />
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(0,117,255,0.1)' }}>
-                <FileText size={24} style={{ color: '#0075FF' }} />
+            <div className="space-y-4">
+              {/* Alternador de modo */}
+              <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                {([['arquivo', 'Arquivo'], ['texto', 'Colar texto']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setModo(val)}
+                    className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+                    style={modo === val
+                      ? { background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', color: '#fff' }
+                      : { color: '#A0AEC0' }}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <p className="text-white font-semibold mb-1">Arraste o arquivo ou clique para selecionar</p>
-              <p className="text-xs" style={{ color: '#56577A' }}>Suporta PDF, DOCX, XLSX e CSV</p>
+
+              {modo === 'arquivo' ? (
+                <div
+                  onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={handleDrop}
+                  onClick={() => inputRef.current?.click()}
+                  className="cursor-pointer rounded-2xl p-10 text-center transition-all"
+                  style={{
+                    border: dragging ? '2px dashed #0075FF' : '2px dashed rgba(255,255,255,0.12)',
+                    background: dragging ? 'rgba(0,117,255,0.06)' : 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <input ref={inputRef} type="file" accept={ACCEPTED} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f) }} />
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(0,117,255,0.1)' }}>
+                    <FileText size={24} style={{ color: '#0075FF' }} />
+                  </div>
+                  <p className="text-white font-semibold mb-1">Arraste o arquivo ou clique para selecionar</p>
+                  <p className="text-xs" style={{ color: '#56577A' }}>Suporta PDF, DOCX, XLSX e CSV</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <textarea
+                    value={texto}
+                    onChange={e => setTexto(e.target.value)}
+                    placeholder={'Cole aqui o conteúdo do(s) pedido(s)...\n\nEx:\nCliente: 1749 - SETTE MÓVEIS EIRELI\nPedido: 44374\nCPF/CNPJ...: 31.792.444/0001-30\nTransport.: 2327 - CYRNE DECOR LTDA\n...'}
+                    rows={12}
+                    className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-blue-500/50 resize-y font-mono"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  />
+                  <button
+                    onClick={processText}
+                    disabled={!texto.trim()}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40"
+                    style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', boxShadow: '0 4px 20px rgba(0,117,255,0.3)' }}
+                  >
+                    <FileText size={15} />
+                    Analisar texto
+                  </button>
+                  <p className="text-xs" style={{ color: '#56577A' }}>
+                    Cole um ou vários pedidos. A AIVA identifica cada um pelo número de referência.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -344,8 +401,8 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
           {extracting && (
             <div className="rounded-2xl p-10 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <Loader2 size={32} className="animate-spin mx-auto mb-4" style={{ color: '#0075FF' }} />
-              <p className="text-white font-semibold mb-1">Analisando arquivo...</p>
-              <p className="text-xs" style={{ color: '#56577A' }}>{file?.name}</p>
+              <p className="text-white font-semibold mb-1">Analisando...</p>
+              {file?.name && <p className="text-xs" style={{ color: '#56577A' }}>{file.name}</p>}
               <p className="text-xs mt-1" style={{ color: '#56577A' }}>A AIVA está lendo e extraindo os pedidos. Arquivos com muitas páginas podem levar alguns minutos.</p>
             </div>
           )}
@@ -468,7 +525,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
         {/* Footer */}
         <div className="px-6 py-4 flex items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <button
-            onClick={() => { setFile(null); setPedidos([]); setError(''); setDone(false) }}
+            onClick={() => { setFile(null); setTexto(''); setPedidos([]); setError(''); setDone(false) }}
             className="text-sm px-4 py-2 rounded-xl transition-all"
             style={{ color: '#A0AEC0', background: 'rgba(255,255,255,0.05)' }}
           >

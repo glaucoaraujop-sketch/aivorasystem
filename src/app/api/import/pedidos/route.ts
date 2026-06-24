@@ -144,16 +144,22 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
+    const texto = ((formData.get('text') as string | null) ?? '').trim()
 
-    if (!file) {
-      return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
+    if (!file && !texto) {
+      return NextResponse.json({ error: 'Nenhum arquivo ou texto enviado' }, { status: 400 })
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const ext = file.name.split('.').pop()?.toLowerCase()
-
     let pedidos: Pedido[] = []
+
+    // Texto colado: processa diretamente, sem arquivo
+    if (texto) {
+      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do(s) pedido(s) colado(s):\n\n${texto}`)
+      return NextResponse.json({ pedidos: deduplicar(pedidos) })
+    }
+
+    const buffer = Buffer.from(await file!.arrayBuffer())
+    const ext = file!.name.split('.').pop()?.toLowerCase()
 
     if (ext === 'pdf') {
       // PDF: divide em blocos de páginas e processa em paralelo (com limite)
@@ -173,7 +179,7 @@ export async function POST(req: NextRequest) {
     } else if (ext === 'docx' || ext === 'doc') {
       const mammoth = await import('mammoth')
       const result = await mammoth.extractRawText({ buffer })
-      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file.name}):\n\n${result.value}`)
+      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file!.name}):\n\n${result.value}`)
     } else if (ext === 'xlsx' || ext === 'xls') {
       const XLSX = await import('xlsx')
       const workbook = XLSX.read(buffer, { type: 'buffer' })
@@ -182,9 +188,9 @@ export async function POST(req: NextRequest) {
         const ws = workbook.Sheets[name]
         sheets.push(`=== Planilha: ${name} ===\n${XLSX.utils.sheet_to_csv(ws)}`)
       })
-      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file.name}):\n\n${sheets.join('\n\n')}`)
+      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file!.name}):\n\n${sheets.join('\n\n')}`)
     } else if (ext === 'csv') {
-      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file.name}):\n\n${buffer.toString('utf-8')}`)
+      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file!.name}):\n\n${buffer.toString('utf-8')}`)
     } else {
       return NextResponse.json({ error: 'Formato de arquivo não suportado. Use PDF, DOCX, XLSX ou CSV.' }, { status: 400 })
     }
