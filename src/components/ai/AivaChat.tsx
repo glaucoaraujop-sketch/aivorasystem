@@ -28,7 +28,7 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
       const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
       setMessages([{
         role: 'assistant',
-        content: `${saudacao}${userName ? `, ${userName}` : ''}! Sou a AIVA, sua assistente estratégica. Como posso ajudar hoje? 🤝`,
+        content: `${saudacao}${userName ? `, ${userName}` : ''}! Sou a AIVA e tenho acesso a todos os dados do sistema. Posso analisar pedidos, comissões, clientes e visitas — por exemplo: "quais clientes mais compraram?", "quanto tenho de comissão a receber?" ou "monte uma programação de visitas". O que vamos ver? 🤝`,
       }])
     }
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
