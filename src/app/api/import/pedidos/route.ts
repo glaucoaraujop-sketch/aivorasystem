@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { PDFDocument } from 'pdf-lib'
+import { withObservability, timed } from '@/lib/observability/api'
 
 // Arquivos grandes (PDFs de 100+ páginas) podem levar minutos para processar
 export const maxDuration = 300
@@ -140,8 +141,7 @@ function deduplicar(pedidos: Pedido[]): Pedido[] {
   })
 }
 
-export async function POST(req: NextRequest) {
-  try {
+export const POST = withObservability('import/pedidos', async (req, { logger }) => {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const texto = ((formData.get('text') as string | null) ?? '').trim()
@@ -154,12 +154,17 @@ export async function POST(req: NextRequest) {
 
     // Texto colado: processa diretamente, sem arquivo
     if (texto) {
-      pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do(s) pedido(s) colado(s):\n\n${texto}`)
-      return NextResponse.json({ pedidos: deduplicar(pedidos) })
+      logger.info('import.fonte', { tipo: 'texto', chars: texto.length })
+      pedidos = await timed(logger, 'extrair.texto', () =>
+        extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do(s) pedido(s) colado(s):\n\n${texto}`))
+      const resultado = deduplicar(pedidos)
+      logger.info('import.concluido', { fonte: 'texto', pedidos: resultado.length })
+      return NextResponse.json({ pedidos: resultado })
     }
 
     const buffer = Buffer.from(await file!.arrayBuffer())
     const ext = file!.name.split('.').pop()?.toLowerCase()
+    logger.info('import.fonte', { tipo: ext, nome: file!.name, sizeKb: Math.round(buffer.length / 1024) })
 
     if (ext === 'pdf') {
       // PDF: divide em blocos de páginas e processa em paralelo (com limite)
@@ -171,9 +176,12 @@ export async function POST(req: NextRequest) {
         blocos = [buffer.toString('base64')]
       }
 
+      logger.info('import.pdf.blocos', { blocos: blocos.length, paginasPorBloco: PAGINAS_POR_BLOCO })
+
       for (let i = 0; i < blocos.length; i += CONCORRENCIA) {
         const lote = blocos.slice(i, i + CONCORRENCIA)
-        const resultados = await Promise.all(lote.map(b64 => extrairPedidos(blocoPdf(b64))))
+        const resultados = await Promise.all(lote.map((b64, j) =>
+          timed(logger, 'extrair.pdf.bloco', () => extrairPedidos(blocoPdf(b64)), { bloco: i + j + 1 })))
         resultados.forEach(r => pedidos.push(...r))
       }
     } else if (ext === 'docx' || ext === 'doc') {
@@ -195,9 +203,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Formato de arquivo não suportado. Use PDF, DOCX, XLSX ou CSV.' }, { status: 400 })
     }
 
-    return NextResponse.json({ pedidos: deduplicar(pedidos) })
-  } catch (err) {
-    console.error('[import/pedidos]', err)
-    return NextResponse.json({ error: 'Erro ao processar arquivo' }, { status: 500 })
-  }
-}
+    const resultado = deduplicar(pedidos)
+    logger.info('import.concluido', { fonte: ext, pedidos: resultado.length })
+    return NextResponse.json({ pedidos: resultado })
+})

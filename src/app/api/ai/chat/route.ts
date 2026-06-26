@@ -1,7 +1,8 @@
-import { NextRequest } from 'next/server'
 import type Anthropic from '@anthropic-ai/sdk'
 import { anthropic } from '@/lib/anthropic'
 import { createClient } from '@/lib/supabase/server'
+import { withObservability, timed } from '@/lib/observability/api'
+import { serializeError } from '@/lib/observability/logger'
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -237,7 +238,7 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
 
 const MAX_LOOPS = 8
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability('ai/chat', async (req, { logger }) => {
   const { messages, context } = await req.json()
   const sb = await createClient()
 
@@ -266,7 +267,12 @@ export async function POST(req: NextRequest) {
         const results: Anthropic.ToolResultBlockParam[] = []
         for (const block of resp.content) {
           if (block.type === 'tool_use') {
-            const out = await executarFerramenta(sb, block.name, (block.input ?? {}) as Input)
+            const out = await timed(
+              logger,
+              `tool:${block.name}`,
+              () => executarFerramenta(sb, block.name, (block.input ?? {}) as Input),
+              { tool: block.name, input: block.input },
+            )
             results.push({ type: 'tool_result', tool_use_id: block.id, content: out })
           }
         }
@@ -275,10 +281,11 @@ export async function POST(req: NextRequest) {
       }
 
       finalText = resp.content.filter(b => b.type === 'text').map(b => (b as Anthropic.TextBlock).text).join('')
+      logger.info('ai.chat.respondido', { loops: i + 1, chars: finalText.length })
       break
     }
   } catch (e) {
-    console.error('[ai/chat]', e)
+    logger.error('ai.chat.error', { error: serializeError(e) })
     finalText = 'Tive um problema ao consultar os dados. Tente novamente em instantes.'
   }
 
@@ -292,4 +299,4 @@ export async function POST(req: NextRequest) {
   })
 
   return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-}
+})
