@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createLogger, serializeError, type Logger } from './logger'
+import { sendAlert } from './alerts'
+
+// Limite (ms) acima do qual uma requisição é considerada lenta e gera alerta.
+const SLOW_MS = Number(process.env.ALERT_SLOW_MS) || 8000
 
 // Contexto de observabilidade injetado em cada handler de rota.
 export interface ObsContext {
@@ -46,10 +50,14 @@ export function withObservability(endpoint: string, handler: Handler) {
       const heapDeltaKb = Math.round((process.memoryUsage().heapUsed - heapBefore) / 1024)
       res.headers.set('x-request-id', requestId)
       log.info('request.finish', { status: res.status, durationMs, heapDeltaKb })
+      if (durationMs > SLOW_MS) {
+        void sendAlert('warning', 'Requisição lenta', { endpoint, path, durationMs, requestId })
+      }
       return res
     } catch (err) {
       const durationMs = round(performance.now() - startedAt)
       log.error('request.error', { durationMs, error: serializeError(err) })
+      void sendAlert('critical', 'Erro em endpoint', { endpoint, path, durationMs, requestId, error: serializeError(err) })
       return NextResponse.json(
         { error: 'Erro interno do servidor', requestId },
         { status: 500, headers: { 'x-request-id': requestId } },

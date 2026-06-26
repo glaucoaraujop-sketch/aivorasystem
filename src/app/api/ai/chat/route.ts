@@ -3,6 +3,8 @@ import { anthropic } from '@/lib/anthropic'
 import { createClient } from '@/lib/supabase/server'
 import { withObservability, timed } from '@/lib/observability/api'
 import { serializeError } from '@/lib/observability/logger'
+import { cached } from '@/lib/observability/cache'
+import { rankClientes, resumoFinanceiro } from '@/lib/ai/aggregations'
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -176,55 +178,31 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         return JSON.stringify({ total_registros: data.length, orcamentos: data })
       }
       case 'ranking_clientes': {
-        const { data, error } = await sb.from('orders')
-          .select('total,status,clients(name,company_name)')
-          .limit(5000)
-        if (error) return `Erro: ${error.message}`
-        const map = new Map<string, { cliente: string; pedidos: number; faturamento: number }>()
-        for (const o of data ?? []) {
-          if (o.status === 'cancelado') continue
-          const nome = o.clients?.company_name || o.clients?.name || 'Sem cliente'
-          const cur = map.get(nome) ?? { cliente: nome, pedidos: 0, faturamento: 0 }
-          cur.pedidos += 1
-          cur.faturamento += Number(o.total || 0)
-          map.set(nome, cur)
-        }
+        // Cache curto: dados agregados pesados, consultados com frequência
+        const rows = await cached('orders.ranking', 60_000, async () => {
+          const { data, error } = await sb.from('orders')
+            .select('total,status,clients(name,company_name)')
+            .limit(5000)
+          if (error) throw new Error(error.message)
+          return data ?? []
+        })
         const por = input.por === 'faturamento' ? 'faturamento' : 'pedidos'
-        const ranking = [...map.values()]
-          .sort((a, b) => (b[por] as number) - (a[por] as number))
-          .slice(0, lim(input.limite, 10, 50))
-        return JSON.stringify({ criterio: por, total_clientes: map.size, ranking })
+        return JSON.stringify(rankClientes(rows, por, lim(input.limite, 10, 50)))
       }
       case 'resumo_financeiro': {
         const [com, ord] = await Promise.all([
-          sb.from('commissions').select('value,status').limit(10000),
-          sb.from('orders').select('total,status').limit(10000),
+          cached('commissions.resumo', 60_000, async () => {
+            const { data, error } = await sb.from('commissions').select('value,status').limit(10000)
+            if (error) throw new Error(error.message)
+            return data ?? []
+          }),
+          cached('orders.resumo', 60_000, async () => {
+            const { data, error } = await sb.from('orders').select('total,status').limit(10000)
+            if (error) throw new Error(error.message)
+            return data ?? []
+          }),
         ])
-        if (com.error) return `Erro: ${com.error.message}`
-        if (ord.error) return `Erro: ${ord.error.message}`
-        let previstas = 0, aprovadas = 0, pagas = 0
-        for (const c of com.data ?? []) {
-          const v = Number(c.value || 0)
-          if (c.status === 'prevista') previstas += v
-          else if (c.status === 'aprovada') aprovadas += v
-          else if (c.status === 'paga') pagas += v
-        }
-        let faturamento = 0, pedidosEmAberto = 0, pedidosTotal = 0
-        for (const o of ord.data ?? []) {
-          if (o.status === 'cancelado') continue
-          pedidosTotal += 1
-          faturamento += Number(o.total || 0)
-          if (!['entregue', 'cancelado'].includes(o.status)) pedidosEmAberto += 1
-        }
-        return JSON.stringify({
-          comissoes_a_receber: previstas + aprovadas,
-          comissoes_previstas: previstas,
-          comissoes_aprovadas: aprovadas,
-          comissoes_pagas: pagas,
-          faturamento_total: faturamento,
-          pedidos_total: pedidosTotal,
-          pedidos_em_aberto: pedidosEmAberto,
-        })
+        return JSON.stringify(resumoFinanceiro(com, ord))
       }
       default:
         return `Ferramenta desconhecida: ${nome}`

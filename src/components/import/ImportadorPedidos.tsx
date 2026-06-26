@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2, ShoppingCart } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
+import { soDig, fmtCnpj, semAcento as sem, palavrasChave, aliasTermos } from '@/lib/pedidos/matching'
 
 interface ItemExtraido {
   codigo: string
@@ -80,44 +81,6 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
       // Tentar resolver clientes e fornecedores automaticamente
       const sb = createClient()
 
-      // Normaliza CNPJ/CPF para só dígitos
-      function soDig(s: string | null | undefined): string {
-        return (s ?? '').replace(/\D/g, '')
-      }
-
-      // Formata CNPJ para o padrão brasileiro (como fica salvo no banco)
-      function fmtCnpj(d: string): string {
-        if (d.length === 14) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`
-        if (d.length === 11) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`
-        return d
-      }
-
-      // Remove acentos (fallback por nome)
-      function sem(s: string): string {
-        return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
-      }
-
-      // Palavras genéricas a ignorar
-      const STOPWORDS = new Set([
-        'E', 'DE', 'DA', 'DO', 'DAS', 'DOS', 'EM', 'NO', 'NA', 'OS', 'AS',
-        'LTDA', 'EIRELI', 'EIRELE', 'ME', 'SA', 'SS', 'EPP', 'SRL',
-        'MOVEIS', 'MOVEL', 'FURNITURE', 'INDUSTRIA', 'COMERCIO', 'COM',
-      ])
-
-      function palavrasChave(s: string): string[] {
-        return sem(s).toUpperCase().split(' ').filter(w => w.length > 3 && !STOPWORDS.has(w))
-      }
-
-      // Aliases de fornecedor: o pedido pode trazer a razão social em vez do
-      // nome fantasia. Cada entrada lista termos de busca (sem acento, minúsculo)
-      // que identificam o mesmo fornecedor, seja como é cadastrado ou na nota.
-      const FORNECEDOR_ALIASES: { termos: string[] }[] = [
-        { termos: ['feroni', 'feital', 'gasparoni'] }, // Feroni = FEITAL E GASPARONI ESTOFADOS LTDA - ME
-        { termos: ['rafana'] },                          // Rafana = MOVEIS RAFANA LTDA
-        { termos: ['fine decor'] },                      // Fine Decor = FINE DECOR LTDA
-        { termos: ['cyrne'] },                           // Cyrne = CYRNE DECOR LTDA
-      ]
-
       const resolved = await Promise.all(extraidos.map(async p => {
         let clienteId: string | null = null
         let fornecedorId: string | null = null
@@ -165,10 +128,9 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
           // Passo 0: alias razão social ↔ nome fantasia. Se o nome na nota bate
           // com um fornecedor conhecido, busca por todos os termos equivalentes
           // (acha o cadastro seja pelo nome fantasia ou pela razão social).
-          const fornLower = sem(p.fornecedor_nome).toLowerCase()
-          const alias = FORNECEDOR_ALIASES.find(a => a.termos.some(t => fornLower.includes(t)))
-          if (alias) {
-            const partesAlias = alias.termos.map(t => `name.ilike.%${t}%`)
+          const termosAlias = aliasTermos(p.fornecedor_nome)
+          if (termosAlias) {
+            const partesAlias = termosAlias.map(t => `name.ilike.%${t}%`)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: fa } = await (sb.from('suppliers') as any).select('id').or(partesAlias.join(',')).limit(1)
             if (fa && fa.length > 0) fornecedorId = (fa[0] as { id: string }).id

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { withObservability, timedQuery } from '@/lib/observability/api'
 import { collectSystemMetrics } from '@/lib/observability/metrics'
+import { sendAlert } from '@/lib/observability/alerts'
+import { cacheStats } from '@/lib/observability/cache'
 
 // Health check sempre dinâmico (nunca cacheado)
 export const dynamic = 'force-dynamic'
@@ -43,7 +45,10 @@ export const GET = withObservability('health', async (_req, { requestId, logger 
   const allUp = Object.values(checks).every(c => c.status === 'up')
   const status = allUp ? 'healthy' : 'degraded'
 
-  if (!allUp) logger.warn('health.degraded', { checks })
+  if (!allUp) {
+    logger.warn('health.degraded', { checks })
+    void sendAlert('critical', 'Health check degradado', { requestId, checks })
+  }
 
   return NextResponse.json(
     {
@@ -53,6 +58,7 @@ export const GET = withObservability('health', async (_req, { requestId, logger 
       version: process.env.NEXT_PUBLIC_COMMIT_SHA || process.env.COMMIT_SHA || 'dev',
       checks,
       metrics: collectSystemMetrics(),
+      cache: cacheStats(),
     },
     { status: allUp ? 200 : 503 },
   )

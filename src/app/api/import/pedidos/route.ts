@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { PDFDocument } from 'pdf-lib'
 import { withObservability, timed } from '@/lib/observability/api'
+import { deduplicarPedidos } from '@/lib/pedidos/matching'
 
 // Arquivos grandes (PDFs de 100+ páginas) podem levar minutos para processar
 export const maxDuration = 300
@@ -128,19 +129,6 @@ async function dividirPdfEmBlocos(buffer: Buffer): Promise<string[]> {
   return blocos
 }
 
-// Remove duplicados pelo número de referência (mantém a primeira ocorrência).
-// Pedidos sem número não são deduplicados.
-function deduplicar(pedidos: Pedido[]): Pedido[] {
-  const vistos = new Set<string>()
-  return pedidos.filter(p => {
-    const n = (p.numero ?? '').toString().trim()
-    if (!n) return true
-    if (vistos.has(n)) return false
-    vistos.add(n)
-    return true
-  })
-}
-
 export const POST = withObservability('import/pedidos', async (req, { logger }) => {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
@@ -157,7 +145,7 @@ export const POST = withObservability('import/pedidos', async (req, { logger }) 
       logger.info('import.fonte', { tipo: 'texto', chars: texto.length })
       pedidos = await timed(logger, 'extrair.texto', () =>
         extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do(s) pedido(s) colado(s):\n\n${texto}`))
-      const resultado = deduplicar(pedidos)
+      const resultado = deduplicarPedidos(pedidos)
       logger.info('import.concluido', { fonte: 'texto', pedidos: resultado.length })
       return NextResponse.json({ pedidos: resultado })
     }
@@ -203,7 +191,7 @@ export const POST = withObservability('import/pedidos', async (req, { logger }) 
       return NextResponse.json({ error: 'Formato de arquivo não suportado. Use PDF, DOCX, XLSX ou CSV.' }, { status: 400 })
     }
 
-    const resultado = deduplicar(pedidos)
+    const resultado = deduplicarPedidos(pedidos)
     logger.info('import.concluido', { fonte: ext, pedidos: resultado.length })
     return NextResponse.json({ pedidos: resultado })
 })
