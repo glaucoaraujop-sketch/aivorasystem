@@ -16,6 +16,8 @@ Você tem ACESSO COMPLETO aos dados internos do sistema através de ferramentas 
 Ferramentas disponíveis:
 - consultar_pedidos: lista pedidos COM os itens (order_items) e as observações (notes) COMPLETAS. Aceita filtro por cliente (nome). Use para ver tudo o que um cliente comprou.
 - detalhe_pedido: detalhe integral de um pedido pelo número (itens + observações completas).
+- buscar_pedido: localiza pedido por QUALQUER identificador (número, ordem de compra, nº da fábrica), inclusive quando está dentro das observações.
+- prazo_entrega_fornecedor: prazo de entrega (dias) de uma fábrica e cálculo da previsão de entrega (data do pedido + prazo).
 - consultar_clientes, consultar_comissoes, consultar_visitas, consultar_orcamentos: listas com filtros
 - ranking_clientes: ranking dos clientes que mais compram (por quantidade de pedidos ou por faturamento) — já considera TODOS os pedidos
 - resumo_financeiro: totais consolidados (comissões a receber, pagas, faturamento, pedidos em aberto) — já considera TODOS os registros
@@ -27,6 +29,8 @@ Regras:
 - LEIA TUDO: os itens de um pedido podem estar em DOIS lugares — no campo "order_items" (estruturado) E/OU dentro do texto de "notes" (pedidos importados listam os itens no bloco "--- Itens importados ---", uma linha por item com código, descrição, quantidade e valor). Ao contar ou listar itens (ex: "os 3 itens mais comprados pelo cliente X"), leia AMBOS, linha por linha, normalize o nome do produto e some as quantidades por produto entre todos os pedidos do cliente.
 - Para perguntas sobre um cliente específico, chame consultar_pedidos com o filtro "cliente" (o nome dito pelo representante). Se precisar do nome exato, use consultar_clientes antes.
 - As observações (notes) podem conter dados úteis além dos itens (nº da fábrica, ordem de compra, showroom, condições). Considere-as ao responder.
+- Para localizar um pedido por um número que pode estar nas observações (ex: ordem de compra "01047000006/00"), use buscar_pedido — ele procura também dentro do texto das notes.
+- PREVISÃO DE ENTREGA: identifique o pedido (buscar_pedido), veja o fornecedor e a data de criação (created_at = quando o pedido foi implementado no sistema), e chame prazo_entrega_fornecedor passando o fornecedor e data_pedido=created_at. A ferramenta devolve a data final calculada. Ex.: Cyrne entrega em 60 dias → previsão = data de implementação + 60 dias. Se o pedido já tiver delivery_date preenchido, cite-o também e explique a diferença. Sempre explique a conta (data de implementação + X dias do fornecedor).
 - Quando o usuário pedir uma "programação de visitas", analise os clientes (prioridade, último pedido, cidade) e monte uma proposta de agenda organizada — explique o critério usado.
 - Responda em português do Brasil, claro e objetivo, usando listas e tabelas quando ajudar.
 - Valores monetários sempre em reais (R$), formatados (ex: R$ 1.486,10).
@@ -64,6 +68,29 @@ const tools: Anthropic.Tool[] = [
         numero: { type: 'string', description: 'Número do pedido (ex: 44374)' },
       },
       required: ['numero'],
+    },
+  },
+  {
+    name: 'buscar_pedido',
+    description: 'Localiza pedido(s) por QUALQUER identificador (número do pedido, ordem de compra, nº da fábrica) — inclusive quando o identificador está dentro das observações (notes). Retorna o detalhe integral.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        termo: { type: 'string', description: 'Número/identificador a procurar (ex: 01047000006/00)' },
+      },
+      required: ['termo'],
+    },
+  },
+  {
+    name: 'prazo_entrega_fornecedor',
+    description: 'Retorna o prazo de entrega (em dias) de uma fábrica/fornecedor. Se informar a data do pedido, calcula a previsão de entrega (data do pedido + prazo).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fornecedor: { type: 'string', description: 'Nome da fábrica/fornecedor (ex: Cyrne)' },
+        data_pedido: { type: 'string', description: 'Data de criação/implementação do pedido (YYYY-MM-DD) para calcular a previsão' },
+      },
+      required: ['fornecedor'],
     },
   },
   {
@@ -139,7 +166,16 @@ type Input = Record<string, any>
 // Seleção completa de um pedido: cabeçalho + cliente + fornecedor + itens + observações.
 // Inclui notes (texto) porque pedidos importados listam os itens dentro das observações.
 const PEDIDO_SELECT =
-  'number,status,total,subtotal,discount_pct,commission_value,commission_pct,payment_terms,delivery_date,created_at,finalidade,notes,clients(name,company_name,city,state,whatsapp),suppliers(name),order_items(quantity,unit_price,discount_pct,total,notes,products(code,name,unit))'
+  'number,status,total,subtotal,discount_pct,commission_value,commission_pct,payment_terms,delivery_date,created_at,finalidade,notes,clients(name,company_name,city,state,whatsapp),suppliers(name,lead_time_days),order_items(quantity,unit_price,discount_pct,total,notes,products(code,name,unit))'
+
+// Prazos de entrega conhecidos por fábrica (fallback quando o cadastro do
+// fornecedor não tem lead_time_days). Preencher conforme cada fábrica informar.
+const PRAZO_FABRICA_DIAS: { termos: string[]; dias: number }[] = [
+  { termos: ['cyrne'], dias: 60 },
+  // { termos: ['rafana'], dias: ? },
+  // { termos: ['feroni', 'feital', 'gasparoni'], dias: ? },
+  // { termos: ['fine decor'], dias: ? },
+]
 
 function lim(v: unknown, def: number, max: number): number {
   const n = Number(v)
@@ -186,6 +222,53 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
           return JSON.stringify({ encontrado: false, aviso: `Pedido ${input.numero} não encontrado` })
         }
         return JSON.stringify({ encontrado: true, pedido: data[0] })
+      }
+      case 'buscar_pedido': {
+        const termo = String(input.termo ?? '').trim()
+        if (!termo) return 'Informe o número/identificador a buscar.'
+        // Procura no número do pedido E no texto das observações
+        const { data, error } = await sb.from('orders')
+          .select(PEDIDO_SELECT)
+          .or(`number.ilike.%${termo}%,notes.ilike.%${termo}%`)
+          .order('created_at', { ascending: false })
+          .limit(10)
+        if (error) return `Erro: ${error.message}`
+        if (!data || data.length === 0) {
+          return JSON.stringify({ total_registros: 0, pedidos: [], aviso: `Nenhum pedido encontrado contendo "${termo}"` })
+        }
+        return JSON.stringify({ total_registros: data.length, pedidos: data })
+      }
+      case 'prazo_entrega_fornecedor': {
+        const nome = String(input.fornecedor ?? '').trim()
+        if (!nome) return 'Informe o fornecedor.'
+        let dias: number | null = null
+        let fonte = ''
+        // 1) Prazo cadastrado no fornecedor
+        const { data: sup } = await sb.from('suppliers')
+          .select('name,lead_time_days')
+          .ilike('name', `%${nome}%`)
+          .limit(1)
+        if (sup?.[0]?.lead_time_days) {
+          dias = sup[0].lead_time_days
+          fonte = 'cadastro do fornecedor'
+        } else {
+          // 2) Prazo conhecido (fallback)
+          const lower = nome.toLowerCase()
+          const known = PRAZO_FABRICA_DIAS.find(p => p.termos.some(t => lower.includes(t)))
+          if (known) { dias = known.dias; fonte = 'prazo padrão conhecido' }
+        }
+        if (dias == null) {
+          return JSON.stringify({ fornecedor: nome, dias: null, aviso: 'Prazo de entrega não cadastrado para este fornecedor' })
+        }
+        let previsao_entrega: string | null = null
+        if (input.data_pedido) {
+          const d = new Date(input.data_pedido)
+          if (!isNaN(d.getTime())) {
+            d.setDate(d.getDate() + dias)
+            previsao_entrega = d.toISOString().slice(0, 10)
+          }
+        }
+        return JSON.stringify({ fornecedor: nome, dias, fonte, data_pedido: input.data_pedido ?? null, previsao_entrega })
       }
       case 'consultar_clientes': {
         let q = sb.from('clients')
