@@ -21,9 +21,11 @@ Ferramentas disponíveis:
 - consultar_clientes, consultar_comissoes, consultar_visitas, consultar_orcamentos: listas com filtros
 - ranking_clientes: ranking dos clientes que mais compram (por quantidade de pedidos ou por faturamento) — já considera TODOS os pedidos
 - resumo_financeiro: totais consolidados (comissões a receber, pagas, faturamento, pedidos em aberto) — já considera TODOS os registros
+- resumo_clientes: total de clientes (lojas) e total de PDVs JÁ SOMADOS pelo sistema, com a lista de clientes que têm mais de 1 PDV. Use para "quantos PDVs/lojas temos".
 
 Regras:
 - NUNCA invente números. Sempre busque os dados reais com as ferramentas antes de responder.
+- Para TOTAIS e somatórios (quantos PDVs, quantas lojas, total de comissões, faturamento), use SEMPRE o número já calculado pela ferramenta de resumo correspondente (resumo_clientes, resumo_financeiro, ranking_clientes). NUNCA some item por item de cabeça — isso causa erros de conta. Se mostrar o detalhamento, o total exibido deve ser exatamente o que a ferramenta retornou.
 - Para rankings e totais use ranking_clientes / resumo_financeiro (que agregam tudo). Para detalhes use as ferramentas consultar_*.
 - Pode chamar várias ferramentas em sequência para cruzar informações e responder perguntas complexas.
 - LEIA TUDO: os itens de um pedido podem estar em DOIS lugares — no campo "order_items" (estruturado) E/OU dentro do texto de "notes" (pedidos importados listam os itens no bloco "--- Itens importados ---", uma linha por item com código, descrição, quantidade e valor). Ao contar ou listar itens (ex: "os 3 itens mais comprados pelo cliente X"), leia AMBOS, linha por linha, normalize o nome do produto e some as quantidades por produto entre todos os pedidos do cliente.
@@ -155,6 +157,11 @@ const tools: Anthropic.Tool[] = [
   {
     name: 'resumo_financeiro',
     description: 'Totais consolidados de TODO o sistema: comissões a receber/previstas/aprovadas/pagas, faturamento total e nº de pedidos em aberto.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'resumo_clientes',
+    description: 'Totais JÁ CALCULADOS de clientes/PDVs: nº de clientes (lojas), total de PDVs (soma do PDV de cada cliente) e a lista de clientes com mais de 1 PDV. Use para responder "quantos PDVs/lojas temos" sem somar manualmente.',
     input_schema: { type: 'object', properties: {} },
   },
 ]
@@ -344,6 +351,27 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
           }),
         ])
         return JSON.stringify(resumoFinanceiro(com, ord))
+      }
+      case 'resumo_clientes': {
+        const { data, error } = await sb.from('clients')
+          .select('name,client_cnpjs(num_lojas)')
+          .limit(5000)
+        if (error) return `Erro: ${error.message}`
+        let totalPdv = 0
+        const multi: { cliente: string; pdv: number }[] = []
+        for (const c of data ?? []) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const vals = (c.client_cnpjs ?? []).map((x: any) => x.num_lojas ?? 1)
+          const pdv = vals.length ? Math.max(...vals) : 1
+          totalPdv += pdv
+          if (pdv > 1) multi.push({ cliente: c.name, pdv })
+        }
+        multi.sort((a, b) => b.pdv - a.pdv)
+        return JSON.stringify({
+          total_clientes: (data ?? []).length,
+          total_pdv: totalPdv,
+          clientes_com_mais_de_1_pdv: multi,
+        })
       }
       default:
         return `Ferramenta desconhecida: ${nome}`
