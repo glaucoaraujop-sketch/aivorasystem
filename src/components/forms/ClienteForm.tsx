@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClientesMutations } from '@/hooks/useClientes'
+import { useClientCnpjsMutations } from '@/hooks/useClientCnpjs'
 import { maskCpfCnpj, maskPhone, maskCep } from '@/lib/masks'
 import type { Database, ClientType } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
@@ -45,6 +46,7 @@ function Field({ label, children, span2 }: { label: string; children: React.Reac
 export function ClienteForm({ cliente }: Props) {
   const router = useRouter()
   const { criar, atualizar } = useClientesMutations()
+  const { criar: criarCnpj } = useClientCnpjsMutations()
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -77,6 +79,7 @@ export function ClienteForm({ cliente }: Props) {
     razao_social:         cliente?.razao_social ?? '',
     inscricao_estadual:   cliente?.inscricao_estadual ?? '',
     type:                 (cliente?.type ?? 'loja') as ClientType,
+    num_lojas:            '1',
     cpf_cnpj:             cliente?.cpf_cnpj ?? '',
     area_restrita:        cliente?.area_restrita ?? false,
     address:              cliente?.address ?? '',
@@ -170,8 +173,22 @@ export function ClienteForm({ cliente }: Props) {
         email:                n(form.email),
         notes:                n(form.notes),
       }
-      if (cliente) await atualizar(cliente.id, payload)
-      else await criar(payload)
+      if (cliente) {
+        await atualizar(cliente.id, payload)
+      } else {
+        const novo = await criar(payload)
+        // Cria o CNPJ principal com o nº de lojas (pontos de venda).
+        // É isso que alimenta a métrica "Total de PDV" e a seção de CNPJs.
+        await criarCnpj({
+          client_id: novo.id,
+          razao_social: form.razao_social.trim() || form.name.trim(),
+          cnpj: form.cpf_cnpj.trim() || null,
+          inscricao_estadual: form.inscricao_estadual.trim() || null,
+          num_lojas: parseInt(form.num_lojas) || 1,
+          notes: null,
+          is_primary: true,
+        })
+      }
       router.push('/clientes')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar')
@@ -218,6 +235,20 @@ export function ClienteForm({ cliente }: Props) {
           <Field label="Inscrição Estadual">
             <input value={form.inscricao_estadual} onChange={e => set('inscricao_estadual', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm" />
           </Field>
+          {!cliente && (
+            <Field label="Nº de Lojas (PDV)">
+              <input
+                type="number" min="1"
+                value={form.num_lojas}
+                onChange={e => set('num_lojas', e.target.value)}
+                placeholder="1"
+                className="input-dark w-full px-3 py-2.5 rounded-xl text-sm"
+              />
+              <p className="text-xs mt-1" style={{ color: '#56577A' }}>
+                Quantos pontos de venda este cliente tem neste CNPJ (ex: Rossuti = 3, Sylvia Design = 8).
+              </p>
+            </Field>
+          )}
           <Field label="Tipo *">
             <select value={form.type} onChange={e => set('type', e.target.value)} className="input-dark w-full px-3 py-2.5 rounded-xl text-sm">
               {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
