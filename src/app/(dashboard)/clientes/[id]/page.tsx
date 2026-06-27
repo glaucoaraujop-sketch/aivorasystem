@@ -224,7 +224,7 @@ function FabricaTermCard({
 }
 
 // ─── Seção CNPJs / Razões Sociais ────────────────────────────────────────────
-function CnpjsSection({ clientId }: { clientId: string }) {
+function CnpjsSection({ clientId, clientNome, clientRazao, clientCnpj }: { clientId: string; clientNome: string; clientRazao: string | null; clientCnpj: string | null }) {
   const { cnpjs, loading, refetch } = useClientCnpjs(clientId)
   const { criar, atualizar, remover, definirPrincipal } = useClientCnpjsMutations()
   const [adicionando, setAdicionando] = useState(false)
@@ -240,13 +240,23 @@ function CnpjsSection({ clientId }: { clientId: string }) {
     refetch()
   }
 
+  function abrirAdicionar() {
+    setNovoForm(p => ({
+      ...p,
+      razao_social: p.razao_social || clientRazao || clientNome || '',
+      cnpj: p.cnpj || (clientCnpj ?? ''),
+    }))
+    setAdicionando(true)
+  }
+
   async function handleAdicionar() {
-    if (!novoForm.razao_social.trim()) { setErro('Razão Social é obrigatória'); return }
+    const razao = novoForm.razao_social.trim() || clientRazao?.trim() || clientNome?.trim() || ''
+    if (!razao) { setErro('Razão Social é obrigatória'); return }
     setSalvando(true); setErro(null)
     try {
       await criar({
         client_id: clientId,
-        razao_social: novoForm.razao_social.trim(),
+        razao_social: razao,
         cnpj: novoForm.cnpj.trim() || null,
         inscricao_estadual: novoForm.inscricao_estadual.trim() || null,
         num_lojas: novoForm.num_lojas ? parseInt(novoForm.num_lojas) : 1,
@@ -300,11 +310,11 @@ function CnpjsSection({ clientId }: { clientId: string }) {
           )}
         </div>
         <button
-          onClick={() => setAdicionando(true)}
+          onClick={abrirAdicionar}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
           style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', color: '#fff' }}
         >
-          <Plus size={12} /> Adicionar
+          <Plus size={12} /> Adicionar CNPJ / nº de lojas
         </button>
       </div>
 
@@ -314,7 +324,7 @@ function CnpjsSection({ clientId }: { clientId: string }) {
           <input
             value={novoForm.razao_social}
             onChange={e => setNovoForm(p => ({ ...p, razao_social: e.target.value }))}
-            placeholder="Razão Social *"
+            placeholder="Razão Social (usa a do cliente se vazio)"
             className="input-dark w-full px-3 py-2 rounded-lg text-sm"
           />
           <div className="grid grid-cols-2 gap-2">
@@ -364,9 +374,18 @@ function CnpjsSection({ clientId }: { clientId: string }) {
       )}
 
       {cnpjs.length === 0 && !adicionando ? (
-        <p className="text-sm text-center py-6" style={{ color: '#56577A' }}>
-          Nenhum CNPJ cadastrado. Clique em Adicionar para começar.
-        </p>
+        <div className="text-center py-6 space-y-3">
+          <p className="text-sm" style={{ color: '#56577A' }}>
+            Nenhum CNPJ / nº de lojas cadastrado para este cliente.
+          </p>
+          <button
+            onClick={abrirAdicionar}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+            style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)', color: '#fff' }}
+          >
+            <Plus size={13} /> Adicionar nº de lojas (PDV)
+          </button>
+        </div>
       ) : (
         <div className="space-y-2">
           {cnpjs.map(c => (
@@ -715,7 +734,7 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Razões Sociais / CNPJs */}
-          <CnpjsSection clientId={id} />
+          <CnpjsSection clientId={id} clientNome={cliente.name} clientRazao={cliente.razao_social} clientCnpj={cliente.cpf_cnpj} />
 
           {/* Comercialização por fábrica */}
           <ComercializacaoSection clientId={id} />
