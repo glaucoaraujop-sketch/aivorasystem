@@ -310,7 +310,7 @@ function CnpjsSection({ clientId, clientNome, clientRazao, clientCnpj }: { clien
           {cnpjs.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-xs font-bold"
               style={{ color: '#9F7AEA', background: 'rgba(159,122,234,0.12)' }}>
-              {cnpjs.reduce((a, c) => a + (c.num_lojas ?? 1), 0)} lojas
+              {Math.max(...cnpjs.map(c => c.num_lojas ?? 1))} PDV
             </span>
           )}
         </div>

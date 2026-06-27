@@ -53,18 +53,19 @@ export default function ClientesPage() {
 
   const porTipo = (t: string) => clientes.filter(c => c.type === t).length
 
-  // Soma num_lojas de cada CNPJ — representa pontos de venda reais
-  const totalLojas = clientes
-    .filter(c => c.type === 'loja')
-    .reduce((acc, c) =>
-      acc + c.client_cnpjs.reduce((a, cnpj) => a + (cnpj.num_lojas ?? 1), 0)
-    , 0)
+  // PDV por cliente = maior num_lojas entre seus CNPJs (mín. 1). Vários CNPJs
+  // do mesmo cliente são a mesma loja (fiscal), não multiplicam o PDV.
+  const pdvDoCliente = (c: { client_cnpjs: Array<{ num_lojas: number | null }> }) => {
+    const vals = c.client_cnpjs.map(x => x.num_lojas ?? 1)
+    return vals.length ? Math.max(...vals) : 1
+  }
+  const totalPdv = clientes.reduce((acc, c) => acc + pdvDoCliente(c), 0)
 
   const totalGrupos = clientes.filter(c => c.client_cnpjs.length > 1).length
 
   const metrics = [
     { label: 'Total de Lojas', value: clientes.length,   icon: Users,     color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
-    { label: 'Total de PDV',   value: totalLojas,        icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+    { label: 'Total de PDV',   value: totalPdv,          icon: Building2, color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
     { label: 'Grupo de Lojas', value: totalGrupos,       icon: Store,     color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
     { label: 'Outros',         value: porTipo('outros'), icon: Users,     color: '#A0AEC0', bg: 'rgba(160,174,192,0.12)' },
   ]

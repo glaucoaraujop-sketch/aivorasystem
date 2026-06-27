@@ -99,10 +99,12 @@ export function useRelatorios() {
           .in('status', ['prevista','aprovada'])
           .order('due_date', { ascending: true })
           .limit(5),
-        // Total de pontos de venda: soma num_lojas de cada CNPJ dos clientes ativos do tipo loja
+        // Total de PDV: nº de pontos de venda por cliente (valor único por
+        // cliente = maior num_lojas entre seus CNPJs; vários CNPJs do mesmo
+        // cliente são a mesma loja, não multiplicam).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase.from('client_cnpjs') as any)
-          .select('num_lojas, clients!inner(active, type)')
+          .select('client_id, num_lojas, clients!inner(active, type)')
           .eq('clients.active', true)
           .eq('clients.type', 'loja'),
       ])
@@ -110,10 +112,13 @@ export function useRelatorios() {
       // KPIs
       const fatMes = (pedidosMes ?? []).reduce((a: number, p: { total: number }) => a + p.total, 0)
       const fatMesAnt = (pedidosMesAnt ?? []).reduce((a: number, p: { total: number }) => a + p.total, 0)
-      const totalLojas = (lojasData ?? []).reduce(
-        (a: number, c: { num_lojas: number | null }) => a + (c.num_lojas ?? 1),
-        0
-      )
+      // PDV por cliente = maior num_lojas entre seus CNPJs (mín. 1); depois soma
+      const pdvPorCliente = new Map<string, number>()
+      for (const c of (lojasData ?? []) as { client_id: string; num_lojas: number | null }[]) {
+        const atual = pdvPorCliente.get(c.client_id) ?? 1
+        pdvPorCliente.set(c.client_id, Math.max(atual, c.num_lojas ?? 1))
+      }
+      const totalLojas = [...pdvPorCliente.values()].reduce((a, v) => a + v, 0)
 
       setKpis({
         faturamentoMes:         fatMes,

@@ -282,11 +282,12 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         if (typeof input.ativo === 'boolean') q = q.eq('active', input.ativo)
         const { data, error } = await q.limit(lim(input.limite, 200, 1000))
         if (error) return `Erro: ${error.message}`
-        // total_pdv = soma de num_lojas dos CNPJs (mínimo 1 = o próprio cliente)
+        // total_pdv = nº de PDVs do cliente = maior num_lojas entre seus CNPJs
+        // (mín. 1). Vários CNPJs do mesmo cliente são a mesma loja, não somam.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const clientes = (data ?? []).map((c: any) => {
-          const soma = (c.client_cnpjs ?? []).reduce((a: number, x: { num_lojas: number | null }) => a + (x.num_lojas ?? 1), 0)
-          return { ...c, total_pdv: soma > 0 ? soma : 1 }
+          const vals = (c.client_cnpjs ?? []).map((x: { num_lojas: number | null }) => x.num_lojas ?? 1)
+          return { ...c, total_pdv: vals.length ? Math.max(...vals) : 1 }
         })
         return JSON.stringify({ total_registros: clientes.length, clientes })
       }
