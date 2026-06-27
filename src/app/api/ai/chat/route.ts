@@ -31,7 +31,8 @@ Regras:
 - As observações (notes) podem conter dados úteis além dos itens (nº da fábrica, ordem de compra, showroom, condições). Considere-as ao responder.
 - Para localizar um pedido por um número que pode estar nas observações (ex: ordem de compra "01047000006/00"), use buscar_pedido — ele procura também dentro do texto das notes.
 - PREVISÃO DE ENTREGA: identifique o pedido (buscar_pedido), veja o fornecedor e a data de criação (created_at = quando o pedido foi implementado no sistema), e chame prazo_entrega_fornecedor passando o fornecedor e data_pedido=created_at. A ferramenta devolve a data final calculada. Ex.: Cyrne entrega em 60 dias → previsão = data de implementação + 60 dias. Se o pedido já tiver delivery_date preenchido, cite-o também e explique a diferença. Sempre explique a conta (data de implementação + X dias do fornecedor).
-- Quando o usuário pedir uma "programação de visitas", analise os clientes (prioridade, último pedido, cidade) e monte uma proposta de agenda organizada — explique o critério usado.
+- Quando o usuário pedir uma "programação/cronograma de visitas", analise os clientes (prioridade, último pedido, cidade) e monte uma proposta de agenda organizada — explique o critério usado.
+- PONTOS DE VENDA (PDV): cada cliente tem um campo "total_pdv" = quantas lojas/pontos de venda ele possui (mesmo com um único CNPJ). Ex.: Rossuti tem 1 CNPJ mas 3 lojas. AO MONTAR CRONOGRAMA DE VISITAS, gere UMA entrada para CADA PDV do cliente, não apenas uma por cliente. Identifique cada uma como "Cliente — Loja 1/N", "Cliente — Loja 2/N" ... (ex.: "Rossuti — Loja 1/3", "Rossuti — Loja 2/3", "Rossuti — Loja 3/3"), para o representante visitar todas. Some os PDVs ao informar o total de visitas necessárias.
 - Responda em português do Brasil, claro e objetivo, usando listas e tabelas quando ajudar.
 - Valores monetários sempre em reais (R$), formatados (ex: R$ 1.486,10).
 - Se uma consulta não retornar dados, diga isso com transparência.`
@@ -95,7 +96,7 @@ const tools: Anthropic.Tool[] = [
   },
   {
     name: 'consultar_clientes',
-    description: 'Lista clientes com filtros opcionais (busca por nome/empresa, cidade, estado, ativo).',
+    description: 'Lista clientes com filtros opcionais (busca por nome/empresa, cidade, estado, ativo). Retorna também total_pdv (quantos pontos de venda/lojas o cliente tem) e o detalhamento por CNPJ.',
     input_schema: {
       type: 'object',
       properties: {
@@ -273,7 +274,7 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
       }
       case 'consultar_clientes': {
         let q = sb.from('clients')
-          .select('id,name,company_name,type,city,state,priority,active,last_order_at,whatsapp,phone')
+          .select('id,name,company_name,type,city,state,priority,active,last_order_at,whatsapp,phone,client_cnpjs(razao_social,cnpj,num_lojas)')
           .order('last_order_at', { ascending: false, nullsFirst: false })
         if (input.busca) q = q.or(`name.ilike.%${input.busca}%,company_name.ilike.%${input.busca}%`)
         if (input.cidade) q = q.ilike('city', `%${input.cidade}%`)
@@ -281,7 +282,13 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         if (typeof input.ativo === 'boolean') q = q.eq('active', input.ativo)
         const { data, error } = await q.limit(lim(input.limite, 200, 1000))
         if (error) return `Erro: ${error.message}`
-        return JSON.stringify({ total_registros: data.length, clientes: data })
+        // total_pdv = soma de num_lojas dos CNPJs (mínimo 1 = o próprio cliente)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const clientes = (data ?? []).map((c: any) => {
+          const soma = (c.client_cnpjs ?? []).reduce((a: number, x: { num_lojas: number | null }) => a + (x.num_lojas ?? 1), 0)
+          return { ...c, total_pdv: soma > 0 ? soma : 1 }
+        })
+        return JSON.stringify({ total_registros: clientes.length, clientes })
       }
       case 'consultar_comissoes': {
         let q = sb.from('commissions')
