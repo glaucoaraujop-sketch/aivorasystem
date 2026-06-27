@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 
 function formatDate(iso: string) {
@@ -77,7 +77,7 @@ Gere o briefing em 4 seções, em português brasileiro:
 Seja direto e prático. Máximo 280 palavras. Use bullets quando for listar itens.`
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability('ai/briefing', async (req) => {
   const body = await req.json()
 
   const encoder = new TextEncoder()
@@ -101,4 +101,4 @@ export async function POST(req: NextRequest) {
   })
 
   return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-}
+})

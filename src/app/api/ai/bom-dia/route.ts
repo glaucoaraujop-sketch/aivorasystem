@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 
 async function fetchWeather(city: string): Promise<string> {
@@ -51,7 +51,7 @@ Escreva 2-3 frases curtas em português brasileiro:
 Tom: amigável, direto, como uma assistente pessoal. NÃO use saudações (isso vem antes). NÃO invente dados de clima que não foram fornecidos. Máximo 60 palavras.`
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability('ai/bom-dia', async (req) => {
   const body = await req.json()
   const { area } = body
 
@@ -79,4 +79,4 @@ export async function POST(req: NextRequest) {
   })
 
   return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-}
+})

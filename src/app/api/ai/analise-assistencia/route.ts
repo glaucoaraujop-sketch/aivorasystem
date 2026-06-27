@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 import type Anthropic from '@anthropic-ai/sdk'
 
@@ -57,7 +57,7 @@ Em português brasileiro, direto e técnico. Máximo 350 palavras.`
   return textoPart
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability('ai/analise-assistencia', async (req) => {
   const body = await req.json()
   const content = await buildContent(body)
 
@@ -78,4 +78,4 @@ export async function POST(req: NextRequest) {
     },
   })
   return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-}
+})

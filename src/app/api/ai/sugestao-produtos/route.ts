@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 
 function buildPrompt(body: {
@@ -47,7 +47,7 @@ Com base nesse perfil, gere uma análise com 3 seções:
 Em português brasileiro. Máximo 300 palavras.`
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability('ai/sugestao-produtos', async (req) => {
   const body = await req.json()
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -66,4 +66,4 @@ export async function POST(req: NextRequest) {
     },
   })
   return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-}
+})

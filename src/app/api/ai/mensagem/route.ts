@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 
 type TipoMensagem =
@@ -45,7 +45,7 @@ Regras:
 Retorne APENAS o texto da mensagem, pronto para copiar e colar no WhatsApp.`
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability('ai/mensagem', async (req) => {
   const body = await req.json()
 
   const encoder = new TextEncoder()
@@ -69,4 +69,4 @@ export async function POST(req: NextRequest) {
   })
 
   return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-}
+})
