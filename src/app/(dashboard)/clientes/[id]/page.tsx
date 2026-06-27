@@ -235,9 +235,14 @@ function CnpjsSection({ clientId, clientNome, clientRazao, clientCnpj }: { clien
   const [editLojas, setEditLojas] = useState('1')
 
   async function handleSalvarLojas(id: string) {
-    await atualizar(id, { num_lojas: parseInt(editLojas) || 1 })
-    setEditId(null)
-    refetch()
+    try {
+      await atualizar(id, { num_lojas: parseInt(editLojas) || 1 })
+      setEditId(null)
+      setErro(null)
+      refetch()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar nº de lojas')
+    }
   }
 
   function abrirAdicionar() {
@@ -317,6 +322,10 @@ function CnpjsSection({ clientId, clientNome, clientRazao, clientCnpj }: { clien
           <Plus size={12} /> Adicionar CNPJ / nº de lojas
         </button>
       </div>
+
+      {erro && !adicionando && (
+        <p className="text-xs mb-3" style={{ color: '#FC8181' }}>⚠ {erro}</p>
+      )}
 
       {adicionando && (
         <div className="rounded-xl p-4 mb-4 space-y-3"
@@ -410,20 +419,24 @@ function CnpjsSection({ clientId, clientNome, clientRazao, clientCnpj }: { clien
                   <div className="flex items-center gap-3 flex-wrap mt-0.5">
                     {c.cnpj && <p className="text-xs font-mono" style={{ color: '#A0AEC0' }}>{c.cnpj}</p>}
                     {editId === c.id ? (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-2">
                         <input
                           type="number" min="1" autoFocus
                           value={editLojas}
                           onChange={e => setEditLojas(e.target.value)}
-                          className="input-dark w-16 px-2 py-0.5 rounded-md text-xs text-center font-bold"
+                          className="input-dark w-16 px-2 py-1 rounded-md text-xs text-center font-bold"
                           style={{ color: '#9F7AEA' }}
                         />
                         <span className="text-xs" style={{ color: '#56577A' }}>lojas (PDV)</span>
-                        <button type="button" onClick={() => handleSalvarLojas(c.id)} title="Salvar" style={{ color: '#01B574' }}>
-                          <Check size={14} />
+                        <button type="button" onClick={() => handleSalvarLojas(c.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-white"
+                          style={{ background: '#01B574' }}>
+                          <Check size={12} /> Salvar
                         </button>
-                        <button type="button" onClick={() => setEditId(null)} title="Cancelar" style={{ color: '#56577A' }}>
-                          <X size={14} />
+                        <button type="button" onClick={() => { setEditId(null); setErro(null) }}
+                          className="px-2 py-1 rounded-md text-xs font-medium"
+                          style={{ color: '#A0AEC0', background: 'rgba(255,255,255,0.06)' }}>
+                          Cancelar
                         </button>
                       </span>
                     ) : (
