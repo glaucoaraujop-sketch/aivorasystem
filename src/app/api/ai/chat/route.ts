@@ -169,12 +169,13 @@ const PEDIDO_SELECT =
   'number,status,total,subtotal,discount_pct,commission_value,commission_pct,payment_terms,delivery_date,created_at,finalidade,notes,clients(name,company_name,city,state,whatsapp),suppliers(name,lead_time_days),order_items(quantity,unit_price,discount_pct,total,notes,products(code,name,unit))'
 
 // Prazos de entrega conhecidos por fábrica (fallback quando o cadastro do
-// fornecedor não tem lead_time_days). Preencher conforme cada fábrica informar.
+// fornecedor não tiver lead_time_days). A fonte primária é o cadastro do
+// fornecedor (aba Fornecedores); estes valores são apenas rede de segurança.
 const PRAZO_FABRICA_DIAS: { termos: string[]; dias: number }[] = [
   { termos: ['cyrne'], dias: 60 },
-  // { termos: ['rafana'], dias: ? },
-  // { termos: ['feroni', 'feital', 'gasparoni'], dias: ? },
-  // { termos: ['fine decor'], dias: ? },
+  { termos: ['feroni', 'feital', 'gasparoni'], dias: 45 },
+  { termos: ['rafana'], dias: 35 },
+  { termos: ['fine decor', 'fine'], dias: 45 },
 ]
 
 function lim(v: unknown, def: number, max: number): number {
