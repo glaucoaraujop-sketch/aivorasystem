@@ -226,11 +226,19 @@ function FabricaTermCard({
 // ─── Seção CNPJs / Razões Sociais ────────────────────────────────────────────
 function CnpjsSection({ clientId }: { clientId: string }) {
   const { cnpjs, loading, refetch } = useClientCnpjs(clientId)
-  const { criar, remover, definirPrincipal } = useClientCnpjsMutations()
+  const { criar, atualizar, remover, definirPrincipal } = useClientCnpjsMutations()
   const [adicionando, setAdicionando] = useState(false)
   const [novoForm, setNovoForm] = useState({ razao_social: '', cnpj: '', inscricao_estadual: '', num_lojas: '1', notes: '' })
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editLojas, setEditLojas] = useState('1')
+
+  async function handleSalvarLojas(id: string) {
+    await atualizar(id, { num_lojas: parseInt(editLojas) || 1 })
+    setEditId(null)
+    refetch()
+  }
 
   async function handleAdicionar() {
     if (!novoForm.razao_social.trim()) { setErro('Razão Social é obrigatória'); return }
@@ -382,10 +390,38 @@ function CnpjsSection({ clientId }: { clientId: string }) {
                   </div>
                   <div className="flex items-center gap-3 flex-wrap mt-0.5">
                     {c.cnpj && <p className="text-xs font-mono" style={{ color: '#A0AEC0' }}>{c.cnpj}</p>}
-                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md"
-                      style={{ color: '#9F7AEA', background: 'rgba(159,122,234,0.12)' }}>
-                      {c.num_lojas ?? 1} {(c.num_lojas ?? 1) === 1 ? 'loja' : 'lojas'}
-                    </span>
+                    {editId === c.id ? (
+                      <span className="flex items-center gap-1">
+                        <input
+                          type="number" min="1" autoFocus
+                          value={editLojas}
+                          onChange={e => setEditLojas(e.target.value)}
+                          className="input-dark w-16 px-2 py-0.5 rounded-md text-xs text-center font-bold"
+                          style={{ color: '#9F7AEA' }}
+                        />
+                        <span className="text-xs" style={{ color: '#56577A' }}>lojas (PDV)</span>
+                        <button type="button" onClick={() => handleSalvarLojas(c.id)} title="Salvar" style={{ color: '#01B574' }}>
+                          <Check size={14} />
+                        </button>
+                        <button type="button" onClick={() => setEditId(null)} title="Cancelar" style={{ color: '#56577A' }}>
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md"
+                          style={{ color: '#9F7AEA', background: 'rgba(159,122,234,0.12)' }}>
+                          {c.num_lojas ?? 1} {(c.num_lojas ?? 1) === 1 ? 'loja' : 'lojas'} (PDV)
+                        </span>
+                        <button type="button" title="Editar nº de lojas"
+                          onClick={() => { setEditId(c.id); setEditLojas(String(c.num_lojas ?? 1)) }}
+                          style={{ color: '#56577A' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#0075FF')}
+                          onMouseLeave={e => (e.currentTarget.style.color = '#56577A')}>
+                          <Edit size={12} />
+                        </button>
+                      </span>
+                    )}
                   </div>
                   {c.inscricao_estadual && <p className="text-xs" style={{ color: '#56577A' }}>IE: {c.inscricao_estadual}</p>}
                   {c.notes && <p className="text-xs mt-1 italic" style={{ color: '#56577A' }}>{c.notes}</p>}
