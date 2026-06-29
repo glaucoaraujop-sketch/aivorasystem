@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { isOwnerEmail } from '@/lib/auth/owners'
 
 export interface UserPermissions {
   isOwner: boolean
@@ -27,6 +28,15 @@ const FULL_ACCESS: UserPermissions = {
   loaded: true,
 }
 
+const NO_ACCESS: UserPermissions = {
+  isOwner: false,
+  perm_clientes: false, perm_catalogo: false, perm_orcamentos: false,
+  perm_pedidos: false, perm_comissoes: false, perm_visitas: false,
+  perm_fornecedores: false, perm_assistencia: false, perm_relatorios: false,
+  perm_configuracoes: false,
+  loaded: true,
+}
+
 export function useMyPermissions(): UserPermissions {
   const [perms, setPerms] = useState<UserPermissions>({ ...FULL_ACCESS, loaded: false })
   const supabase = createClient()
@@ -36,15 +46,21 @@ export function useMyPermissions(): UserPermissions {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Donos (allowlist) → acesso total
+      if (isOwnerEmail(user.email)) {
+        setPerms(FULL_ACCESS)
+        return
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase.from('team_members') as any)
         .select('active,perm_clientes,perm_catalogo,perm_orcamentos,perm_pedidos,perm_comissoes,perm_visitas,perm_fornecedores,perm_assistencia,perm_relatorios')
         .eq('member_user_id', user.id)
         .maybeSingle()
 
-      if (!data) {
-        // Usuário não está na tabela de membros → é o dono → acesso total
-        setPerms(FULL_ACCESS)
+      if (!data || !data.active) {
+        // Não é dono nem membro ativo → SEM acesso (bloqueado)
+        setPerms(NO_ACCESS)
       } else {
         setPerms({
           isOwner: false,

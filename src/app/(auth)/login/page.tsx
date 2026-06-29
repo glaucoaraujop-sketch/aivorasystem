@@ -52,6 +52,15 @@ export default function LoginPage() {
     }
   }, [])
 
+  // Conta sem acesso ao Aivora: encerra a sessão e avisa
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (new URLSearchParams(window.location.search).get('erro') === 'sem_acesso') {
+      setError('Esta conta não tem acesso ao sistema Aivora. Entre com uma conta autorizada.')
+      supabase.auth.signOut()
+    }
+  }, [])
+
   // Countdown enquanto bloqueado
   useEffect(() => {
     if (!lockedUntil) return
