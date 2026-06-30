@@ -33,15 +33,26 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
-    // Autorização: só donos (allowlist) ou membros ATIVOS acessam o Aivora.
+    // Autorização (Modelo B SaaS): dono (allowlist) OU acesso ativo ao produto
+    // 'aivora' na tabela central public.app_access OU membro ativo da equipe.
     let authorized = isOwnerEmail(user.email)
     if (!authorized) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: member } = await (supabase.schema('aivora_rep').from('team_members') as any)
-        .select('active')
-        .eq('member_user_id', user.id)
-        .maybeSingle()
-      authorized = !!member?.active
+      const [acesso, membro] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('app_access') as any)
+          .select('active,expira_em')
+          .eq('user_id', user.id)
+          .eq('app', 'aivora')   // ← id deste produto
+          .maybeSingle(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.schema('aivora_rep').from('team_members') as any)
+          .select('active')
+          .eq('member_user_id', user.id)
+          .maybeSingle(),
+      ])
+      const acessoAtivo = !!acesso.data?.active &&
+        (!acesso.data.expira_em || new Date(acesso.data.expira_em) > new Date())
+      authorized = acessoAtivo || !!membro.data?.active
     }
 
     if (!authorized && !isAuthRoute) {
