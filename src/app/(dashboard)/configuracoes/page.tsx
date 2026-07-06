@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Settings, Save, CheckCircle, AlertTriangle, Calendar, MapPin, Users,
   User, Star, MessageCircle, Upload, Trash2, Plus, Bell, BellOff,
-  RefreshCw, Building2, Phone, Hash, RotateCcw, UserCog, ToggleLeft, ToggleRight,
+  RefreshCw, Building2, Phone, Hash, RotateCcw, UserCog, ToggleLeft, ToggleRight, SlidersHorizontal,
 } from 'lucide-react'
+import { BusinessRulesForm } from '@/components/forms/BusinessRulesForm'
 import { useSystemSettings } from '@/hooks/useSystemSettings'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useSpecialDates } from '@/hooks/useSpecialDates'
@@ -23,7 +24,7 @@ const inputCls = 'w-full rounded-xl px-4 py-3 text-sm text-white outline-none tr
 const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }
 const inputFocusStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(0,117,255,0.5)' }
 
-type Tab = 'perfil' | 'datas' | 'metas' | 'whatsapp' | 'sistema' | 'equipe'
+type Tab = 'perfil' | 'datas' | 'metas' | 'whatsapp' | 'sistema' | 'planner' | 'equipe'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'perfil',   label: 'Perfil',          icon: User          },
@@ -31,6 +32,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'metas',    label: 'Metas',            icon: Hash          },
   { id: 'whatsapp', label: 'WhatsApp',         icon: MessageCircle },
   { id: 'sistema',  label: 'Sistema',          icon: Settings      },
+  { id: 'planner',  label: 'Planner',          icon: SlidersHorizontal },
   { id: 'equipe',   label: 'Equipe',           icon: UserCog       },
 ]
 
@@ -824,6 +826,7 @@ export default function ConfiguracoesPage() {
       {tab === 'metas'    && <TabMetas />}
       {tab === 'whatsapp' && <TabWhatsApp />}
       {tab === 'sistema'  && <TabSistema />}
+      {tab === 'planner'  && <BusinessRulesForm />}
       {tab === 'equipe'   && <TabEquipe />}
     </div>
   )
