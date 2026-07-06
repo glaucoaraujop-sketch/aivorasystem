@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Sparkles, MapPin, Cloud, Settings, ArrowRight, Users, ShoppingCart, DollarSign, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { useCurrentUserName } from '@/hooks/useCurrentUserName'
-import { useSystemSettings } from '@/hooks/useSystemSettings'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useAI } from '@/hooks/useAI'
 import { AivaChat } from '@/components/ai/AivaChat'
@@ -29,17 +28,16 @@ const QUICK_LINKS = [
 
 export default function InicioPage() {
   const { name: userName }       = useCurrentUserName()
-  const { settings, loading: settingsLoading } = useSystemSettings()
   const { profile, loading: profileLoading } = useUserProfile()
   const bomDia = useAI()
   const [chatOpen, setChatOpen]  = useState(false)
   const [generated, setGenerated] = useState(false)
 
   const displayName = profile?.display_name || profile?.full_name || userName
-  const area = profile?.area ?? settings.area_atuacao
+  const area = profile?.area
 
   useEffect(() => {
-    if (settingsLoading || profileLoading || generated) return
+    if (profileLoading || generated) return
     if (!displayName) return
     setGenerated(true)
     const h = new Date().getHours()
@@ -50,7 +48,7 @@ export default function InicioPage() {
       hora: h,
       diaSemana: dia,
     })
-  }, [displayName, settingsLoading, profileLoading, area])
+  }, [displayName, profileLoading, area])
 
   return (
     <>
@@ -113,7 +111,7 @@ export default function InicioPage() {
                   <span className="text-xs" style={{ color: '#56577A' }}>Consultando clima e contexto…</span>
                 </div>
               )}
-              {!area && !settingsLoading && !bomDia.loading && (
+              {!area && !profileLoading && !bomDia.loading && (
                 <p className="text-sm" style={{ color: '#A0AEC0' }}>
                   Configure sua área de atuação em{' '}
                   <Link href="/configuracoes" className="underline" style={{ color: '#A78BFA' }}>Configurações</Link>
@@ -179,7 +177,7 @@ export default function InicioPage() {
         </div>
 
         {/* Configurar área se não tiver */}
-        {!area && !settingsLoading && (
+        {!area && !profileLoading && (
           <Link
             href="/configuracoes"
             className="flex items-center justify-between p-4 rounded-2xl transition-all hover:opacity-80"

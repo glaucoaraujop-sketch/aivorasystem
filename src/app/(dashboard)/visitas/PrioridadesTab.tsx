@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, MapPin, MessageCircle, CalendarDays, CheckCircle, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useSystemSettings, visitDaysSet, nextVisitDay } from '@/hooks/useSystemSettings'
+import { useBusinessRules } from '@/hooks/useBusinessRules'
+import { diasDeVisitaSet, proximoDiaDeVisita, idealDaysPrioridade } from '@/lib/planner/dias'
+import { capacidadeSemanal } from '@/lib/planner/engine'
 import { formatPhone } from '@/lib/utils'
 
 interface ClientePrio {
@@ -128,15 +130,16 @@ function ClienteCard({ c, showConflict }: { c: ClientePrio; showConflict: boolea
 }
 
 export default function PrioridadesTab() {
-  const { settings, loading: loadingCfg } = useSystemSettings()
+  const { rules, loading: loadingCfg } = useBusinessRules()
   const [clientes, setClientes] = useState<ClientePrio[]>([])
   const [loading, setLoading]   = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
-    if (loadingCfg) return
+    if (loadingCfg || !rules) return
 
     async function carregar() {
+      if (!rules) return
       setLoading(true)
 
       // Buscar todos os clientes com prioridade definida
@@ -165,15 +168,15 @@ export default function PrioridadesTab() {
       }
 
       const diasPorPrio: Record<number, number> = {
-        1: settings.priority_1_days,
-        2: settings.priority_2_days,
-        3: settings.priority_3_days,
-        4: settings.priority_4_days,
+        1: idealDaysPrioridade(rules, 1),
+        2: idealDaysPrioridade(rules, 2),
+        3: idealDaysPrioridade(rules, 3),
+        4: idealDaysPrioridade(rules, 4),
       }
 
       const hoje    = new Date()
       hoje.setHours(0, 0, 0, 0)
-      const workDays = visitDaysSet(settings)
+      const workDays = diasDeVisitaSet(rules)
 
       const lista: ClientePrio[] = clientsData.map((c: {
         id: string; name: string; company_name: string | null
@@ -185,7 +188,7 @@ export default function PrioridadesTab() {
         base.setHours(0, 0, 0, 0)
         const raw     = new Date(base)
         raw.setDate(base.getDate() + dias)
-        const nextDt  = nextVisitDay(raw, workDays)
+        const nextDt  = proximoDiaDeVisita(raw, workDays)
         const diff    = Math.round((nextDt.getTime() - hoje.getTime()) / 86400000)
 
         return {
@@ -213,9 +216,9 @@ export default function PrioridadesTab() {
     }
 
     carregar()
-  }, [loadingCfg, settings])
+  }, [loadingCfg, rules])
 
-  if (loading || loadingCfg) return (
+  if (loading || loadingCfg || !rules) return (
     <div className="space-y-3">
       {[...Array(3)].map((_, i) => (
         <div key={i} className="glass-card rounded-2xl p-5 animate-pulse h-20"
@@ -262,10 +265,10 @@ export default function PrioridadesTab() {
     .map(([ts, items]) => ({ monday: new Date(ts), items }))
 
   // Detectar conflitos: semanas com mais clientes que capacidade semanal
-  const capacidadeSemanal = settings.clients_per_day * 5
+  const capSemana = capacidadeSemanal(rules)
 
   function temConflito(items: ClientePrio[]) {
-    return items.length > capacidadeSemanal
+    return items.length > capSemana
   }
 
   // Para card individual: conflito = mais de 1 cliente com MESMO dia exato calculado
