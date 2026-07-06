@@ -36,7 +36,15 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY não configurada no servidor' }, { status: 500 })
   }
 
-  const { regras, plano, datas } = await montarAgendaSemana(sb)
+  let dados: Awaited<ReturnType<typeof montarAgendaSemana>>
+  try {
+    dados = await montarAgendaSemana(sb)
+  } catch (err) {
+    // Erro só é exposto porque a rota já está autenticada pelo segredo.
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: 'Falha ao ler dados do Planner', detalhe: msg }, { status: 500 })
+  }
+  const { regras, plano, datas } = dados
 
   // Intervalo da semana (menor/maior data dos dias úteis)
   const isos = Object.values(datas).sort()
