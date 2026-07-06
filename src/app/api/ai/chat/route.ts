@@ -5,9 +5,7 @@ import { withObservability, timed } from '@/lib/observability/api'
 import { serializeError } from '@/lib/observability/logger'
 import { cached } from '@/lib/observability/cache'
 import { rankClientes, resumoFinanceiro } from '@/lib/ai/aggregations'
-import { carregarBusinessRules } from '@/lib/planner/load'
-import { planejarSemana } from '@/lib/planner/engine'
-import type { ClientePlanner } from '@/lib/planner/types'
+import { montarAgendaSemana } from '@/lib/planner/agendaServer'
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -25,7 +23,8 @@ Ferramentas disponíveis:
 - ranking_clientes: ranking dos clientes que mais compram (por quantidade de pedidos ou por faturamento) — já considera TODOS os pedidos
 - resumo_financeiro: totais consolidados (comissões a receber, pagas, faturamento, pedidos em aberto) — já considera TODOS os registros
 - resumo_clientes: total de clientes (lojas) e total de PDVs JÁ SOMADOS pelo sistema, com a lista de clientes que têm mais de 1 PDV. Use para "quantos PDVs/lojas temos".
-- planejar_agenda_semanal: AIVA Planner — monta a agenda/cronograma de visitas da semana aplicando as Business Rules (capacidade em PDVs, níveis de prioridade, janelas e score), com justificativa de cada escolha.
+- planejar_agenda_semanal: AIVA Planner — monta (SIMULA) a agenda/cronograma de visitas da semana aplicando as Business Rules (capacidade em PDVs, níveis de prioridade, janelas e score), com justificativa de cada escolha e as datas reais da próxima semana. Não grava nada.
+- agendar_visitas_semana: AÇÃO DE ESCRITA — registra de fato as visitas da próxima semana na aba Visitas. Só use após confirmação explícita do usuário.
 
 Regras:
 - NUNCA invente números. Sempre busque os dados reais com as ferramentas antes de responder.
@@ -37,7 +36,8 @@ Regras:
 - As observações (notes) podem conter dados úteis além dos itens (nº da fábrica, ordem de compra, showroom, condições). Considere-as ao responder.
 - Para localizar um pedido por um número que pode estar nas observações (ex: ordem de compra "01047000006/00"), use buscar_pedido — ele procura também dentro do texto das notes.
 - PREVISÃO DE ENTREGA: identifique o pedido (buscar_pedido), veja o fornecedor e a data de criação (created_at = quando o pedido foi implementado no sistema), e chame prazo_entrega_fornecedor passando o fornecedor e data_pedido=created_at. A ferramenta devolve a data final calculada. Ex.: Cyrne entrega em 60 dias → previsão = data de implementação + 60 dias. Se o pedido já tiver delivery_date preenchido, cite-o também e explique a diferença. Sempre explique a conta (data de implementação + X dias do fornecedor).
-- PLANEJAMENTO DE VISITAS: para planejar/montar a agenda ou cronograma de visitas da semana, use SEMPRE a ferramenta planejar_agenda_semanal — ela já aplica as Business Rules da empresa (capacidade em PDVs, níveis de prioridade, janelas ideais/tolerância e pesos de score). NÃO invente regras, prazos ou critérios: use exatamente o que o motor retornou. Ao apresentar, mostre: a agenda por dia, a capacidade usada/livre, os clientes em risco, quem ficou de fora por falta de capacidade e a JUSTIFICATIVA de cada cliente escolhido.
+- PLANEJAMENTO DE VISITAS: para planejar/montar a agenda ou cronograma de visitas da semana, use SEMPRE a ferramenta planejar_agenda_semanal — ela já aplica as Business Rules da empresa (capacidade em PDVs, níveis de prioridade, janelas ideais/tolerância e pesos de score). NÃO invente regras, prazos ou critérios: use exatamente o que o motor retornou. Ao apresentar, mostre: a agenda por dia (com as datas reais da próxima semana), a capacidade usada/livre, os clientes em risco, quem ficou de fora por falta de capacidade e a JUSTIFICATIVA de cada cliente escolhido.
+- SALVAR/AGENDAR A AGENDA: planejar_agenda_semanal apenas SIMULA — não grava nada. Para efetivar (criar as visitas na aba Visitas), use agendar_visitas_semana, mas SOMENTE depois que o usuário confirmar explicitamente ("pode agendar", "salve", "confirma"). Nunca grave sem essa confirmação. Fluxo correto: 1) mostrar o plano; 2) perguntar se pode agendar; 3) só então chamar agendar_visitas_semana. Depois de agendar, confirme quantas visitas foram criadas e em quais dias.
 - PONTOS DE VENDA (PDV): o motor usa o PDV como peso operacional — um cliente com 3 PDVs ocupa 3 da capacidade e o motor distribui os PDVs entre os dias. Ao listar, identifique as lojas/PDVs quando útil (ex.: "Rossuti — 3 PDV").
 - Responda em português do Brasil, claro e objetivo, usando listas e tabelas quando ajudar.
 - Valores monetários sempre em reais (R$), formatados (ex: R$ 1.486,10).
@@ -170,7 +170,12 @@ const tools: Anthropic.Tool[] = [
   },
   {
     name: 'planejar_agenda_semanal',
-    description: 'AIVA Planner: monta a agenda/cronograma de visitas da próxima semana aplicando as Business Rules (dias úteis, capacidade por dia em PDVs, níveis de prioridade com janelas ideais/tolerância e pesos de score). Retorna a agenda por dia, capacidade usada/livre, clientes em risco, quem ficou de fora por capacidade e a JUSTIFICATIVA de cada escolha. Use para "planejar a semana", "montar cronograma/agenda de visitas".',
+    description: 'AIVA Planner: monta a agenda/cronograma de visitas da próxima semana aplicando as Business Rules (dias úteis, capacidade por dia em PDVs, níveis de prioridade com janelas ideais/tolerância e pesos de score). Retorna a agenda por dia (com as datas reais da próxima semana), capacidade usada/livre, clientes em risco, quem ficou de fora por capacidade e a JUSTIFICATIVA de cada escolha. NÃO grava nada — apenas simula/propõe. Use para "planejar a semana", "montar cronograma/agenda de visitas".',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'agendar_visitas_semana',
+    description: 'AÇÃO DE ESCRITA: registra de fato, na aba Visitas, as visitas da próxima semana geradas pelo AIVA Planner (status "agendada", nas datas reais de cada dia). Só chame DEPOIS que o usuário confirmar explicitamente que quer salvar/agendar (ex.: "pode agendar", "salve a agenda", "confirma"). Nunca chame por conta própria — sempre mostre o plano primeiro com planejar_agenda_semanal e peça confirmação. Retorna quantas visitas foram criadas e o resumo por dia.',
     input_schema: { type: 'object', properties: {} },
   },
 ]
@@ -383,48 +388,8 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         })
       }
       case 'planejar_agenda_semanal': {
-        // Regras vêm da configuração (nunca fixas no código)
-        const regras = await carregarBusinessRules(sb)
-
-        const [cli, vis, ord] = await Promise.all([
-          sb.from('clients').select('id,name,priority,active,client_cnpjs(num_lojas)').eq('active', true).limit(5000),
-          sb.from('visits').select('client_id,completed_at,scheduled_at,status').limit(20000),
-          sb.from('orders').select('client_id,total,status').limit(20000),
-        ])
-        if (cli.error) return `Erro: ${cli.error.message}`
-
-        const hoje = Date.now()
-        const ultimaVisita = new Map<string, number>()
-        const agendadoFuturo = new Set<string>()
-        for (const v of vis.data ?? []) {
-          if (v.status === 'realizada') {
-            const t = new Date(v.completed_at || v.scheduled_at || 0).getTime()
-            if (!ultimaVisita.has(v.client_id) || t > (ultimaVisita.get(v.client_id) as number)) ultimaVisita.set(v.client_id, t)
-          }
-          if (v.status === 'agendada' && v.scheduled_at && new Date(v.scheduled_at).getTime() > hoje) {
-            agendadoFuturo.add(v.client_id)
-          }
-        }
-        const faturamento = new Map<string, number>()
-        for (const o of ord.data ?? []) {
-          if (o.status === 'cancelado') continue
-          faturamento.set(o.client_id, (faturamento.get(o.client_id) || 0) + Number(o.total || 0))
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const clientes: ClientePlanner[] = (cli.data ?? []).map((c: any) => {
-          const vals = (c.client_cnpjs ?? []).map((x: { num_lojas: number | null }) => x.num_lojas ?? 1)
-          const pdvs = vals.length ? Math.max(...vals) : 1
-          const t = ultimaVisita.get(c.id)
-          const dias = t ? Math.floor((hoje - t) / 86400000) : null
-          return {
-            id: c.id, nome: c.name, classificacao_id: c.priority ?? null,
-            pdvs, dias_sem_visita: dias, faturamento: faturamento.get(c.id) || 0,
-            ja_agendado: agendadoFuturo.has(c.id),
-          }
-        })
-
-        const plano = planejarSemana(regras, clientes)
+        // Regras + dados vêm da configuração/banco (nunca fixos no código)
+        const { regras, plano, datas } = await montarAgendaSemana(sb)
         return JSON.stringify({
           regras: {
             working_days: regras.working_days,
@@ -434,8 +399,55 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
               nome: l.name, ideal_days: l.ideal_days, tolerance_days: l.tolerance_days, priority_weight: l.priority_weight,
             })),
           },
+          datas_proxima_semana: datas,
           plano,
         })
+      }
+      case 'agendar_visitas_semana': {
+        // Ação de escrita: só chegar aqui após o usuário CONFIRMAR (ver system prompt).
+        const { data: userData } = await sb.auth.getUser()
+        const userId = userData?.user?.id
+        if (!userId) return 'Erro: não foi possível identificar o usuário para registrar as visitas.'
+
+        const { plano, datas } = await montarAgendaSemana(sb)
+
+        // Justificativa por cliente (vem da agenda detalhada do Planner).
+        const justificativaPorCliente = new Map(plano.agenda.map(a => [a.cliente_id, a.justificativa]))
+
+        // Uma visita por (cliente, dia) conforme a distribuição do Planner.
+        // Deduplica cliente+data para não gerar visitas repetidas no mesmo dia.
+        const vistas = new Set<string>()
+        const rows: {
+          user_id: string; client_id: string; scheduled_at: string; status: string; objective: string
+        }[] = []
+        for (const dia of plano.dias) {
+          const data = datas[dia.dia]
+          if (!data) continue
+          for (const item of dia.itens) {
+            const chave = `${item.cliente_id}|${data}`
+            if (vistas.has(chave)) continue
+            vistas.add(chave)
+            const just = justificativaPorCliente.get(item.cliente_id)
+            rows.push({
+              user_id: userId,
+              client_id: item.cliente_id,
+              scheduled_at: `${data}T12:00:00`,
+              status: 'agendada',
+              objective: `Visita planejada pela AIVA${just ? ` — ${just}` : ''}`,
+            })
+          }
+        }
+
+        if (rows.length === 0) return JSON.stringify({ ok: true, criadas: 0, aviso: 'O Planner não gerou visitas para a próxima semana (sem capacidade ou sem clientes elegíveis).' })
+
+        const ins = await sb.from('visits').insert(rows).select('id')
+        if (ins.error) return `Erro ao registrar as visitas: ${ins.error.message}`
+
+        // Resumo por dia para a AIVA confirmar ao usuário.
+        const porDia = plano.dias
+          .filter(d => datas[d.dia])
+          .map(d => ({ dia: d.dia, data: datas[d.dia], clientes: d.itens.map(i => i.nome) }))
+        return JSON.stringify({ ok: true, criadas: ins.data?.length ?? rows.length, semana: porDia })
       }
       default:
         return `Ferramenta desconhecida: ${nome}`
