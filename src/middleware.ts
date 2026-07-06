@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { isOwnerEmail } from '@/lib/auth/owners'
 
 export async function middleware(request: NextRequest) {
+  // Endpoints de automação (n8n/cron) fazem a própria autenticação por segredo
+  // e não têm sessão de usuário — não passam pelo gate de acesso.
+  if (request.nextUrl.pathname.startsWith('/api/cron')) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
