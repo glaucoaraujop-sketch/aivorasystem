@@ -6,6 +6,7 @@ import { serializeError } from '@/lib/observability/logger'
 import { cached } from '@/lib/observability/cache'
 import { rankClientes, resumoFinanceiro } from '@/lib/ai/aggregations'
 import { montarAgendaSemana } from '@/lib/planner/agendaServer'
+import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -25,6 +26,7 @@ Ferramentas disponíveis:
 - resumo_clientes: total de clientes (lojas) e total de PDVs JÁ SOMADOS pelo sistema, com a lista de clientes que têm mais de 1 PDV. Use para "quantos PDVs/lojas temos".
 - planejar_agenda_semanal: AIVA Planner — monta (SIMULA) a agenda/cronograma de visitas da semana aplicando as Business Rules (capacidade em PDVs, níveis de prioridade, janelas e score), com justificativa de cada escolha e as datas reais da próxima semana. Não grava nada.
 - agendar_visitas_semana: AÇÃO DE ESCRITA — registra de fato as visitas da próxima semana na aba Visitas. Só use após confirmação explícita do usuário.
+- criar_pedido: AÇÃO DE ESCRITA — cria um pedido no formato "Pedido de Venda" das fábricas a partir dos dados que você extrair de um documento (imagem/PDF/texto). Só use após confirmação explícita do usuário.
 
 Regras:
 - NUNCA invente números. Sempre busque os dados reais com as ferramentas antes de responder.
@@ -35,6 +37,7 @@ Regras:
 - Para perguntas sobre um cliente específico, chame consultar_pedidos com o filtro "cliente" (o nome dito pelo representante). Se precisar do nome exato, use consultar_clientes antes.
 - As observações (notes) podem conter dados úteis além dos itens (nº da fábrica, ordem de compra, showroom, condições). Considere-as ao responder.
 - FORMATO "PEDIDO DE VENDA" (padrão das fábricas): o pedido carrega campos próprios além do básico — number (nº do Pedido de Venda), purchase_order (Ordem de Compra), ped_consultor (Pedido do Consultor), data_emissao (Emissão), prazo_dias (Prazos), situacao_financeira (ex.: BOLETO GERADO), tabela, e o bloco de frete (frete_tipo, frete_valor, frete_pct, frete_embutido). Cada item tem familia (ex.: FAMILIA A). O cliente traz codigo, cpf_cnpj, inscricao_estadual, endereço/bairro/cidade/UF/CEP. Use esses campos ao descrever ou conferir um pedido nesse formato.
+- INSERIR PEDIDO (criar_pedido): quando o usuário enviar um "Pedido de Venda" (imagem, PDF ou texto) e pedir para inserir/cadastrar, EXTRAIA todos os campos que conseguir (fornecedor, número, cliente com CNPJ/código/endereço, emissão, ordem de compra, ped. consultor, situação, tabela, condição/prazos, frete, e cada item com código, descrição, família, quantidade, valor unitário e desconto). Fluxo OBRIGATÓRIO: 1) mostre um RESUMO do que interpretou (cliente, fornecedor, itens com qtd × valor, total) e destaque se o cliente/produtos serão criados por não existirem; 2) peça CONFIRMAÇÃO; 3) só então chame criar_pedido. Nunca crie sem confirmação. Valores em número (ex.: 810,00 → 810.0); datas em YYYY-MM-DD. Depois de criar, confirme o nº do pedido, o cliente e o total, e informe se criou cliente/produtos novos.
 - Para localizar um pedido por um número que pode estar nas observações (ex: ordem de compra "01047000006/00"), use buscar_pedido — ele procura também dentro do texto das notes.
 - PREVISÃO DE ENTREGA: identifique o pedido (buscar_pedido), veja o fornecedor e a data de criação (created_at = quando o pedido foi implementado no sistema), e chame prazo_entrega_fornecedor passando o fornecedor e data_pedido=created_at. A ferramenta devolve a data final calculada. Ex.: Cyrne entrega em 60 dias → previsão = data de implementação + 60 dias. Se o pedido já tiver delivery_date preenchido, cite-o também e explique a diferença. Sempre explique a conta (data de implementação + X dias do fornecedor).
 - PLANEJAMENTO DE VISITAS: para planejar/montar a agenda ou cronograma de visitas da semana, use SEMPRE a ferramenta planejar_agenda_semanal — ela já aplica as Business Rules da empresa (capacidade em PDVs, níveis de prioridade, janelas ideais/tolerância e pesos de score). NÃO invente regras, prazos ou critérios: use exatamente o que o motor retornou. Ao apresentar, mostre: a agenda por dia (com as datas reais da próxima semana), a capacidade usada/livre, os clientes em risco, quem ficou de fora por falta de capacidade e a JUSTIFICATIVA de cada cliente escolhido.
@@ -179,6 +182,67 @@ const tools: Anthropic.Tool[] = [
     description: 'AÇÃO DE ESCRITA: registra de fato, na aba Visitas, as visitas da próxima semana geradas pelo AIVA Planner (status "agendada", nas datas reais de cada dia). Só chame DEPOIS que o usuário confirmar explicitamente que quer salvar/agendar (ex.: "pode agendar", "salve a agenda", "confirma"). Nunca chame por conta própria — sempre mostre o plano primeiro com planejar_agenda_semanal e peça confirmação. Retorna quantas visitas foram criadas e o resumo por dia.',
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'criar_pedido',
+    description: 'AÇÃO DE ESCRITA: cria um pedido no formato "Pedido de Venda" das fábricas a partir dos dados que você extraiu de um documento (imagem/PDF/texto). Casa o cliente por CNPJ → código → nome (e cria se não existir e permitido); casa o fornecedor; casa cada item por código de produto (e cria o produto no catálogo se não existir e permitido). Preenche os campos do padrão fábrica (emissão, ordem de compra, ped. consultor, situação, tabela, prazos, frete, família por item). SÓ chame APÓS o usuário confirmar explicitamente ("pode inserir", "confirma", "cria o pedido"). Antes, mostre o resumo do pedido interpretado (cliente, fornecedor, itens, total) e peça confirmação. Retorna o id do pedido criado e o que foi casado/criado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fornecedor: { type: 'string', description: 'Nome da fábrica (ex.: Fine Decor)' },
+        numero: { type: 'string', description: 'Nº do Pedido de Venda (ex.: 8237)' },
+        cliente: {
+          type: 'object',
+          description: 'Dados do cliente do documento (para casar ou criar)',
+          properties: {
+            nome: { type: 'string' },
+            cpf_cnpj: { type: 'string' },
+            codigo: { type: 'string', description: 'Código do cliente na fábrica (ex.: 543)' },
+            inscricao_estadual: { type: 'string' },
+            endereco: { type: 'string' },
+            bairro: { type: 'string' },
+            cidade: { type: 'string' },
+            estado: { type: 'string' },
+            cep: { type: 'string' },
+            telefone: { type: 'string' },
+            email: { type: 'string' },
+          },
+          required: ['nome'],
+        },
+        data_emissao: { type: 'string', description: 'Data de emissão em YYYY-MM-DD' },
+        ordem_compra: { type: 'string' },
+        ped_consultor: { type: 'string' },
+        situacao_financeira: { type: 'string', description: 'Ex.: BOLETO GERADO' },
+        tabela: { type: 'string' },
+        cond_pagamento: { type: 'string', description: 'Condição de pagamento (ex.: A VISTA)' },
+        prazo_dias: { type: 'number' },
+        classificacao: { type: 'string', enum: ['venda', 'mostruario'] },
+        frete_tipo: { type: 'string' },
+        frete_valor: { type: 'number' },
+        frete_pct: { type: 'number' },
+        frete_embutido: { type: 'boolean' },
+        itens: {
+          type: 'array',
+          description: 'Itens do pedido (uma entrada por linha do documento)',
+          items: {
+            type: 'object',
+            properties: {
+              codigo: { type: 'string', description: 'Código do produto (ex.: 248.116.0)' },
+              descricao: { type: 'string' },
+              unidade: { type: 'string', description: 'Ex.: UN' },
+              familia: { type: 'string', description: 'Ex.: FAMILIA A' },
+              quantidade: { type: 'number' },
+              valor_unitario: { type: 'number' },
+              desconto_pct: { type: 'number' },
+            },
+            required: ['descricao', 'quantidade', 'valor_unitario'],
+          },
+        },
+        criar_cliente_se_novo: { type: 'boolean', description: 'Padrão true: cria o cliente se não achar.' },
+        criar_produto_se_novo: { type: 'boolean', description: 'Padrão true: cria o produto no catálogo se não achar pelo código.' },
+      },
+      required: ['itens'],
+    },
+  },
 ]
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,6 +269,169 @@ function lim(v: unknown, def: number, max: number): number {
   const n = Number(v)
   if (!Number.isFinite(n) || n <= 0) return def
   return Math.min(Math.floor(n), max)
+}
+
+// Converte texto/numero (aceita vírgula decimal) em número, ou null.
+function toNum(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = Number(String(v).replace(/\./g, '').replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+// Versão que preserva pontos como separador decimal (para valores já com ponto).
+function toNumDot(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+
+// AÇÃO DE ESCRITA: cria um pedido no formato "Pedido de Venda" das fábricas.
+async function criarPedidoFabrica(sb: SB, input: Input): Promise<string> {
+  const { data: userData } = await sb.auth.getUser()
+  const userId = userData?.user?.id
+  if (!userId) return 'Erro: não foi possível identificar o usuário para criar o pedido.'
+
+  // ── Cliente: casa por CNPJ → código → nome; cria se permitido ──
+  const cli = (input.cliente ?? {}) as Record<string, string | undefined>
+  const cnpjDig = soDig(cli.cpf_cnpj)
+  let clienteId: string | null = null
+  let clienteNome = ''
+  let clienteCriado = false
+
+  if (cnpjDig) {
+    const { data } = await sb.from('clients').select('id,name,cpf_cnpj').limit(5000)
+    const found = (data ?? []).find((c: { cpf_cnpj: string | null }) => soDig(c.cpf_cnpj) === cnpjDig)
+    if (found) { clienteId = found.id; clienteNome = found.name }
+  }
+  if (!clienteId && cli.codigo) {
+    const { data } = await sb.from('clients').select('id,name').eq('codigo', String(cli.codigo)).limit(1)
+    if (data && data[0]) { clienteId = data[0].id; clienteNome = data[0].name }
+  }
+  if (!clienteId && cli.nome) {
+    const { data } = await sb.from('clients').select('id,name').ilike('name', `%${cli.nome}%`).limit(1)
+    if (data && data[0]) { clienteId = data[0].id; clienteNome = data[0].name }
+  }
+  if (!clienteId) {
+    if (input.criar_cliente_se_novo === false) {
+      return `Cliente não encontrado (busquei por CNPJ, código e nome). Cadastre o cliente antes ou permita criá-lo (criar_cliente_se_novo).`
+    }
+    if (!cli.nome) return 'Erro: para criar o cliente é obrigatório o nome.'
+    const ins = await sb.from('clients').insert({
+      user_id: userId,
+      name: cli.nome,
+      cpf_cnpj: cnpjDig ? fmtCnpj(cnpjDig) : (cli.cpf_cnpj || null),
+      codigo: cli.codigo || null,
+      inscricao_estadual: cli.inscricao_estadual || null,
+      address: cli.endereco || null,
+      bairro: cli.bairro || null,
+      city: cli.cidade || null,
+      state: cli.estado || null,
+      cep: cli.cep || null,
+      phone: cli.telefone || null,
+      email: cli.email || null,
+    }).select('id,name').single()
+    if (ins.error) return `Erro ao criar o cliente: ${ins.error.message}`
+    clienteId = ins.data.id; clienteNome = ins.data.name; clienteCriado = true
+  }
+
+  // ── Fornecedor: casa por alias/nome (opcional) ──
+  let supplierId: string | null = null
+  let fornecedorNome = ''
+  if (input.fornecedor) {
+    const termos = aliasTermos(String(input.fornecedor)) ?? [semAcento(String(input.fornecedor)).toLowerCase()]
+    const { data } = await sb.from('suppliers').select('id,name').limit(1000)
+    const match = (data ?? []).find((s: { name: string }) => {
+      const n = semAcento(s.name).toLowerCase()
+      return termos.some(t => n.includes(t) || t.includes(n))
+    })
+    if (match) { supplierId = match.id; fornecedorNome = match.name }
+  }
+
+  // ── Itens: casa produto por código; cria no catálogo se permitido ──
+  const itensInput = Array.isArray(input.itens) ? input.itens : []
+  if (itensInput.length === 0) return 'Erro: o pedido precisa de ao menos um item.'
+
+  const itemRows: Record<string, unknown>[] = []
+  let subtotal = 0, total = 0, produtosCriados = 0
+  for (const it of itensInput as Record<string, unknown>[]) {
+    const codigo = String(it.codigo ?? '').trim()
+    const descricao = String(it.descricao ?? it.nome ?? '').trim()
+    const qtd = toNumDot(it.quantidade) ?? 0
+    const unit = toNumDot(it.valor_unitario) ?? 0
+    const desc = toNumDot(it.desconto_pct) ?? 0
+    if (!codigo && !descricao) continue
+
+    let productId: string | null = null
+    if (codigo) {
+      const { data } = await sb.from('products').select('id').eq('code', codigo).limit(1)
+      if (data && data[0]) productId = data[0].id
+    }
+    if (!productId) {
+      if (input.criar_produto_se_novo === false) {
+        return `Produto "${codigo || descricao}" não encontrado no catálogo. Cadastre-o antes ou permita criá-lo (criar_produto_se_novo).`
+      }
+      const insP = await sb.from('products').insert({
+        code: codigo || descricao.slice(0, 40),
+        name: descricao || codigo,
+        unit: (it.unidade as string) || 'UN',
+        active: true,
+      }).select('id').single()
+      if (insP.error) return `Erro ao criar o produto "${codigo}": ${insP.error.message}`
+      productId = insP.data.id; produtosCriados++
+    }
+
+    const bruto = qtd * unit
+    const liquido = bruto * (1 - desc / 100)
+    subtotal += bruto; total += liquido
+    itemRows.push({
+      product_id: productId, quantity: qtd, unit_price: unit,
+      discount_pct: desc, total: liquido, familia: (it.familia as string) || null, notes: null,
+    })
+  }
+  if (itemRows.length === 0) return 'Erro: nenhum item válido para inserir.'
+
+  // ── Pedido ──
+  const finalidade = input.classificacao === 'mostruario' ? 'mostruario' : 'venda'
+  const insO = await sb.from('orders').insert({
+    user_id: userId,
+    client_id: clienteId,
+    supplier_id: supplierId,
+    number: input.numero ? String(input.numero) : null,
+    status: 'pendente',
+    finalidade,
+    subtotal,
+    total,
+    discount_pct: 0,
+    payment_terms: input.cond_pagamento || null,
+    purchase_order: input.ordem_compra || null,
+    ped_consultor: input.ped_consultor || null,
+    data_emissao: input.data_emissao || null,
+    prazo_dias: toNum(input.prazo_dias),
+    situacao_financeira: input.situacao_financeira || null,
+    tabela: input.tabela || null,
+    frete_tipo: input.frete_tipo || null,
+    frete_valor: toNumDot(input.frete_valor),
+    frete_pct: toNumDot(input.frete_pct),
+    frete_embutido: typeof input.frete_embutido === 'boolean' ? input.frete_embutido : null,
+  }).select('id,number').single()
+  if (insO.error) return `Erro ao criar o pedido: ${insO.error.message}`
+
+  const orderId = insO.data.id
+  const insItems = await sb.from('order_items').insert(itemRows.map(r => ({ ...r, order_id: orderId })))
+  if (insItems.error) return `Pedido ${orderId} criado, mas falhou ao inserir itens: ${insItems.error.message}. Revise o pedido.`
+
+  return JSON.stringify({
+    ok: true,
+    order_id: orderId,
+    numero: insO.data.number ?? (input.numero ?? null),
+    cliente: clienteNome,
+    cliente_criado: clienteCriado,
+    fornecedor: fornecedorNome || input.fornecedor || null,
+    fornecedor_casado: !!supplierId,
+    itens: itemRows.length,
+    produtos_criados: produtosCriados,
+    subtotal,
+    total,
+  })
 }
 
 async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<string> {
@@ -450,6 +677,9 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
           .map(d => ({ dia: d.dia, data: datas[d.dia], clientes: d.itens.map(i => i.nome) }))
         return JSON.stringify({ ok: true, criadas: ins.data?.length ?? rows.length, semana: porDia })
       }
+      case 'criar_pedido':
+        // Ação de escrita: só chega aqui após o usuário CONFIRMAR (ver system prompt).
+        return await criarPedidoFabrica(sb, input)
       default:
         return `Ferramenta desconhecida: ${nome}`
     }
