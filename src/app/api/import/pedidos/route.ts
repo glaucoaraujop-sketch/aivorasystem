@@ -28,23 +28,39 @@ Retorne um JSON com a seguinte estrutura exata (sem markdown, apenas JSON puro):
       "numero": "NÚMERO PRINCIPAL do pedido exatamente como consta no documento, apenas o identificador (ex: 148179). NÃO invente e NÃO gere um código novo. null se não encontrar",
       "numero_pedido_fabrica": "número do pedido gerado pela fábrica/fornecedor (string) ou null se não encontrado",
       "numero_ordem_compra": "número da ordem de compra (OC / PO / purchase order) do cliente (string) ou null se não encontrado",
+      "ped_consultor": "número/identificação do 'Pedido do Consultor' (Ped.Consul.) se houver, ou null",
       "showroom": "nome ou identificação do showroom do pedido (string) ou null se não encontrado",
-      "data": "data no formato YYYY-MM-DD",
+      "data": "data de emissão do pedido no formato YYYY-MM-DD",
       "cliente_nome": "nome do cliente",
       "cliente_empresa": "nome da empresa/loja do cliente",
-      "cliente_cnpj": "CNPJ do cliente apenas com dígitos (ex: 68144229000133) ou null se não encontrado",
+      "cliente_cnpj": "CPF ou CNPJ do cliente apenas com dígitos (ex: 68144229000133) ou null se não encontrado",
+      "cliente_codigo": "código do cliente no sistema da fábrica (ex: 543) ou null",
+      "cliente_ie": "Inscrição Estadual / RG (R.G/I.E) do cliente ou null",
+      "cliente_endereco": "logradouro e número do cliente ou null",
+      "cliente_bairro": "bairro do cliente ou null",
+      "cliente_cidade": "cidade do cliente ou null",
+      "cliente_uf": "UF/estado do cliente (2 letras) ou null",
+      "cliente_cep": "CEP do cliente ou null",
       "fornecedor_nome": "nome do fornecedor/fábrica",
       "fornecedor_cnpj": "CNPJ do fornecedor apenas com dígitos ou null se não encontrado",
-      "payment_terms": "condições de pagamento",
-      "delivery_date": "data de entrega estimada no formato YYYY-MM-DD ou null",
+      "payment_terms": "condições de pagamento (Cond.Pag., ex: A VISTA)",
+      "prazo_dias": "campo 'Prazos' em dias, como número inteiro, ou null",
+      "situacao": "situação financeira/faturamento (ex: BOLETO GERADO) ou null",
+      "tabela": "tabela de preço usada (ex: TABELA PADRAO) ou null",
+      "frete_tipo": "tipo de frete (ex: Remetente-Contratado, CIF, FOB) ou null",
+      "frete_valor": "valor previsto do frete como número (ex: 198.94) ou null",
+      "frete_pct": "percentual do frete como número (ex: 14.00) ou null",
+      "frete_embutido": "true se o frete estiver embutido no valor dos itens, false se não, null se não informado",
+      "delivery_date": "data de entrega estimada/prevista no formato YYYY-MM-DD ou null",
       "notes": "observações gerais do pedido",
       "subtotal": 0.00,
       "discount_pct": 0.0,
       "total": 0.00,
       "itens": [
         {
-          "codigo": "código do produto",
+          "codigo": "código do produto (ex: 248.116.0)",
           "nome": "nome/descrição do produto",
+          "familia": "família/agrupamento do item conforme a fábrica (ex: FAMILIA A) ou null",
           "quantidade": 1,
           "unit_price": 0.00,
           "discount_pct": 0.0,
@@ -71,7 +87,11 @@ Regras:
   • Outras fábricas: use o número de pedido mais proeminente do documento
   • Extraia apenas o identificador numérico, sem o rótulo (ex: "148179", não "Pedido 148179")
 - Não invente dados — apenas extraia o que está explícito no documento
-- Para datas, converta para YYYY-MM-DD. Se apenas mês/ano, use o dia 01.`
+- Para datas, converta para YYYY-MM-DD. Se apenas mês/ano, use o dia 01.
+- Campos do padrão "Pedido de Venda" das fábricas (ped_consultor, prazo_dias, situacao, tabela, e o bloco de frete): procure pelos rótulos "Ped.Consul.", "Prazos", "Situação", "Tabela", "Tipo Frete", "Previsão Frete", "Frete Embut.". Se não houver, use null
+- Dados do cliente (cliente_codigo, cliente_ie, cliente_endereco, cliente_bairro, cliente_cidade, cliente_uf, cliente_cep): extraia do bloco de cabeçalho do cliente. O código costuma vir antes do nome (ex: "543 - ILHAM..."). Se não houver, use null
+- familia do item: rótulo "Família" na tabela de itens (ex: FAMILIA A). Se não houver, use null
+- Valores de frete/frete_pct como números com ponto decimal (ex: 198.94 e 14.00)`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Pedido = Record<string, any>
@@ -187,8 +207,15 @@ export const POST = withObservability('import/pedidos', async (req, { logger }) 
       pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file!.name}):\n\n${sheets.join('\n\n')}`)
     } else if (ext === 'csv') {
       pedidos = await extrairPedidos(`${EXTRACTION_PROMPT}\n\nConteúdo do arquivo (${file!.name}):\n\n${buffer.toString('utf-8')}`)
+    } else if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp') {
+      // Imagem (print do pedido): usa a visão do modelo, igual ao PDF
+      const mediaType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
+      pedidos = await extrairPedidos([
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: buffer.toString('base64') } },
+        { type: 'text', text: EXTRACTION_PROMPT },
+      ])
     } else {
-      return NextResponse.json({ error: 'Formato de arquivo não suportado. Use PDF, DOCX, XLSX ou CSV.' }, { status: 400 })
+      return NextResponse.json({ error: 'Formato não suportado. Use PDF, imagem (PNG/JPG), DOCX, XLSX ou CSV.' }, { status: 400 })
     }
 
     const resultado = deduplicarPedidos(pedidos)

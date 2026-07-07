@@ -9,6 +9,7 @@ import { soDig, fmtCnpj, semAcento as sem, palavrasChave, aliasTermos } from '@/
 interface ItemExtraido {
   codigo: string
   nome: string
+  familia?: string | null
   quantidade: number
   unit_price: number
   discount_pct: number
@@ -20,14 +21,29 @@ interface PedidoExtraido {
   numero: string
   numero_pedido_fabrica: string | null
   numero_ordem_compra: string | null
+  ped_consultor?: string | null
   showroom: string | null
   data: string
   cliente_nome: string
   cliente_empresa: string
   cliente_cnpj: string | null
+  cliente_codigo?: string | null
+  cliente_ie?: string | null
+  cliente_endereco?: string | null
+  cliente_bairro?: string | null
+  cliente_cidade?: string | null
+  cliente_uf?: string | null
+  cliente_cep?: string | null
   fornecedor_nome: string
   fornecedor_cnpj: string | null
   payment_terms: string
+  prazo_dias?: number | null
+  situacao?: string | null
+  tabela?: string | null
+  frete_tipo?: string | null
+  frete_valor?: number | null
+  frete_pct?: number | null
+  frete_embutido?: boolean | null
   delivery_date: string | null
   notes: string
   subtotal: number
@@ -46,7 +62,7 @@ interface ImportadorPedidosProps {
   onImported?: () => void
 }
 
-const ACCEPTED = '.pdf,.doc,.docx,.xlsx,.xls,.csv'
+const ACCEPTED = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xlsx,.xls,.csv'
 
 export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProps) {
   const [dragging, setDragging]     = useState(false)
@@ -224,6 +240,17 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
             payment_terms: p.payment_terms || null,
             delivery_date: p.delivery_date || null,
             notes: p.notes || null,
+            // Campos do padrão fábrica ("Pedido de Venda")
+            purchase_order: p.numero_ordem_compra || null,
+            ped_consultor: p.ped_consultor || null,
+            data_emissao: p.data || null,
+            prazo_dias: p.prazo_dias ?? null,
+            situacao_financeira: p.situacao || null,
+            tabela: p.tabela || null,
+            frete_tipo: p.frete_tipo || null,
+            frete_valor: p.frete_valor ?? null,
+            frete_pct: p.frete_pct ?? null,
+            frete_embutido: typeof p.frete_embutido === 'boolean' ? p.frete_embutido : null,
           })
           .select('id')
           .single()
@@ -238,7 +265,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
 
         // Produtos sem product_id — registramos os itens nas notas do pedido
         const itensTexto = p.itens.map(it =>
-          `• ${it.codigo ? `[${it.codigo}] ` : ''}${it.nome} — Qtd: ${it.quantidade} × ${formatCurrency(it.unit_price)} = ${formatCurrency(it.total)}${it.notas ? ` (${it.notas})` : ''}`
+          `• ${it.codigo ? `[${it.codigo}] ` : ''}${it.nome}${it.familia ? ` {${it.familia}}` : ''} — Qtd: ${it.quantidade} × ${formatCurrency(it.unit_price)} = ${formatCurrency(it.total)}${it.notas ? ` (${it.notas})` : ''}`
         ).join('\n')
 
         // Dados do pedido capturados pela AIVA (guardados nas observações)
@@ -255,6 +282,30 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
         ].filter(Boolean).join('\n\n')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sb.from('orders') as any).update({ notes: notasFinal }).eq('id', (order as { id: string }).id)
+
+        // Enriquece o cadastro do cliente com dados do documento — SÓ preenche
+        // campos hoje vazios (nunca sobrescreve o que já existe).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: cAtual } = await (sb.from('clients') as any)
+          .select('codigo,inscricao_estadual,bairro,address,city,state,cep')
+          .eq('id', p._clienteId).single()
+        if (cAtual) {
+          const patch: Record<string, string> = {}
+          const setSeVazio = (campo: string, valor: string | null | undefined) => {
+            if (valor && !(cAtual as Record<string, unknown>)[campo]) patch[campo] = valor
+          }
+          setSeVazio('codigo', p.cliente_codigo)
+          setSeVazio('inscricao_estadual', p.cliente_ie)
+          setSeVazio('bairro', p.cliente_bairro)
+          setSeVazio('address', p.cliente_endereco)
+          setSeVazio('city', p.cliente_cidade)
+          setSeVazio('state', p.cliente_uf)
+          setSeVazio('cep', p.cliente_cep)
+          if (Object.keys(patch).length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (sb.from('clients') as any).update(patch).eq('id', p._clienteId)
+          }
+        }
 
         updated[i] = { ...p, _status: 'done' }
         setPedidos([...updated])
@@ -285,7 +336,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
             </div>
             <div>
               <p className="text-sm font-semibold text-white">Importar Pedidos</p>
-              <p className="text-xs" style={{ color: '#56577A' }}>Arquivo (PDF, DOCX, XLSX, CSV) ou texto colado</p>
+              <p className="text-xs" style={{ color: '#56577A' }}>Arquivo (PDF, imagem, DOCX, XLSX, CSV) ou texto colado</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl transition-colors" style={{ color: '#A0AEC0' }}>
@@ -330,7 +381,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
                     <FileText size={24} style={{ color: '#0075FF' }} />
                   </div>
                   <p className="text-white font-semibold mb-1">Arraste o arquivo ou clique para selecionar</p>
-                  <p className="text-xs" style={{ color: '#56577A' }}>Suporta PDF, DOCX, XLSX e CSV</p>
+                  <p className="text-xs" style={{ color: '#56577A' }}>Suporta PDF, imagem (PNG/JPG), DOCX, XLSX e CSV</p>
                 </div>
               ) : (
                 <div className="space-y-3">
