@@ -174,6 +174,31 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
         )}
       </div>
 
+      {/* Dados do pedido (padrão fábrica) */}
+      {(() => {
+        const campos: { label: string; value: string }[] = []
+        if (pedido.data_emissao)         campos.push({ label: 'Emissão',            value: formatDate(pedido.data_emissao) })
+        if (pedido.purchase_order)       campos.push({ label: 'Ordem de Compra',    value: pedido.purchase_order })
+        if (pedido.ped_consultor)        campos.push({ label: 'Pedido do Consultor', value: pedido.ped_consultor })
+        if (pedido.situacao_financeira)  campos.push({ label: 'Situação',           value: pedido.situacao_financeira })
+        if (pedido.tabela)               campos.push({ label: 'Tabela',             value: pedido.tabela })
+        if (pedido.prazo_dias != null)   campos.push({ label: 'Prazos',             value: `${pedido.prazo_dias} dias` })
+        if (campos.length === 0) return null
+        return (
+          <div className="glass-card rounded-2xl p-5 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#A0AEC0' }}>Dados do Pedido</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+              {campos.map(c => (
+                <div key={c.label}>
+                  <p className="text-[11px] uppercase tracking-wide" style={{ color: '#56577A' }}>{c.label}</p>
+                  <p className="text-sm font-medium text-white mt-0.5">{c.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Itens */}
       <div className="glass-card rounded-2xl overflow-hidden mb-4">
         <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -188,7 +213,15 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white">{item.products?.name}</p>
-                  <p className="text-xs font-mono mt-0.5" style={{ color: '#56577A' }}>{item.products?.code}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs font-mono" style={{ color: '#56577A' }}>{item.products?.code}</p>
+                    {item.familia && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                        style={{ color: '#A0AEC0', background: 'rgba(255,255,255,0.06)' }}>
+                        {item.familia}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
                     {item.quantity} {item.products?.unit} × {formatCurrency(item.unit_price)}
                     {item.discount_pct > 0 && (
@@ -228,6 +261,18 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
             <div className="flex justify-between text-sm" style={{ color: '#01B574' }}>
               <span>Comissão ({pedido.commission_pct}%)</span>
               <span>{formatCurrency(pedido.commission_value)}</span>
+            </div>
+          )}
+          {(pedido.frete_valor != null || pedido.frete_tipo) && (
+            <div className="flex justify-between text-sm" style={{ color: '#A0AEC0' }}>
+              <span>
+                Frete{pedido.frete_tipo ? ` (${pedido.frete_tipo})` : ''}
+                {pedido.frete_embutido ? ' · embutido' : ''}
+              </span>
+              <span>
+                {pedido.frete_valor != null ? formatCurrency(pedido.frete_valor) : '—'}
+                {pedido.frete_pct != null ? ` (${pedido.frete_pct}%)` : ''}
+              </span>
             </div>
           )}
           <div className="flex justify-between font-semibold text-base pt-2"

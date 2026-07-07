@@ -90,6 +90,8 @@ export interface Database {
           email_agendamento: string | null
           telefone_agendamento: string | null
           email_comunicado: string | null
+          codigo: string | null
+          bairro: string | null
           notes: string | null
           active: boolean
           priority: number | null
@@ -251,6 +253,17 @@ export interface Database {
           delivered_at: string | null
           supplier_id: string | null
           finalidade: 'mostruario' | 'venda' | null
+          purchase_order: string | null
+          client_cnpj_id: string | null
+          data_emissao: string | null
+          prazo_dias: number | null
+          situacao_financeira: string | null
+          tabela: string | null
+          ped_consultor: string | null
+          frete_tipo: string | null
+          frete_valor: number | null
+          frete_pct: number | null
+          frete_embutido: boolean | null
           created_at: string
           updated_at: string
         }

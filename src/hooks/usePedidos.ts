@@ -17,6 +17,7 @@ export type OrderWithDetails = Order & {
     discount_pct: number
     total: number
     notes: string | null
+    familia: string | null
     products: { id: string; code: string; name: string; unit: string } | null
     order_item_variations: {
       id: string
@@ -37,6 +38,7 @@ export interface ItemPedido {
   unit_price_final: number  // preço base + variações
   discount_pct: number
   notes: string
+  familia?: string       // família do item no padrão fábrica (ex.: FAMILIA A)
   variacoes: Record<string, VariationOption | null>  // typeId → opção selecionada
 }
 
@@ -49,7 +51,7 @@ export function usePedidos(filters: { status?: OrderStatus | '' } = {}) {
     setLoading(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase.from('orders') as any)
-      .select('*, clients(name, company_name, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
+      .select('*, clients(name, company_name, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, familia, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
       .order('created_at', { ascending: false })
     if (filters.status) query = query.eq('status', filters.status)
     const { data } = await query
@@ -69,7 +71,7 @@ export function usePedido(id: string) {
   const fetch = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase.from('orders') as any)
-      .select('*, clients(name, company_name, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
+      .select('*, clients(name, company_name, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, familia, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
       .eq('id', id).single()
     setPedido(data)
     setLoading(false)
@@ -96,6 +98,18 @@ export function usePedidosMutations() {
       payment_terms?: string
       delivery_date?: string
       notes?: string
+      // Campos do padrão fábrica ("Pedido de Venda") — todos opcionais
+      purchase_order?: string
+      client_cnpj_id?: string
+      data_emissao?: string
+      prazo_dias?: number
+      situacao_financeira?: string
+      tabela?: string
+      ped_consultor?: string
+      frete_tipo?: string
+      frete_valor?: number
+      frete_pct?: number
+      frete_embutido?: boolean
     },
     itens: ItemPedido[]
   ) {
@@ -119,6 +133,7 @@ export function usePedidosMutations() {
           discount_pct: item.discount_pct,
           total: itemTotal,
           notes: item.notes || null,
+          familia: item.familia || null,
         }).select().single()
       if (itemError) throw new Error(itemError.message)
 
