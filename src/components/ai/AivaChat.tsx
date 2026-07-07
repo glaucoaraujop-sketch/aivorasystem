@@ -1,11 +1,33 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Send, Sparkles, User } from 'lucide-react'
+import { X, Send, Sparkles, User, Paperclip, FileText } from 'lucide-react'
+
+interface Attach {
+  name: string
+  mediaType: string
+  base64: string
+  isPdf: boolean
+  dataUrl: string
+}
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  attachment?: Attach
+}
+
+// Converte uma mensagem local no formato de conteúdo da API (bloco de
+// imagem/documento + texto quando há anexo; string simples caso contrário).
+function toApiMessage(m: Message) {
+  if (m.attachment) {
+    const source = { type: 'base64', media_type: m.attachment.mediaType, data: m.attachment.base64 }
+    const bloco = m.attachment.isPdf
+      ? { type: 'document', source }
+      : { type: 'image', source }
+    return { role: m.role, content: [bloco, { type: 'text', text: m.content || 'Segue o documento do pedido.' }] }
+  }
+  return { role: m.role, content: m.content }
 }
 
 interface AivaChatProps {
@@ -19,8 +41,26 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [attach, setAttach]     = useState<Attach | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
+  const fileRef   = useRef<HTMLInputElement>(null)
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    const isPdf = f.type === 'application/pdf'
+    const okImg = ['image/png', 'image/jpeg', 'image/webp'].includes(f.type)
+    if (!isPdf && !okImg) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result)
+      const base64 = dataUrl.split(',')[1] || ''
+      setAttach({ name: f.name, mediaType: isPdf ? 'application/pdf' : f.type, base64, isPdf, dataUrl })
+    }
+    reader.readAsDataURL(f)
+  }
 
   useEffect(() => {
     if (open && messages.length === 0) {
@@ -40,12 +80,13 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
 
   async function handleSend() {
     const text = input.trim()
-    if (!text || loading) return
+    if ((!text && !attach) || loading) return
 
-    const userMsg: Message = { role: 'user', content: text }
+    const userMsg: Message = { role: 'user', content: text, attachment: attach || undefined }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setInput('')
+    setAttach(null)
     setLoading(true)
 
     const assistantMsg: Message = { role: 'assistant', content: '' }
@@ -56,7 +97,7 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: newMessages.map(toApiMessage),
           context,
         }),
       })
@@ -172,6 +213,19 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
                     }
                 }
               >
+                {msg.attachment && (
+                  msg.attachment.isPdf ? (
+                    <div className="flex items-center gap-2 mb-2 px-2.5 py-2 rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.1)' }}>
+                      <FileText size={14} color="#fff" />
+                      <span className="text-xs truncate max-w-[180px]">{msg.attachment.name}</span>
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={msg.attachment.dataUrl} alt={msg.attachment.name}
+                      className="rounded-lg mb-2 max-h-48 w-auto" />
+                  )
+                )}
                 {msg.content}
                 {loading && i === messages.length - 1 && msg.role === 'assistant' && msg.content && (
                   <span
@@ -205,10 +259,40 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
           className="px-4 py-4 flex-shrink-0"
           style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
         >
+          {/* Preview do anexo selecionado */}
+          {attach && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl"
+              style={{ background: 'rgba(0,117,255,0.12)', border: '1px solid rgba(0,117,255,0.25)' }}>
+              {attach.isPdf
+                ? <FileText size={14} color="#A0AEC0" />
+                // eslint-disable-next-line @next/next/no-img-element
+                : <img src={attach.dataUrl} alt={attach.name} className="w-7 h-7 rounded object-cover" />}
+              <span className="text-xs text-white truncate flex-1">{attach.name}</span>
+              <button onClick={() => setAttach(null)} className="p-1 rounded-lg" style={{ color: '#A0AEC0' }}>
+                <X size={13} />
+              </button>
+            </div>
+          )}
           <div
-            className="flex items-center gap-2 rounded-2xl px-4 py-2.5"
+            className="flex items-center gap-2 rounded-2xl px-3 py-2.5"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp,application/pdf"
+              onChange={onFileChange}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={loading}
+              title="Anexar pedido (imagem ou PDF)"
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30"
+              style={{ color: '#A0AEC0', background: 'rgba(255,255,255,0.05)' }}
+            >
+              <Paperclip size={15} />
+            </button>
             <input
               ref={inputRef}
               value={input}
@@ -220,8 +304,8 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
             />
             <button
               onClick={handleSend}
-              disabled={loading || !input.trim()}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-30"
+              disabled={loading || (!input.trim() && !attach)}
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30"
               style={{ background: 'linear-gradient(135deg, #0075FF 0%, #6D28D9 100%)' }}
             >
               <Send size={14} color="#fff" />

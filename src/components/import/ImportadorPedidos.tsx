@@ -263,25 +263,68 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
           throw new Error(oErr?.message || 'Falha ao criar pedido')
         }
 
-        // Produtos sem product_id — registramos os itens nas notas do pedido
-        const itensTexto = p.itens.map(it =>
-          `• ${it.codigo ? `[${it.codigo}] ` : ''}${it.nome}${it.familia ? ` {${it.familia}}` : ''} — Qtd: ${it.quantidade} × ${formatCurrency(it.unit_price)} = ${formatCurrency(it.total)}${it.notas ? ` (${it.notas})` : ''}`
-        ).join('\n')
+        // Itens como registros REAIS (casa produto por código; cria no catálogo
+        // se novo) — assim o sistema consegue buscar por item.
+        const orderId = (order as { id: string }).id
+        for (const it of p.itens) {
+          const codigo = (it.codigo || '').trim()
+          const nome = (it.nome || '').trim()
+          if (!codigo && !nome) continue
 
-        // Dados do pedido capturados pela AIVA (guardados nas observações)
+          let productId: string | null = null
+          if (codigo) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: pr } = await (sb.from('products') as any).select('id').eq('code', codigo).limit(1)
+            if (pr && pr.length > 0) productId = (pr[0] as { id: string }).id
+          }
+          if (!productId) {
+            const code = codigo || nome.slice(0, 40)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const insP = await (sb.from('products') as any)
+              .insert({ code, name: nome || codigo, unit: 'UN', active: true })
+              .select('id').single()
+            if (insP.error) {
+              // código é UNIQUE — corrida/duplicado: reaproveita o existente
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { data: pr2 } = await (sb.from('products') as any).select('id').eq('code', code).limit(1)
+              if (pr2 && pr2.length > 0) productId = (pr2[0] as { id: string }).id
+              else throw new Error(`Falha ao criar produto "${code}": ${insP.error.message}`)
+            } else {
+              productId = (insP.data as { id: string }).id
+            }
+          }
+
+          const qtd  = Number(it.quantidade) || 0
+          const unit = Number(it.unit_price) || 0
+          const desc = Number(it.discount_pct) || 0
+          const totalItem = it.total != null ? Number(it.total) : qtd * unit * (1 - desc / 100)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (sb.from('order_items') as any).insert({
+            order_id: orderId,
+            product_id: productId,
+            quantity: qtd,
+            unit_price: unit,
+            discount_pct: desc,
+            total: totalItem,
+            familia: it.familia || null,
+            notes: it.notas || null,
+          })
+        }
+
+        // Metadados sem coluna própria ficam nas observações (SEM os itens,
+        // que agora são registros reais). Ordem de compra já vai em purchase_order.
         const dadosTexto = [
           p.numero_pedido_fabrica ? `Nº pedido fábrica: ${p.numero_pedido_fabrica}` : null,
-          p.numero_ordem_compra   ? `Nº ordem de compra: ${p.numero_ordem_compra}` : null,
           p.showroom              ? `Showroom: ${p.showroom}` : null,
         ].filter(Boolean).join('\n')
-
         const notasFinal = [
           p.notes,
           dadosTexto ? '--- Dados do pedido ---\n' + dadosTexto : null,
-          '--- Itens importados ---\n' + itensTexto,
         ].filter(Boolean).join('\n\n')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sb.from('orders') as any).update({ notes: notasFinal }).eq('id', (order as { id: string }).id)
+        if (notasFinal) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (sb.from('orders') as any).update({ notes: notasFinal }).eq('id', orderId)
+        }
 
         // Enriquece o cadastro do cliente com dados do documento — SÓ preenche
         // campos hoje vazios (nunca sobrescreve o que já existe).
