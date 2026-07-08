@@ -8,6 +8,7 @@ import { rankClientes, resumoFinanceiro } from '@/lib/ai/aggregations'
 import { montarAgendaSemana } from '@/lib/planner/agendaServer'
 import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
 import { priorizarRadar, rotuloSegmento, type CadenceRow } from '@/lib/ai/radar'
+import { carregarLinhasRadar } from '@/lib/ai/radarServer'
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -706,21 +707,8 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         // Ação de escrita: só chega aqui após o usuário CONFIRMAR (ver system prompt).
         return await criarPedidoFabrica(sb, input)
       case 'clientes_em_risco': {
-        const { data, error } = await sb.from('vw_client_rfm').select('*')
-        if (error) return `Erro: ${error.message}`
-        // Fábrica(s) de cada cliente (a partir dos pedidos não cancelados)
-        const ord = await sb.from('orders').select('client_id,suppliers(name)').neq('status', 'cancelado').limit(20000)
-        const fabPorCliente = new Map<string, Set<string>>()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const o of (ord.data ?? []) as any[]) {
-          const nome = o.suppliers?.name
-          if (!o.client_id || !nome) continue
-          if (!fabPorCliente.has(o.client_id)) fabPorCliente.set(o.client_id, new Set())
-          fabPorCliente.get(o.client_id)!.add(nome)
-        }
-        const rows: CadenceRow[] = ((data ?? []) as CadenceRow[]).map(r => ({
-          ...r, fabricas: [...(fabPorCliente.get(r.client_id ?? '') ?? [])],
-        }))
+        let rows: CadenceRow[]
+        try { rows = await carregarLinhasRadar(sb) } catch (e) { return `Erro: ${e instanceof Error ? e.message : e}` }
         const itens = priorizarRadar(rows, {
           fabrica: input.fabrica ? String(input.fabrica) : undefined,
           limite: lim(input.limite, 20, 100),
