@@ -727,12 +727,16 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         const c = cli.data[0]
         const rfm = await sb.from('vw_client_rfm').select('*').eq('client_id', c.id).maybeSingle()
         const ped = await sb.from('orders')
-          .select('created_at,total,status').eq('client_id', c.id).neq('status', 'cancelado')
-          .order('created_at', { ascending: true }).limit(500)
-        // Histórico de intervalos (dias) entre pedidos consecutivos
-        const datas = (ped.data ?? []).map((o: { created_at: string }) => new Date(o.created_at).getTime())
+          .select('created_at,data_emissao,total,status').eq('client_id', c.id).neq('status', 'cancelado')
+          .limit(500)
+        // Histórico de intervalos (dias) entre OCASIÕES DE COMPRA distintas,
+        // pela data real (data_emissao; cai para created_at quando ausente).
+        const diasCompra = [...new Set((ped.data ?? []).map((o: { created_at: string; data_emissao: string | null }) =>
+          (o.data_emissao ?? o.created_at).slice(0, 10)))].sort()
         const intervalos: number[] = []
-        for (let i = 1; i < datas.length; i++) intervalos.push(Math.round((datas[i] - datas[i - 1]) / 86400000))
+        for (let i = 1; i < diasCompra.length; i++) {
+          intervalos.push(Math.round((new Date(diasCompra[i] as string).getTime() - new Date(diasCompra[i - 1] as string).getTime()) / 86400000))
+        }
         const r = rfm.data as CadenceRow | null
         return JSON.stringify({
           cliente: c.company_name || c.name,
