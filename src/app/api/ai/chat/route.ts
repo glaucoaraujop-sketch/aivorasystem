@@ -740,7 +740,7 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         const r = rfm.data as CadenceRow | null
         return JSON.stringify({
           cliente: c.company_name || c.name,
-          pedidos_total: r?.pedidos_total ?? datas.length,
+          pedidos_total: r?.pedidos_total ?? (ped.data?.length ?? 0),
           cadencia_media_dias: r?.cadencia_media_dias != null ? Math.round(Number(r.cadencia_media_dias) * 10) / 10 : null,
           dias_desde_ultimo: r?.dias_desde_ultimo != null ? Math.round(Number(r.dias_desde_ultimo)) : null,
           atraso_relativo: r?.atraso_relativo != null ? Math.round(Number(r.atraso_relativo) * 100) / 100 : null,
