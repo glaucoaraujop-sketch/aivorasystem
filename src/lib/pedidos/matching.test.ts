@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { soDig, fmtCnpj, semAcento, palavrasChave, aliasTermos, deduplicarPedidos } from './matching'
+import { soDig, fmtCnpj, semAcento, palavrasChave, aliasTermos, deduplicarPedidos,
+  acharClientePorSimilaridade, SCORE_AUTO, SCORE_SUGESTAO, type ClienteMatch } from './matching'
 
 describe('soDig', () => {
   it('mantém só dígitos do CNPJ', () => {
@@ -72,5 +73,40 @@ describe('deduplicarPedidos', () => {
   it('mantém todos os pedidos sem número', () => {
     const entrada = [{ numero: null }, { numero: '' }, { numero: undefined }]
     expect(deduplicarPedidos(entrada)).toHaveLength(3)
+  })
+})
+
+describe('acharClientePorSimilaridade', () => {
+  const clientes: ClienteMatch[] = [
+    { id: 'c1', name: 'MAISON PICCOLLI COMERCIO DE MOVEIS', company_name: null,
+      razao_social: 'PICCOLLI & PREMIER COMERCIO DE MOVEIS LTDA', cpf_cnpj: '08.895.647/0001-33' },
+    { id: 'c2', name: 'CASA BELLA DECORACOES', company_name: null, razao_social: 'CASA BELLA LTDA', cpf_cnpj: '11.222.333/0001-44' },
+  ]
+
+  it('casa por CNPJ idêntico (score máximo, auto)', () => {
+    const r = acharClientePorSimilaridade({ cliente_cnpj: '08895647000133', cliente_nome: 'QUALQUER' }, clientes)
+    expect(r?.cliente.id).toBe('c1')
+    expect(r?.score).toBe(100)
+    expect(r!.score).toBeGreaterThanOrEqual(SCORE_AUTO)
+  })
+
+  it('sugere por razão social quando o sistema tem só a fantasia (CNPJ de outra filial)', () => {
+    const r = acharClientePorSimilaridade(
+      { cliente_cnpj: '08895647000300', cliente_nome: 'PICCOLLI & PREMIER COMERCIO DE MOVEIS LTDA' },
+      clientes,
+    )
+    expect(r?.cliente.id).toBe('c1')
+    expect(r!.score).toBeGreaterThanOrEqual(SCORE_SUGESTAO)
+    expect(r!.score).toBeLessThan(SCORE_AUTO)
+  })
+
+  it('sugere por termos em comum mesmo sem CNPJ', () => {
+    const r = acharClientePorSimilaridade({ cliente_nome: 'PICCOLLI PREMIER' }, clientes)
+    expect(r?.cliente.id).toBe('c1')
+    expect(r!.score).toBeGreaterThanOrEqual(SCORE_SUGESTAO)
+  })
+
+  it('retorna null quando não há nenhuma semelhança', () => {
+    expect(acharClientePorSimilaridade({ cliente_nome: 'ZZZ INEXISTENTE XYZ' }, clientes)).toBeNull()
   })
 })

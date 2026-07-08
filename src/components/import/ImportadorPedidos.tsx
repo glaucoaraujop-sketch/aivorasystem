@@ -4,7 +4,8 @@ import { useState, useRef, useCallback } from 'react'
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2, ShoppingCart } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import { soDig, fmtCnpj, semAcento as sem, palavrasChave, aliasTermos } from '@/lib/pedidos/matching'
+import { semAcento as sem, palavrasChave, aliasTermos,
+  acharClientePorSimilaridade, SCORE_AUTO, SCORE_SUGESTAO, type ClienteMatch } from '@/lib/pedidos/matching'
 
 interface ItemExtraido {
   codigo: string
@@ -27,6 +28,7 @@ interface PedidoExtraido {
   cliente_nome: string
   cliente_empresa: string
   cliente_cnpj: string | null
+  cliente_razao_social?: string | null
   cliente_codigo?: string | null
   cliente_ie?: string | null
   cliente_endereco?: string | null
@@ -52,6 +54,8 @@ interface PedidoExtraido {
   itens: ItemExtraido[]
   // resolved after matching
   _clienteId?: string | null
+  _clienteNome?: string
+  _clienteSugestao?: { id: string; nome: string; score: number; motivo: string }
   _fornecedorId?: string | null
   _status?: 'pending' | 'importing' | 'done' | 'error'
   _error?: string
@@ -74,6 +78,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
   const [done, setDone]             = useState(false)
   const [modo, setModo]             = useState<'arquivo' | 'texto'>('arquivo')
   const [texto, setTexto]           = useState('')
+  const [clientesLista, setClientesLista] = useState<ClienteMatch[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   const processBody = useCallback(async (fd: FormData) => {
@@ -97,46 +102,35 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
       // Tentar resolver clientes e fornecedores automaticamente
       const sb = createClient()
 
+      // Carrega todos os clientes uma vez (para o matcher e para o seletor manual)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: allClients } = await (sb.from('clients') as any)
+        .select('id,name,company_name,razao_social,cpf_cnpj').order('name').limit(5000)
+      const clientesDb: ClienteMatch[] = allClients ?? []
+      setClientesLista(clientesDb)
+
       const resolved = await Promise.all(extraidos.map(async p => {
-        let clienteId: string | null = null
         let fornecedorId: string | null = null
 
-        // ── Cliente: CNPJ primeiro, nome como fallback ──────────────────
-        const cnpjCliente = soDig(p.cliente_cnpj)
-        if (cnpjCliente.length >= 11) {
-          // Busca pelos dois formatos: dígitos puros e formatado (XX.XXX.XXX/XXXX-XX)
-          const cnpjFmt = fmtCnpj(cnpjCliente)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: c0 } = await (sb.from('clients') as any)
-            .select('id')
-            .or(`cpf_cnpj.eq.${cnpjCliente},cpf_cnpj.eq.${cnpjFmt}`)
-            .limit(1)
-          if (c0 && c0.length > 0) clienteId = (c0[0] as { id: string }).id
-        }
-
-        if (!clienteId && p.cliente_nome) {
-          // Fallback 1: nome/empresa normalizado (sem acento)
-          const nomeNorm    = sem(p.cliente_nome)
-          const empresaNorm = p.cliente_empresa ? sem(p.cliente_empresa) : ''
-          const partes = [
-            `name.ilike.%${nomeNorm}%`,
-            `company_name.ilike.%${nomeNorm}%`,
-            ...(empresaNorm ? [`name.ilike.%${empresaNorm}%`, `company_name.ilike.%${empresaNorm}%`] : []),
-          ]
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: c1 } = await (sb.from('clients') as any).select('id').or(partes.join(',')).limit(1)
-          if (c1 && c1.length > 0) {
-            clienteId = (c1[0] as { id: string }).id
-          } else {
-            // Fallback 2: palavras-chave individuais
-            const chaves = palavrasChave(p.cliente_nome + ' ' + (p.cliente_empresa ?? ''))
-            if (chaves.length > 0) {
-              const partes2 = chaves.flatMap(w => [`name.ilike.%${w}%`, `company_name.ilike.%${w}%`])
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const { data: c2 } = await (sb.from('clients') as any).select('id').or(partes2.join(',')).limit(1)
-              if (c2 && c2.length > 0) clienteId = (c2[0] as { id: string }).id
-            }
-          }
+        // ── Cliente: matcher por CNPJ / razão social / nome fantasia ──
+        // CNPJ idêntico → casa sozinho. Demais casos (CNPJ base de outra filial,
+        // razão social ↔ fantasia, termos em comum) → vira SUGESTÃO para confirmar.
+        const m = acharClientePorSimilaridade(
+          {
+            cliente_cnpj: p.cliente_cnpj,
+            cliente_nome: p.cliente_nome,
+            cliente_empresa: p.cliente_empresa,
+            cliente_razao_social: p.cliente_razao_social,
+          },
+          clientesDb,
+        )
+        let _clienteId: string | null = null
+        let _clienteNome: string | undefined
+        let _clienteSugestao: PedidoExtraido['_clienteSugestao']
+        if (m && m.score >= SCORE_AUTO) {
+          _clienteId = m.cliente.id; _clienteNome = m.cliente.name
+        } else if (m && m.score >= SCORE_SUGESTAO) {
+          _clienteSugestao = { id: m.cliente.id, nome: m.cliente.name, score: m.score, motivo: m.motivo }
         }
 
         // ── Fornecedor: nome (sem CNPJ no cadastro de suppliers normalmente) ──
@@ -172,7 +166,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
           }
         }
 
-        return { ...p, _clienteId: clienteId, _fornecedorId: fornecedorId }
+        return { ...p, _clienteId, _clienteNome, _clienteSugestao, _fornecedorId: fornecedorId }
       }))
 
       setPedidos(resolved)
@@ -205,6 +199,15 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
     if (f) processFile(f)
   }, [processFile])
 
+  // Define/corrige o cliente de um pedido (aceita a sugestão ou escolha manual)
+  function setClientePedido(idx: number, id: string | null) {
+    setPedidos(prev => prev.map((p, k) =>
+      k === idx
+        ? { ...p, _clienteId: id, _clienteNome: id ? clientesLista.find(c => c.id === id)?.name : undefined }
+        : p,
+    ))
+  }
+
   async function handleImport() {
     if (pedidos.length === 0) return
     setImporting(true)
@@ -216,7 +219,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
     for (let i = 0; i < updated.length; i++) {
       const p = updated[i]
       if (!p._clienteId) {
-        updated[i] = { ...p, _status: 'error', _error: 'Cliente não encontrado no sistema' }
+        updated[i] = { ...p, _status: 'error', _error: 'Cliente não definido — confirme a sugestão ou selecione no seletor' }
         setPedidos([...updated])
         continue
       }
@@ -511,20 +514,59 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
                     {p.payment_terms && <span>Pagamento: <span className="text-white">{p.payment_terms}</span></span>}
                   </div>
 
-                  {/* Match status */}
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium"
-                      style={p._clienteId
-                        ? { color: '#01B574', background: 'rgba(1,181,116,0.1)' }
-                        : { color: '#FC8181', background: 'rgba(252,129,129,0.1)' }}>
-                      {p._clienteId ? 'Cliente encontrado' : 'Cliente NÃO encontrado'}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium"
-                      style={p._fornecedorId
-                        ? { color: '#01B574', background: 'rgba(1,181,116,0.1)' }
-                        : { color: '#F6AD55', background: 'rgba(246,173,85,0.1)' }}>
-                      {p._fornecedorId ? 'Fornecedor encontrado' : 'Fornecedor não vinculado'}
-                    </span>
+                  {/* Match de cliente / fornecedor + sugestão + seleção manual */}
+                  <div className="space-y-2">
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={p._clienteId
+                          ? { color: '#01B574', background: 'rgba(1,181,116,0.1)' }
+                          : p._clienteSugestao
+                            ? { color: '#F6AD55', background: 'rgba(246,173,85,0.1)' }
+                            : { color: '#FC8181', background: 'rgba(252,129,129,0.1)' }}>
+                        {p._clienteId
+                          ? `Cliente: ${p._clienteNome ?? clientesLista.find(c => c.id === p._clienteId)?.name ?? 'definido'}`
+                          : p._clienteSugestao ? 'Confirme o cliente' : 'Cliente NÃO encontrado'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={p._fornecedorId
+                          ? { color: '#01B574', background: 'rgba(1,181,116,0.1)' }
+                          : { color: '#F6AD55', background: 'rgba(246,173,85,0.1)' }}>
+                        {p._fornecedorId ? 'Fornecedor encontrado' : 'Fornecedor não vinculado'}
+                      </span>
+                    </div>
+
+                    {/* Sugestão por similaridade (CNPJ base / razão social / fantasia) */}
+                    {!p._clienteId && p._clienteSugestao && p._status !== 'done' && (
+                      <div className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg"
+                        style={{ background: 'rgba(246,173,85,0.1)', border: '1px solid rgba(246,173,85,0.25)' }}>
+                        <p className="text-xs" style={{ color: '#F6AD55' }}>
+                          Provável: <span className="font-semibold text-white">{p._clienteSugestao.nome}</span>
+                          <span style={{ opacity: 0.85 }}> — {p._clienteSugestao.motivo}</span>
+                        </p>
+                        <button onClick={() => setClientePedido(i, p._clienteSugestao!.id)}
+                          className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 transition-all hover:opacity-80"
+                          style={{ color: '#01B574', background: 'rgba(1,181,116,0.14)' }}>
+                          Usar este
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Seletor manual — sempre disponível para escolher/corrigir */}
+                    {p._status !== 'done' && (
+                      <select
+                        value={p._clienteId ?? ''}
+                        onChange={e => setClientePedido(i, e.target.value || null)}
+                        className="w-full text-xs rounded-lg px-2 py-1.5 outline-none"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                      >
+                        <option value="" style={{ color: '#000' }}>— escolher cliente manualmente —</option>
+                        {clientesLista.map(c => (
+                          <option key={c.id} value={c.id} style={{ color: '#000' }}>
+                            {c.name}{c.razao_social && c.razao_social !== c.name ? ` · ${c.razao_social}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
 
                   {/* Items summary */}
@@ -557,7 +599,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
                 <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(246,173,85,0.08)', border: '1px solid rgba(246,173,85,0.2)' }}>
                   <AlertCircle size={14} style={{ color: '#F6AD55', flexShrink: 0, marginTop: 1 }} />
                   <p className="text-xs" style={{ color: '#F6AD55' }}>
-                    Pedidos sem cliente encontrado serão ignorados. Cadastre o cliente primeiro e reimporte.
+                    Confirme a sugestão ou escolha o cliente no seletor de cada pedido. Pedidos sem cliente definido serão ignorados na importação.
                   </p>
                 </div>
               )}
