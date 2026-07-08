@@ -7,6 +7,7 @@ import { useCurrentUserName } from '@/hooks/useCurrentUserName'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useAI } from '@/hooks/useAI'
 import { AivaChat } from '@/components/ai/AivaChat'
+import { RadarCard } from '@/components/inicio/RadarCard'
 
 function getSaudacao() {
   const h = new Date().getHours()
@@ -152,6 +153,9 @@ export default function InicioPage() {
             </button>
           </div>
         </div>
+
+        {/* Radar da Carteira — quem ligar esta semana */}
+        <RadarCard />
 
         {/* Atalhos rápidos */}
         <div>
