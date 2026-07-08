@@ -7,6 +7,7 @@ import { cached } from '@/lib/observability/cache'
 import { rankClientes, resumoFinanceiro } from '@/lib/ai/aggregations'
 import { montarAgendaSemana } from '@/lib/planner/agendaServer'
 import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
+import { priorizarRadar, rotuloSegmento, type CadenceRow } from '@/lib/ai/radar'
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -24,6 +25,8 @@ Ferramentas disponíveis:
 - ranking_clientes: ranking dos clientes que mais compram (por quantidade de pedidos ou por faturamento) — já considera TODOS os pedidos
 - resumo_financeiro: totais consolidados (comissões a receber, pagas, faturamento, pedidos em aberto) — já considera TODOS os registros
 - resumo_clientes: total de clientes (lojas) e total de PDVs JÁ SOMADOS pelo sistema, com a lista de clientes que têm mais de 1 PDV. Use para "quantos PDVs/lojas temos".
+- clientes_em_risco: Radar de Carteira — clientes que estão saindo do próprio ritmo de compra (atraso relativo ≥ 1,3), priorizados por faturamento × atraso, com fábrica, cadência, dias desde o último pedido e segmento. Use para "quem está atrasado pra comprar?", "quem ligar essa semana?". Aceita filtro por fábrica.
+- cadencia_compra: cadência de compra de UM cliente (intervalo médio entre pedidos, previsão da próxima compra, histórico de intervalos). Use para "de quanto em quanto tempo o cliente X compra?".
 - planejar_agenda_semanal: AIVA Planner — monta (SIMULA) a agenda/cronograma de visitas da semana aplicando as Business Rules (capacidade em PDVs, níveis de prioridade, janelas e score), com justificativa de cada escolha e as datas reais da próxima semana. Não grava nada.
 - agendar_visitas_semana: AÇÃO DE ESCRITA — registra de fato as visitas da próxima semana na aba Visitas. Só use após confirmação explícita do usuário.
 - criar_pedido: AÇÃO DE ESCRITA — cria um pedido no formato "Pedido de Venda" das fábricas a partir dos dados que você extrair de um documento (imagem/PDF/texto). Só use após confirmação explícita do usuário.
@@ -241,6 +244,28 @@ const tools: Anthropic.Tool[] = [
         criar_produto_se_novo: { type: 'boolean', description: 'Padrão true: cria o produto no catálogo se não achar pelo código.' },
       },
       required: ['itens'],
+    },
+  },
+  {
+    name: 'clientes_em_risco',
+    description: 'Radar de Carteira: lista os clientes que estão SAINDO DO PRÓPRIO RITMO de compra (atraso_relativo ≥ 1,3), ordenados por faturamento × atraso (maior valor em risco primeiro). Cada cliente traz fábrica(s), cadência média, dias desde o último pedido, atraso relativo, previsão da próxima compra e segmento (Esfriando/Em risco/Hibernando). Use para "quais clientes estão atrasados pra comprar?", "quem preciso ligar essa semana?". Filtro opcional por fábrica.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fabrica: { type: 'string', description: 'Filtrar só clientes que compram desta fábrica (nome ou parte).' },
+        limite: { type: 'number', description: 'Máximo de clientes (padrão 20).' },
+      },
+    },
+  },
+  {
+    name: 'cadencia_compra',
+    description: 'Radar de Carteira: cadência de compra de UM cliente — intervalo médio entre pedidos, previsão da próxima compra, dias desde o último pedido, segmento e o histórico de intervalos. Use para "de quanto em quanto tempo o cliente X compra?", "quando o cliente X deve comprar de novo?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cliente: { type: 'string', description: 'Nome (ou parte) do cliente.' },
+      },
+      required: ['cliente'],
     },
   },
 ]
@@ -680,6 +705,58 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
       case 'criar_pedido':
         // Ação de escrita: só chega aqui após o usuário CONFIRMAR (ver system prompt).
         return await criarPedidoFabrica(sb, input)
+      case 'clientes_em_risco': {
+        const { data, error } = await sb.from('vw_client_rfm').select('*')
+        if (error) return `Erro: ${error.message}`
+        // Fábrica(s) de cada cliente (a partir dos pedidos não cancelados)
+        const ord = await sb.from('orders').select('client_id,suppliers(name)').neq('status', 'cancelado').limit(20000)
+        const fabPorCliente = new Map<string, Set<string>>()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const o of (ord.data ?? []) as any[]) {
+          const nome = o.suppliers?.name
+          if (!o.client_id || !nome) continue
+          if (!fabPorCliente.has(o.client_id)) fabPorCliente.set(o.client_id, new Set())
+          fabPorCliente.get(o.client_id)!.add(nome)
+        }
+        const rows: CadenceRow[] = ((data ?? []) as CadenceRow[]).map(r => ({
+          ...r, fabricas: [...(fabPorCliente.get(r.client_id ?? '') ?? [])],
+        }))
+        const itens = priorizarRadar(rows, {
+          fabrica: input.fabrica ? String(input.fabrica) : undefined,
+          limite: lim(input.limite, 20, 100),
+        }).map(it => ({ ...it, segmento_rotulo: rotuloSegmento(it.segmento) }))
+        return JSON.stringify({ total: itens.length, clientes: itens })
+      }
+      case 'cadencia_compra': {
+        const nomeCli = String(input.cliente ?? '').trim()
+        if (!nomeCli) return 'Informe o nome do cliente.'
+        const cli = await sb.from('clients')
+          .select('id,name,company_name')
+          .or(`name.ilike.%${nomeCli}%,company_name.ilike.%${nomeCli}%`)
+          .limit(1)
+        if (cli.error) return `Erro: ${cli.error.message}`
+        if (!cli.data || cli.data.length === 0) return `Cliente "${nomeCli}" não encontrado.`
+        const c = cli.data[0]
+        const rfm = await sb.from('vw_client_rfm').select('*').eq('client_id', c.id).maybeSingle()
+        const ped = await sb.from('orders')
+          .select('created_at,total,status').eq('client_id', c.id).neq('status', 'cancelado')
+          .order('created_at', { ascending: true }).limit(500)
+        // Histórico de intervalos (dias) entre pedidos consecutivos
+        const datas = (ped.data ?? []).map((o: { created_at: string }) => new Date(o.created_at).getTime())
+        const intervalos: number[] = []
+        for (let i = 1; i < datas.length; i++) intervalos.push(Math.round((datas[i] - datas[i - 1]) / 86400000))
+        const r = rfm.data as CadenceRow | null
+        return JSON.stringify({
+          cliente: c.company_name || c.name,
+          pedidos_total: r?.pedidos_total ?? datas.length,
+          cadencia_media_dias: r?.cadencia_media_dias != null ? Math.round(Number(r.cadencia_media_dias) * 10) / 10 : null,
+          dias_desde_ultimo: r?.dias_desde_ultimo != null ? Math.round(Number(r.dias_desde_ultimo)) : null,
+          atraso_relativo: r?.atraso_relativo != null ? Math.round(Number(r.atraso_relativo) * 100) / 100 : null,
+          previsao_proxima_compra: r?.previsao_proxima_compra ?? null,
+          segmento: r ? rotuloSegmento(r.segmento) : 'Novo / sem histórico',
+          historico_intervalos_dias: intervalos,
+        })
+      }
       default:
         return `Ferramenta desconhecida: ${nome}`
     }
