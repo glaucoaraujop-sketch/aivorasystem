@@ -4,8 +4,6 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { anthropic } from '@/lib/anthropic'
 import { timed } from '@/lib/observability/api'
-import { cached } from '@/lib/observability/cache'
-import { rankClientes, resumoFinanceiro } from '@/lib/ai/aggregations'
 import { montarAgendaSemana } from '@/lib/planner/agendaServer'
 import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
 import { priorizarRadar, rotuloSegmento, type CadenceRow } from '@/lib/ai/radar'
@@ -573,31 +571,42 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         return JSON.stringify({ total_registros: data.length, orcamentos: data })
       }
       case 'ranking_clientes': {
-        // Cache curto: dados agregados pesados, consultados com frequência
-        const rows = await cached('orders.ranking', 60_000, async () => {
-          const { data, error } = await sb.from('orders')
-            .select('total,status,clients(name,company_name)')
-            .limit(5000)
-          if (error) throw new Error(error.message)
-          return data ?? []
-        })
+        // Agregado no banco (vw_ranking_clientes) — não some no navegador nem cai no cap de 1000
         const por = input.por === 'faturamento' ? 'faturamento' : 'pedidos'
-        return JSON.stringify(rankClientes(rows, por, lim(input.limite, 10, 50)))
+        const { data, count, error } = await sb.from('vw_ranking_clientes')
+          .select('name,company_name,pedidos,faturamento', { count: 'exact' })
+          .order(por, { ascending: false })
+          .limit(lim(input.limite, 10, 50))
+        if (error) return `Erro: ${error.message}`
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ranking = ((data ?? []) as any[]).map(r => ({
+          cliente: r.company_name || r.name || 'Sem cliente',
+          pedidos: Number(r.pedidos) || 0,
+          faturamento: Number(r.faturamento) || 0,
+        }))
+        return JSON.stringify({ criterio: por, total_clientes: count ?? ranking.length, ranking })
       }
       case 'resumo_financeiro': {
-        const [com, ord] = await Promise.all([
-          cached('commissions.resumo', 60_000, async () => {
-            const { data, error } = await sb.from('commissions').select('value,status').limit(10000)
-            if (error) throw new Error(error.message)
-            return data ?? []
-          }),
-          cached('orders.resumo', 60_000, async () => {
-            const { data, error } = await sb.from('orders').select('total,status').limit(10000)
-            if (error) throw new Error(error.message)
-            return data ?? []
-          }),
+        // Totais agregados no banco (não caem no limite de 1000 linhas do PostgREST)
+        const [resumo, com] = await Promise.all([
+          sb.from('vw_pedidos_resumo').select('*').single(),
+          sb.from('vw_comissoes_resumo').select('*').single(),
         ])
-        return JSON.stringify(resumoFinanceiro(com, ord))
+        if (resumo.error) return `Erro: ${resumo.error.message}`
+        const r = resumo.data ?? {}
+        const c = com.data ?? {}
+        const previstas = Number(c.previstas || 0)
+        const aprovadas = Number(c.aprovadas || 0)
+        const pagas = Number(c.pagas || 0)
+        return JSON.stringify({
+          comissoes_a_receber: previstas + aprovadas,
+          comissoes_previstas: previstas,
+          comissoes_aprovadas: aprovadas,
+          comissoes_pagas: pagas,
+          faturamento_total: Number(r.total_vendas || 0),
+          pedidos_total: Number(r.total_pedidos || 0),
+          pedidos_em_aberto: Number(r.em_aberto || 0),
+        })
       }
       case 'resumo_clientes': {
         const { data, error } = await sb.from('clients')
@@ -746,33 +755,23 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         const desde = String(input.desde ?? '').slice(0, 10)
         const ate = String(input.ate ?? '').slice(0, 10)
         if (!desde || !ate) return 'Informe desde e ate (YYYY-MM-DD).'
-        const fabrica = input.fabrica ? semAcento(String(input.fabrica)).toLowerCase() : null
-
-        const { data, error } = await sb.from('orders')
-          .select('total,status,data_emissao,created_at,client_id,suppliers(name)')
-          .neq('status', 'cancelado').limit(20000)
+        // Agregado no banco (fn_vendas_periodo, pela data real) — sem cap de 1000
+        const { data, error } = await sb.rpc('fn_vendas_periodo', {
+          p_desde: desde, p_ate: ate, p_fabrica: input.fabrica ? String(input.fabrica) : null,
+        })
         if (error) return `Erro: ${error.message}`
-
-        let total = 0, pedidos = 0
-        const clientes = new Set<string>()
-        const porFabrica = new Map<string, number>()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const o of (data ?? []) as any[]) {
-          const dataReal = (o.data_emissao ?? (o.created_at ? String(o.created_at).slice(0, 10) : null))
-          if (!dataReal || dataReal < desde || dataReal > ate) continue
-          const fab = o.suppliers?.name ?? 'Sem fábrica'
-          if (fabrica && !semAcento(fab).toLowerCase().includes(fabrica)) continue
-          const v = Number(o.total || 0)
-          total += v; pedidos += 1
-          if (o.client_id) clientes.add(o.client_id)
-          porFabrica.set(fab, (porFabrica.get(fab) || 0) + v)
-        }
+        const row: any = Array.isArray(data) ? data[0] : data
+        const fat = Number(row?.faturamento || 0)
+        const ped = Number(row?.pedidos || 0)
         return JSON.stringify({
           periodo: { desde, ate }, fabrica: input.fabrica ?? null,
-          faturamento_total: Math.round(total * 100) / 100,
-          pedidos, clientes_distintos: clientes.size,
-          ticket_medio: pedidos ? Math.round((total / pedidos) * 100) / 100 : 0,
-          por_fabrica: [...porFabrica.entries()].map(([f, v]) => ({ fabrica: f, faturamento: Math.round(v * 100) / 100 })).sort((a, b) => b.faturamento - a.faturamento),
+          faturamento_total: Math.round(fat * 100) / 100,
+          pedidos: ped,
+          clientes_distintos: Number(row?.clientes_distintos || 0),
+          ticket_medio: ped ? Math.round((fat / ped) * 100) / 100 : 0,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          por_fabrica: ((row?.por_fabrica ?? []) as any[]).map(x => ({ fabrica: x.fabrica, faturamento: Number(x.faturamento) })),
         })
       }
       default:
