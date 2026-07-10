@@ -7,17 +7,15 @@ export async function carregarLinhasRadar(sb: any): Promise<CadenceRow[]> {
   const { data, error } = await sb.from('vw_client_rfm').select('*')
   if (error) throw new Error(error.message)
 
-  const ord = await sb.from('orders').select('client_id,suppliers(name)').neq('status', 'cancelado').limit(20000)
-  const fabPorCliente = new Map<string, Set<string>>()
+  // Fábricas por cliente vêm agregadas do banco (vw_client_fabricas) — sem cap de 1000
+  const fab = await sb.from('vw_client_fabricas').select('client_id,fabricas')
+  const fabPorCliente = new Map<string, string[]>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const o of (ord.data ?? []) as any[]) {
-    const nome = o.suppliers?.name
-    if (!o.client_id || !nome) continue
-    if (!fabPorCliente.has(o.client_id)) fabPorCliente.set(o.client_id, new Set())
-    fabPorCliente.get(o.client_id)!.add(nome)
+  for (const f of (fab.data ?? []) as any[]) {
+    if (f.client_id) fabPorCliente.set(f.client_id, f.fabricas ?? [])
   }
 
   return ((data ?? []) as CadenceRow[]).map(r => ({
-    ...r, fabricas: [...(fabPorCliente.get(r.client_id ?? '') ?? [])],
+    ...r, fabricas: fabPorCliente.get(r.client_id ?? '') ?? [],
   }))
 }

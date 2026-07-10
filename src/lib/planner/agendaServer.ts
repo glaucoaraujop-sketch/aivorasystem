@@ -33,10 +33,11 @@ export async function montarAgendaSemana(sb: any): Promise<{
 }> {
   const regras = await carregarBusinessRules(sb)
 
-  const [cli, vis, ord] = await Promise.all([
+  const [cli, vis, fat] = await Promise.all([
     sb.from('clients').select('id,name,priority,active,client_cnpjs(num_lojas)').eq('active', true).limit(5000),
     sb.from('visits').select('client_id,completed_at,scheduled_at,status').limit(20000),
-    sb.from('orders').select('client_id,total,status').limit(20000),
+    // faturamento por cliente agregado no banco (vw_ranking_clientes) — sem cap de 1000
+    sb.from('vw_ranking_clientes').select('client_id,faturamento'),
   ])
   if (cli.error) throw new Error(cli.error.message)
 
@@ -53,9 +54,9 @@ export async function montarAgendaSemana(sb: any): Promise<{
     }
   }
   const faturamento = new Map<string, number>()
-  for (const o of ord.data ?? []) {
-    if (o.status === 'cancelado') continue
-    faturamento.set(o.client_id, (faturamento.get(o.client_id) || 0) + Number(o.total || 0))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const o of (fat.data ?? []) as any[]) {
+    if (o.client_id) faturamento.set(o.client_id, Number(o.faturamento || 0))
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

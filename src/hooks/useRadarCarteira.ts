@@ -18,20 +18,17 @@ export function useRadarCarteira(limite = 8) {
       const { data, error } = await (sb.from('vw_client_rfm') as any).select('*')
       if (error || !data) { if (vivo) { setItens([]); setLoading(false) }; return }
 
+      // Fábricas por cliente agregadas no banco (vw_client_fabricas) — sem cap de 1000
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ord = await (sb.from('orders') as any)
-        .select('client_id,suppliers(name)').neq('status', 'cancelado').limit(20000)
-      const fabPorCliente = new Map<string, Set<string>>()
+      const fab = await (sb.from('vw_client_fabricas') as any).select('client_id,fabricas')
+      const fabPorCliente = new Map<string, string[]>()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const o of (ord.data ?? []) as any[]) {
-        const nome = o.suppliers?.name
-        if (!o.client_id || !nome) continue
-        if (!fabPorCliente.has(o.client_id)) fabPorCliente.set(o.client_id, new Set())
-        fabPorCliente.get(o.client_id)!.add(nome)
+      for (const f of (fab.data ?? []) as any[]) {
+        if (f.client_id) fabPorCliente.set(f.client_id, f.fabricas ?? [])
       }
 
       const rows: CadenceRow[] = (data as CadenceRow[]).map(r => ({
-        ...r, fabricas: [...(fabPorCliente.get(r.client_id ?? '') ?? [])],
+        ...r, fabricas: fabPorCliente.get(r.client_id ?? '') ?? [],
       }))
       const prioritarios = priorizarRadar(rows, { segmentos: ['esfriando', 'em_risco'], limite })
       if (vivo) { setItens(prioritarios); setLoading(false) }
