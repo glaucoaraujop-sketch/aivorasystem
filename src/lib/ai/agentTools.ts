@@ -227,6 +227,19 @@ export const tools: Anthropic.Tool[] = [
       required: ['cliente'],
     },
   },
+  {
+    name: 'vendas_periodo',
+    description: 'Faturamento e volume em um período pela DATA REAL da compra (data_emissao, com fallback para a data de lançamento). Retorna total faturado, nº de pedidos, clientes distintos, ticket médio e a quebra por fábrica. Use para "quanto vendemos essa semana/mês", ranking por fábrica no período e COMPARATIVO ANO-A-ANO (chame duas vezes: período atual e o mesmo período do ano anterior, e compare).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        desde: { type: 'string', description: 'Data inicial YYYY-MM-DD (inclusive), pela data real da compra.' },
+        ate: { type: 'string', description: 'Data final YYYY-MM-DD (inclusive), pela data real da compra.' },
+        fabrica: { type: 'string', description: 'Filtrar por fábrica (nome ou parte). Opcional.' },
+      },
+      required: ['desde', 'ate'],
+    },
+  },
 ]
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -705,6 +718,39 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
           previsao_proxima_compra: r?.previsao_proxima_compra ?? null,
           segmento: r ? rotuloSegmento(r.segmento) : 'Novo / sem histórico',
           historico_intervalos_dias: intervalos,
+        })
+      }
+      case 'vendas_periodo': {
+        const desde = String(input.desde ?? '').slice(0, 10)
+        const ate = String(input.ate ?? '').slice(0, 10)
+        if (!desde || !ate) return 'Informe desde e ate (YYYY-MM-DD).'
+        const fabrica = input.fabrica ? semAcento(String(input.fabrica)).toLowerCase() : null
+
+        const { data, error } = await sb.from('orders')
+          .select('total,status,data_emissao,created_at,client_id,suppliers(name)')
+          .neq('status', 'cancelado').limit(20000)
+        if (error) return `Erro: ${error.message}`
+
+        let total = 0, pedidos = 0
+        const clientes = new Set<string>()
+        const porFabrica = new Map<string, number>()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const o of (data ?? []) as any[]) {
+          const dataReal = (o.data_emissao ?? (o.created_at ? String(o.created_at).slice(0, 10) : null))
+          if (!dataReal || dataReal < desde || dataReal > ate) continue
+          const fab = o.suppliers?.name ?? 'Sem fábrica'
+          if (fabrica && !semAcento(fab).toLowerCase().includes(fabrica)) continue
+          const v = Number(o.total || 0)
+          total += v; pedidos += 1
+          if (o.client_id) clientes.add(o.client_id)
+          porFabrica.set(fab, (porFabrica.get(fab) || 0) + v)
+        }
+        return JSON.stringify({
+          periodo: { desde, ate }, fabrica: input.fabrica ?? null,
+          faturamento_total: Math.round(total * 100) / 100,
+          pedidos, clientes_distintos: clientes.size,
+          ticket_medio: pedidos ? Math.round((total / pedidos) * 100) / 100 : 0,
+          por_fabrica: [...porFabrica.entries()].map(([f, v]) => ({ fabrica: f, faturamento: Math.round(v * 100) / 100 })).sort((a, b) => b.faturamento - a.faturamento),
         })
       }
       default:

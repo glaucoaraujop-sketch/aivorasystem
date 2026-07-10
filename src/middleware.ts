@@ -3,9 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { isOwnerEmail } from '@/lib/auth/owners'
 
 export async function middleware(request: NextRequest) {
-  // Endpoints de automação (n8n/cron) fazem a própria autenticação por segredo
-  // e não têm sessão de usuário — não passam pelo gate de acesso.
-  if (request.nextUrl.pathname.startsWith('/api/cron')) {
+  // Endpoints de automação (n8n/cron) e o consultor via WhatsApp fazem a própria
+  // autenticação por segredo e não têm sessão — não passam pelo gate de acesso.
+  const p = request.nextUrl.pathname
+  if (p.startsWith('/api/cron') || p === '/api/ai/consultor') {
     return NextResponse.next({ request })
   }
 
