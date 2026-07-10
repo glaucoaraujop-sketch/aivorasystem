@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload, Search } from 'lucide-react'
 import { usePedidos } from '@/hooks/usePedidos'
+import { usePedidosResumo } from '@/hooks/usePedidosResumo'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { OrderStatus } from '@/types/database'
 import { ImportadorPedidos } from '@/components/import/ImportadorPedidos'
@@ -31,9 +32,8 @@ export default function PedidosPage() {
   const [busca, setBusca] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const { pedidos, loading, refetch } = usePedidos({ status })
-
-  const emAberto = pedidos.filter(p => !['entregue', 'cancelado'].includes(p.status))
-  const totalAberto = emAberto.reduce((acc, p) => acc + p.total, 0)
+  // KPIs agregados no banco (não somam a lista limitada a 1000 linhas)
+  const resumo = usePedidosResumo(pedidos.length)
 
   const termo = busca.trim().toLowerCase()
   const pedidosFiltrados = termo
@@ -46,9 +46,9 @@ export default function PedidosPage() {
     : pedidos
 
   const metrics = [
-    { label: 'Total de Pedidos', value: pedidos.length,                                   icon: ShoppingCart, color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
-    { label: 'Em Aberto',        value: emAberto.length,                                  icon: Clock,        color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
-    { label: 'Total de Vendas',  value: formatCurrency(totalAberto),                      icon: DollarSign,   color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+    { label: 'Total de Pedidos', value: resumo ? resumo.total_pedidos.toLocaleString('pt-BR') : '—', icon: ShoppingCart, color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+    { label: 'Em Aberto',        value: resumo ? resumo.em_aberto.toLocaleString('pt-BR') : '—',     icon: Clock,        color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
+    { label: 'Total de Vendas',  value: resumo ? formatCurrency(resumo.total_vendas) : '—',          icon: DollarSign,   color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
   ]
 
   return (
