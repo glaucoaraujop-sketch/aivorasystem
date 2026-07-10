@@ -43,8 +43,16 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
   const [loading, setLoading]   = useState(false)
   const [attach, setAttach]     = useState<Attach | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLInputElement>(null)
+  const inputRef  = useRef<HTMLTextAreaElement>(null)
   const fileRef   = useRef<HTMLInputElement>(null)
+
+  // Cresce o campo conforme o texto (até um máximo; depois rola internamente).
+  function autoResize() {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+  }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
@@ -86,6 +94,7 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto'
     setAttach(null)
     setLoading(true)
 
@@ -274,7 +283,7 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
             </div>
           )}
           <div
-            className="flex items-center gap-2 rounded-2xl px-3 py-2.5"
+            className="flex items-end gap-2 rounded-2xl px-3 py-2.5"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
             <input
@@ -293,14 +302,16 @@ export function AivaChat({ open, onClose, context, userName }: AivaChatProps) {
             >
               <Paperclip size={15} />
             </button>
-            <input
+            <textarea
               ref={inputRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={e => { setInput(e.target.value); autoResize() }}
               onKeyDown={handleKeyDown}
               placeholder="Pergunte à AIVA…"
               disabled={loading}
-              className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none"
+              rows={1}
+              className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none resize-none leading-relaxed py-1"
+              style={{ maxHeight: 160, overflowY: 'auto' }}
             />
             <button
               onClick={handleSend}
