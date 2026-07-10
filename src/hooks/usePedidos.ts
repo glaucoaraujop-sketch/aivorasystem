@@ -42,25 +42,62 @@ export interface ItemPedido {
   variacoes: Record<string, VariationOption | null>  // typeId → opção selecionada
 }
 
-export function usePedidos(filters: { status?: OrderStatus | '' } = {}) {
+// Lista paginada com BUSCA e FILTRO no servidor (nº, cliente ou fornecedor).
+// Select leve (sem itens) — a lista não os usa; o detalhe carrega o completo.
+const PEDIDO_LISTA_SELECT =
+  'id, number, status, total, created_at, finalidade, delivery_date, commission_value, commission_pct, clients(name, company_name, whatsapp), suppliers(name, lead_time_days)'
+
+// Escapa vírgulas/parênteses que quebrariam o filtro .or() do PostgREST.
+function limparTermo(s: string): string {
+  return s.replace(/[(),]/g, ' ').trim()
+}
+
+export function usePedidos(
+  filters: { status?: OrderStatus | ''; busca?: string; page?: number; pageSize?: number } = {},
+) {
+  const { status = '', busca = '', page = 0, pageSize = 30 } = filters
   const [pedidos, setPedidos] = useState<OrderWithDetails[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   const fetch = useCallback(async () => {
     setLoading(true)
+    const termo = limparTermo(busca)
+
+    // Busca por cliente/fornecedor: resolve os ids primeiro (filtro em tabela ligada).
+    const orParts: string[] = []
+    if (termo) {
+      const like = `%${termo}%`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [cli, sup] = await Promise.all([
+        (supabase.from('clients') as any).select('id')
+          .or(`name.ilike.${like},company_name.ilike.${like},razao_social.ilike.${like}`).limit(300),
+        (supabase.from('suppliers') as any).select('id').ilike('name', like).limit(50),
+      ])
+      orParts.push(`number.ilike.${like}`)
+      const cids = (cli.data ?? []).map((c: { id: string }) => c.id)
+      const sids = (sup.data ?? []).map((s: { id: string }) => s.id)
+      if (cids.length) orParts.push(`client_id.in.(${cids.join(',')})`)
+      if (sids.length) orParts.push(`supplier_id.in.(${sids.join(',')})`)
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase.from('orders') as any)
-      .select('*, clients(name, company_name, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, familia, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
+      .select(PEDIDO_LISTA_SELECT, { count: 'exact' })
       .order('created_at', { ascending: false })
-    if (filters.status) query = query.eq('status', filters.status)
-    const { data } = await query
+    if (status) query = query.eq('status', status)
+    if (termo) query = query.or(orParts.join(','))
+    query = query.range(page * pageSize, page * pageSize + pageSize - 1)
+
+    const { data, count } = await query
     setPedidos(data ?? [])
+    setTotal(count ?? 0)
     setLoading(false)
-  }, [filters.status])
+  }, [status, busca, page, pageSize])
 
   useEffect(() => { fetch() }, [fetch])
-  return { pedidos, loading, refetch: fetch }
+  return { pedidos, total, loading, refetch: fetch }
 }
 
 export function usePedido(id: string) {

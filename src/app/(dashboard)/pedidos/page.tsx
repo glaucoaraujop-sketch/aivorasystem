@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload, Search } from 'lucide-react'
+import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePedidos } from '@/hooks/usePedidos'
 import { usePedidosResumo } from '@/hooks/usePedidosResumo'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -30,20 +30,26 @@ const FILTROS: { value: OrderStatus | ''; label: string }[] = [
 export default function PedidosPage() {
   const [status, setStatus] = useState<OrderStatus | ''>('')
   const [busca, setBusca] = useState('')
+  const [buscaDebounced, setBuscaDebounced] = useState('')
+  const [page, setPage] = useState(0)
   const [importOpen, setImportOpen] = useState(false)
-  const { pedidos, loading, refetch } = usePedidos({ status })
-  // KPIs agregados no banco (não somam a lista limitada a 1000 linhas)
-  const resumo = usePedidosResumo(pedidos.length)
+  const pageSize = 30
 
-  const termo = busca.trim().toLowerCase()
-  const pedidosFiltrados = termo
-    ? pedidos.filter(p =>
-        (p.number ?? '').toLowerCase().includes(termo) ||
-        (p.clients?.name ?? '').toLowerCase().includes(termo) ||
-        (p.clients?.company_name ?? '').toLowerCase().includes(termo) ||
-        (p.suppliers?.name ?? '').toLowerCase().includes(termo)
-      )
-    : pedidos
+  // debounce da busca (não consulta a cada tecla)
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca), 350)
+    return () => clearTimeout(t)
+  }, [busca])
+  // volta pra 1ª página ao mudar filtro/busca
+  useEffect(() => { setPage(0) }, [status, buscaDebounced])
+
+  const { pedidos, total, loading, refetch } = usePedidos({ status, busca: buscaDebounced, page, pageSize })
+  // KPIs globais agregados no banco (independem da lista paginada)
+  const resumo = usePedidosResumo(total)
+
+  const totalPaginas = Math.max(1, Math.ceil(total / pageSize))
+  const inicio = total === 0 ? 0 : page * pageSize + 1
+  const fim = Math.min(page * pageSize + pageSize, total)
 
   const metrics = [
     { label: 'Total de Pedidos', value: resumo ? resumo.total_pedidos.toLocaleString('pt-BR') : '—', icon: ShoppingCart, color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
@@ -151,7 +157,7 @@ export default function PedidosPage() {
             </div>
           ))}
         </div>
-      ) : pedidosFiltrados.length === 0 ? (
+      ) : pedidos.length === 0 ? (
         <div className="glass-card rounded-2xl p-16 text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -159,12 +165,12 @@ export default function PedidosPage() {
           </div>
           <p className="text-white font-semibold text-lg">Nenhum pedido encontrado</p>
           <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
-            {termo ? 'Tente outra pesquisa' : status ? 'Tente outro filtro' : 'Clique em "Novo Pedido" para começar'}
+            {buscaDebounced.trim() ? 'Tente outra pesquisa' : status ? 'Tente outro filtro' : 'Clique em "Novo Pedido" para começar'}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {pedidosFiltrados.map(p => {
+          {pedidos.map(p => {
             const cfg = STATUS_CONFIG[p.status]
             return (
               <Link
@@ -216,6 +222,36 @@ export default function PedidosPage() {
               </Link>
             )
           })}
+        </div>
+      )}
+
+      {/* Paginação */}
+      {!loading && total > pageSize && (
+        <div className="flex items-center justify-between mt-5">
+          <p className="text-xs" style={{ color: '#56577A' }}>
+            {inicio.toLocaleString('pt-BR')}–{fim.toLocaleString('pt-BR')} de {total.toLocaleString('pt-BR')}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-30"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#A0AEC0', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <ChevronLeft size={15} /> Anterior
+            </button>
+            <span className="text-xs px-2" style={{ color: '#A0AEC0' }}>
+              {page + 1} / {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPage(p => (p + 1 < totalPaginas ? p + 1 : p))}
+              disabled={page + 1 >= totalPaginas}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-30"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#A0AEC0', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              Próxima <ChevronRight size={15} />
+            </button>
+          </div>
         </div>
       )}
 
