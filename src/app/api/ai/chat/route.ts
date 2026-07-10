@@ -22,6 +22,7 @@ Ferramentas disponíveis:
 - resumo_clientes: total de clientes (lojas) e total de PDVs JÁ SOMADOS pelo sistema, com a lista de clientes que têm mais de 1 PDV. Use para "quantos PDVs/lojas temos".
 - clientes_em_risco: Radar de Carteira — clientes que estão saindo do próprio ritmo de compra (atraso relativo ≥ 1,3), priorizados por faturamento × atraso, com fábrica, cadência, dias desde o último pedido e segmento. Use para "quem está atrasado pra comprar?", "quem ligar essa semana?". Aceita filtro por fábrica.
 - cadencia_compra: cadência de compra de UM cliente (intervalo médio entre pedidos, previsão da próxima compra, histórico de intervalos). Use para "de quanto em quanto tempo o cliente X compra?".
+- clientes_quentes: Radar ofensivo — clientes que MAIS compraram nas últimas 4 semanas, com sinal de momento (crescendo). Use para "quem está comprando forte agora?", "clientes mais quentes".
 - planejar_agenda_semanal: AIVA Planner — monta (SIMULA) a agenda/cronograma de visitas da semana aplicando as Business Rules (capacidade em PDVs, níveis de prioridade, janelas e score), com justificativa de cada escolha e as datas reais da próxima semana. Não grava nada.
 - agendar_visitas_semana: AÇÃO DE ESCRITA — registra de fato as visitas da próxima semana na aba Visitas. Só use após confirmação explícita do usuário.
 - criar_pedido: AÇÃO DE ESCRITA — cria um pedido no formato "Pedido de Venda" das fábricas a partir dos dados que você extrair de um documento (imagem/PDF/texto). Só use após confirmação explícita do usuário.

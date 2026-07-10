@@ -217,6 +217,14 @@ export const tools: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'clientes_quentes',
+    description: 'Radar (lente ofensiva): clientes que MAIS compraram nas últimas 4 semanas, ordenados por valor, com sinal de MOMENTO (crescendo = faturou mais que nas 4 semanas anteriores). Use para "quem está comprando forte agora?", "clientes mais quentes das últimas semanas?", oportunidades de aproveitar o momento.',
+    input_schema: {
+      type: 'object',
+      properties: { limite: { type: 'number', description: 'Máximo de clientes (padrão 10).' } },
+    },
+  },
+  {
     name: 'cadencia_compra',
     description: 'Radar de Carteira: cadência de compra de UM cliente — intervalo médio entre pedidos, previsão da próxima compra, dias desde o último pedido, segmento e o histórico de intervalos. Use para "de quanto em quanto tempo o cliente X compra?", "quando o cliente X deve comprar de novo?".',
     input_schema: {
@@ -719,6 +727,20 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
           segmento: r ? rotuloSegmento(r.segmento) : 'Novo / sem histórico',
           historico_intervalos_dias: intervalos,
         })
+      }
+      case 'clientes_quentes': {
+        const { data, error } = await sb.from('vw_client_quentes')
+          .select('*').order('valor_28d', { ascending: false }).limit(lim(input.limite, 10, 50))
+        if (error) return `Erro: ${error.message}`
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const itens = ((data ?? []) as any[]).map(r => ({
+          cliente: r.company_name || r.client_name || 'Sem cliente',
+          pedidos_28d: Number(r.pedidos_28d) || 0,
+          valor_28d: Math.round(Number(r.valor_28d) || 0),
+          dias_desde_ultimo: r.dias_desde_ultimo != null ? Number(r.dias_desde_ultimo) : null,
+          crescendo: !!r.crescendo,
+        }))
+        return JSON.stringify({ janela_dias: 28, total: itens.length, clientes: itens })
       }
       case 'vendas_periodo': {
         const desde = String(input.desde ?? '').slice(0, 10)
