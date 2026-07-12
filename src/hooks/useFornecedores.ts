@@ -70,7 +70,31 @@ export function useFornecedoresMutations() {
     if (error) throw new Error(error.message)
   }
 
-  return { atualizar }
+  async function criar(dados: {
+    name: string; lead_time_days: number
+    phone?: string | null; email?: string | null; whatsapp?: string | null; contact_name?: string | null
+  }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('suppliers') as any)
+      .insert({ ...dados, active: true }).select().single()
+    if (error) throw new Error(error.message)
+    return data as Supplier
+  }
+
+  // Exclui o fornecedor. Se houver pedidos/registros ligados (FK), bloqueia com
+  // mensagem clara — nesse caso o certo é desativar, não excluir.
+  async function remover(id: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('suppliers') as any).delete().eq('id', id)
+    if (error) {
+      if (error.code === '23503' || /foreign key|violates/i.test(error.message ?? '')) {
+        throw new Error('Este fornecedor tem pedidos ligados e não pode ser excluído. Desative-o em vez de remover.')
+      }
+      throw new Error(error.message)
+    }
+  }
+
+  return { atualizar, criar, remover }
 }
 
 export function calcularEntrega(leadTimeDays: number, dataInicio?: Date): Date {
