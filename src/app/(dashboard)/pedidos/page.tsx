@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ShoppingCart, Plus, Truck, DollarSign, Clock, Upload, Search, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import { usePedidos } from '@/hooks/usePedidos'
 import { usePedidosResumo } from '@/hooks/usePedidosResumo'
+import { useFornecedores } from '@/hooks/useFornecedores'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { OrderStatus } from '@/types/database'
 import { ImportadorPedidos } from '@/components/import/ImportadorPedidos'
+import { RelatorioModal } from '@/components/pedidos/RelatorioModal'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   processado:  { label: 'Processado',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
@@ -31,6 +33,8 @@ export default function PedidosPage() {
   const [buscaDebounced, setBuscaDebounced] = useState('')
   const [page, setPage] = useState(0)
   const [importOpen, setImportOpen] = useState(false)
+  const [relatorioOpen, setRelatorioOpen] = useState(false)
+  const { fornecedores } = useFornecedores()
   const pageSize = 30
 
   // debounce da busca (não consulta a cada tecla)
@@ -62,7 +66,18 @@ export default function PedidosPage() {
         <div>
           <h1 className="text-3xl font-semibold text-white tracking-tight">PEDIDOS</h1>
         </div>
-        <div className="flex gap-2 sm:flex-shrink-0">
+        <div className="flex gap-2 sm:flex-shrink-0 flex-wrap">
+          <button
+            onClick={() => setRelatorioOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+            style={{
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <FileText size={15} />
+            Relatório
+          </button>
           <button
             onClick={() => setImportOpen(true)}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
@@ -259,6 +274,12 @@ export default function PedidosPage() {
           onImported={() => { refetch(); }}
         />
       )}
+
+      <RelatorioModal
+        open={relatorioOpen}
+        onClose={() => setRelatorioOpen(false)}
+        suppliers={fornecedores.map((f) => ({ id: f.id, name: f.name }))}
+      />
     </div>
   )
 }
