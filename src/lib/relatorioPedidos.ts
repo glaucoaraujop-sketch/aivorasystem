@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import type { OrderStatus } from '@/types/database'
+import { nomeEmpresaCliente } from '@/lib/nomeCliente'
 
 // Base de data do relatório: quando o pedido foi emitido vs. quando foi faturado.
 export type BaseData = 'emissao' | 'faturamento'
@@ -25,7 +26,7 @@ export interface LinhaRelatorio {
 }
 
 const SEL =
-  'number, status, total, data_emissao, created_at, delivery_date, delivered_at, clients(name, company_name), suppliers(name)'
+  'number, status, total, data_emissao, created_at, delivery_date, delivered_at, clients(name, company_name, razao_social), suppliers(name)'
 
 // Data que representa a linha conforme a base escolhida.
 export function dataDaLinha(l: LinhaRelatorio, base: BaseData): string | null {
@@ -74,7 +75,7 @@ export async function buscarPedidosRelatorio(f: FiltroRelatorio): Promise<LinhaR
         created_at: o.created_at,
         delivery_date: o.delivery_date,
         delivered_at: o.delivered_at,
-        cliente: o.clients?.company_name || o.clients?.name || '—',
+        cliente: nomeEmpresaCliente(o.clients),
         fabrica: o.suppliers?.name || '—',
       })
     }
