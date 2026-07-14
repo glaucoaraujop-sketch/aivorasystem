@@ -8,7 +8,7 @@ import type { VariationOption } from './useVariacoes'
 type Order = Database['aivora_rep']['Tables']['orders']['Row']
 
 export type OrderWithDetails = Order & {
-  clients: { name: string; company_name: string | null; whatsapp: string | null } | null
+  clients: { name: string; company_name: string | null; razao_social: string | null; whatsapp: string | null } | null
   suppliers: { name: string; lead_time_days: number } | null
   order_items: {
     id: string
@@ -45,7 +45,7 @@ export interface ItemPedido {
 // Lista paginada com BUSCA e FILTRO no servidor (nº, cliente ou fornecedor).
 // Select leve (sem itens) — a lista não os usa; o detalhe carrega o completo.
 const PEDIDO_LISTA_SELECT =
-  'id, number, status, total, created_at, finalidade, delivery_date, commission_value, commission_pct, clients(name, company_name, whatsapp), suppliers(name, lead_time_days)'
+  'id, number, status, total, created_at, finalidade, delivery_date, commission_value, commission_pct, clients(name, company_name, razao_social, whatsapp), suppliers(name, lead_time_days)'
 
 // Escapa vírgulas/parênteses que quebrariam o filtro .or() do PostgREST.
 function limparTermo(s: string): string {
@@ -108,7 +108,7 @@ export function usePedido(id: string) {
   const fetch = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase.from('orders') as any)
-      .select('*, clients(name, company_name, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, familia, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
+      .select('*, clients(name, company_name, razao_social, whatsapp), suppliers(name, lead_time_days), order_items(id, quantity, unit_price, discount_pct, total, notes, familia, products(id, code, name, unit), order_item_variations(id, variation_type_name, option_name, price_add))')
       .eq('id', id).single()
     setPedido(data)
     setLoading(false)

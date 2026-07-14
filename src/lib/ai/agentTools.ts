@@ -8,6 +8,7 @@ import { montarAgendaSemana } from '@/lib/planner/agendaServer'
 import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
 import { priorizarRadar, rotuloSegmento, type CadenceRow } from '@/lib/ai/radar'
 import { carregarLinhasRadar } from '@/lib/ai/radarServer'
+import { nomeEmpresaCliente } from '@/lib/nomeCliente'
 
 const STATUS_PEDIDO = ['processado', 'em_carga', 'em_producao', 'faturado', 'cancelado']
 const STATUS_COMISSAO = ['prevista', 'aprovada', 'paga', 'cancelada']
@@ -574,13 +575,13 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         // Agregado no banco (vw_ranking_clientes) — não some no navegador nem cai no cap de 1000
         const por = input.por === 'faturamento' ? 'faturamento' : 'pedidos'
         const { data, count, error } = await sb.from('vw_ranking_clientes')
-          .select('name,company_name,pedidos,faturamento', { count: 'exact' })
+          .select('name,company_name,razao_social,pedidos,faturamento', { count: 'exact' })
           .order(por, { ascending: false })
           .limit(lim(input.limite, 10, 50))
         if (error) return `Erro: ${error.message}`
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ranking = ((data ?? []) as any[]).map(r => ({
-          cliente: r.company_name || r.name || 'Sem cliente',
+          cliente: nomeEmpresaCliente(r),
           pedidos: Number(r.pedidos) || 0,
           faturamento: Number(r.faturamento) || 0,
         }))
@@ -707,7 +708,7 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         const nomeCli = String(input.cliente ?? '').trim()
         if (!nomeCli) return 'Informe o nome do cliente.'
         const cli = await sb.from('clients')
-          .select('id,name,company_name')
+          .select('id,name,company_name,razao_social')
           .or(`name.ilike.%${nomeCli}%,company_name.ilike.%${nomeCli}%`)
           .limit(1)
         if (cli.error) return `Erro: ${cli.error.message}`
@@ -727,7 +728,7 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         }
         const r = rfm.data as CadenceRow | null
         return JSON.stringify({
-          cliente: c.company_name || c.name,
+          cliente: nomeEmpresaCliente(c),
           pedidos_total: r?.pedidos_total ?? (ped.data?.length ?? 0),
           cadencia_media_dias: r?.cadencia_media_dias != null ? Math.round(Number(r.cadencia_media_dias) * 10) / 10 : null,
           dias_desde_ultimo: r?.dias_desde_ultimo != null ? Math.round(Number(r.dias_desde_ultimo)) : null,
@@ -743,7 +744,7 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
         if (error) return `Erro: ${error.message}`
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const itens = ((data ?? []) as any[]).map(r => ({
-          cliente: r.company_name || r.client_name || 'Sem cliente',
+          cliente: nomeEmpresaCliente({ name: r.client_name, company_name: r.company_name, razao_social: r.razao_social }),
           pedidos_28d: Number(r.pedidos_28d) || 0,
           valor_28d: Math.round(Number(r.valor_28d) || 0),
           dias_desde_ultimo: r.dias_desde_ultimo != null ? Number(r.dias_desde_ultimo) : null,

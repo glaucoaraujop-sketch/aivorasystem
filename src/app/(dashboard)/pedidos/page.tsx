@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import type { OrderStatus } from '@/types/database'
 import { ImportadorPedidos } from '@/components/import/ImportadorPedidos'
 import { RelatorioModal } from '@/components/pedidos/RelatorioModal'
+import { nomeEmpresaCliente } from '@/lib/nomeCliente'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   processado:  { label: 'Processado',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
@@ -213,7 +214,7 @@ export default function PedidosPage() {
                     )}
                   </div>
                   <p className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
-                    {p.clients?.name}
+                    {nomeEmpresaCliente(p.clients)}
                   </p>
                   {p.suppliers && (
                     <p className="flex items-center gap-1 mt-0.5 text-xs" style={{ color: '#56577A' }}>

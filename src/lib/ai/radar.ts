@@ -1,11 +1,13 @@
 // Lógica pura do "Radar de Carteira" (cadência/RFM). Separada da rota e do banco
 // para permitir testes de regressão (Vitest), no mesmo padrão de aggregations.ts.
+import { nomeEmpresaCliente } from '@/lib/nomeCliente'
 
 // Linha vinda da view aivora_rep.vw_client_rfm (+ fábricas anexadas pela rota).
 export interface CadenceRow {
   client_id?: string
   client_name?: string | null
   company_name?: string | null
+  razao_social?: string | null
   pedidos_total?: number | null
   faturamento_total: number | null
   cadencia_media_dias: number | null
@@ -62,7 +64,7 @@ export function priorizarRadar(
     .filter(r => !opts.segmentos || opts.segmentos.includes(r.segmento))
     .filter(r => !fabrica || (r.fabricas ?? []).some(f => f.toLowerCase().includes(fabrica)))
     .map(r => ({
-      cliente: r.company_name || r.client_name || 'Sem cliente',
+      cliente: nomeEmpresaCliente({ name: r.client_name, company_name: r.company_name, razao_social: r.razao_social }),
       fabricas: r.fabricas ?? [],
       segmento: r.segmento,
       cadencia_media_dias: round1(r.cadencia_media_dias),

@@ -6,6 +6,7 @@ import { Radar, Snowflake, Flame, TrendingUp, ArrowRight } from 'lucide-react'
 import { useRadarCarteira } from '@/hooks/useRadarCarteira'
 import { useClientesQuentes } from '@/hooks/useClientesQuentes'
 import { percentAlemDoRitmo, rotuloSegmento } from '@/lib/ai/radar'
+import { nomeEmpresaCliente } from '@/lib/nomeCliente'
 
 const CORES_SEG: Record<string, { cor: string; bg: string }> = {
   esfriando: { cor: '#F6AD55', bg: 'rgba(246,173,85,0.14)' },
@@ -104,7 +105,7 @@ export function RadarCard() {
       ) : (
         <div className="space-y-2">
           {quentes.map((it, i) => {
-            const nome = it.company_name || it.client_name || 'Sem cliente'
+            const nome = nomeEmpresaCliente({ name: it.client_name, company_name: it.company_name, razao_social: it.razao_social })
             return (
               <div key={i} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>

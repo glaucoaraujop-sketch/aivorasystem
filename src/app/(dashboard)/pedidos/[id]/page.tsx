@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Truck, MessageCircle, CheckCircle } from 'lucide-react'
 import { usePedido, usePedidosMutations } from '@/hooks/usePedidos'
 import { formatCurrency, formatDate, formatPhone } from '@/lib/utils'
+import { nomeEmpresaCliente } from '@/lib/nomeCliente'
 import type { OrderStatus } from '@/types/database'
 import { AiMensagem } from '@/components/ai/AiMensagem'
 
@@ -134,9 +135,9 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <div className="glass-card rounded-2xl p-5 sm:col-span-1 md:col-span-2">
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#A0AEC0' }}>Cliente</p>
-          <p className="font-semibold text-white">{pedido.clients?.name}</p>
-          {pedido.clients?.company_name && (
-            <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>{pedido.clients.company_name}</p>
+          <p className="font-semibold text-white">{nomeEmpresaCliente(pedido.clients)}</p>
+          {pedido.clients?.name && pedido.clients.name !== nomeEmpresaCliente(pedido.clients) && (
+            <p className="text-sm mt-0.5" style={{ color: '#A0AEC0' }}>{pedido.clients.name}</p>
           )}
           {pedido.clients?.whatsapp && (
             <p className="text-sm mt-1" style={{ color: '#56577A' }}>{formatPhone(pedido.clients.whatsapp)}</p>

@@ -7,6 +7,7 @@ export interface ClienteQuente {
   client_id: string
   client_name: string | null
   company_name: string | null
+  razao_social: string | null
   pedidos_28d: number
   valor_28d: number
   ultima_compra: string | null
