@@ -236,7 +236,7 @@ export function ImportadorPedidos({ onClose, onImported }: ImportadorPedidosProp
             supplier_id: p._fornecedorId ?? null,
             // Número principal lido do documento pela AIVA; se vazio, o banco gera automaticamente
             number: p.numero?.trim() || null,
-            status: 'confirmado',
+            status: 'processado',
             subtotal: p.subtotal || p.total,
             discount_pct: p.discount_pct ?? 0,
             total: p.total,

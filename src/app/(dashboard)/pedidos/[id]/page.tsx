@@ -9,23 +9,21 @@ import type { OrderStatus } from '@/types/database'
 import { AiMensagem } from '@/components/ai/AiMensagem'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  pendente:    { label: 'Pendente',     color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
-  confirmado:  { label: 'Confirmado',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+  processado:  { label: 'Processado',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+  em_carga:    { label: 'Em Carga',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
   em_producao: { label: 'Em Produção', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
-  pronto:      { label: 'Pronto',      color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-  entregue:    { label: 'Entregue',    color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+  faturado:    { label: 'Faturado',    color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
   cancelado:   { label: 'Cancelado',   color: '#FC8181', bg: 'rgba(252,129,129,0.15)' },
 }
 
 const FLUXO: { status: OrderStatus; label: string }[] = [
-  { status: 'pendente',    label: 'Pendente' },
-  { status: 'confirmado',  label: 'Confirmado' },
+  { status: 'processado',  label: 'Processado' },
+  { status: 'em_carga',    label: 'Em Carga' },
   { status: 'em_producao', label: 'Em Produção' },
-  { status: 'pronto',      label: 'Pronto' },
-  { status: 'entregue',    label: 'Entregue' },
+  { status: 'faturado',    label: 'Faturado' },
 ]
 
-const ORDEM_STATUS = ['pendente', 'confirmado', 'em_producao', 'pronto', 'entregue']
+const ORDEM_STATUS = ['processado', 'em_carga', 'em_producao', 'faturado']
 
 export default function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)

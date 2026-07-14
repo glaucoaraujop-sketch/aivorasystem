@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { rankClientes, resumoFinanceiro, type OrderRow, type CommissionRow } from './aggregations'
 
 const pedidos: OrderRow[] = [
-  { total: 1000, status: 'confirmado', clients: { company_name: 'Loja A' } },
-  { total: 500, status: 'entregue', clients: { company_name: 'Loja A' } },
-  { total: 2000, status: 'confirmado', clients: { company_name: 'Loja B' } },
+  { total: 1000, status: 'processado', clients: { company_name: 'Loja A' } },
+  { total: 500, status: 'faturado', clients: { company_name: 'Loja A' } },
+  { total: 2000, status: 'processado', clients: { company_name: 'Loja B' } },
   { total: 9999, status: 'cancelado', clients: { company_name: 'Loja B' } }, // ignorado
-  { total: 300, status: 'pendente', clients: { name: 'Cliente C' } },
+  { total: 300, status: 'em_producao', clients: { name: 'Cliente C' } },
 ]
 
 describe('rankClientes', () => {
@@ -46,7 +46,7 @@ describe('resumoFinanceiro', () => {
     // 1000 + 500 + 2000 + 300 = 3800 (cancelado de 9999 fora)
     expect(r.faturamento_total).toBe(3800)
     expect(r.pedidos_total).toBe(4)
-    // em aberto = não entregue e não cancelado → confirmado, confirmado, pendente = 3
+    // em aberto = não faturado e não cancelado → processado, processado, em_producao = 3
     expect(r.pedidos_em_aberto).toBe(3)
   })
 })

@@ -48,7 +48,7 @@ export interface MonthlyGoal {
 
 export type ClientType = 'loja' | 'arquiteto' | 'decorador' | 'distribuidor' | 'outros'
 export type QuoteStatus = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'expirado'
-export type OrderStatus = 'pendente' | 'confirmado' | 'em_producao' | 'pronto' | 'entregue' | 'cancelado'
+export type OrderStatus = 'processado' | 'em_carga' | 'em_producao' | 'faturado' | 'cancelado'
 export type CommissionStatus = 'prevista' | 'aprovada' | 'paga' | 'cancelada'
 export type VisitStatus = 'agendada' | 'realizada' | 'cancelada' | 'reagendada'
 export type ContactChannel = 'whatsapp' | 'telefone' | 'email' | 'visita' | 'outro'

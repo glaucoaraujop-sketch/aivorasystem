@@ -213,8 +213,8 @@ export function usePedidosMutations() {
 
   async function atualizarStatus(id: string, status: OrderStatus) {
     const extra: Record<string, string> = {}
-    if (status === 'confirmado') extra.confirmed_at = new Date().toISOString()
-    if (status === 'entregue')   extra.delivered_at = new Date().toISOString()
+    if (status === 'processado') extra.confirmed_at = new Date().toISOString()
+    if (status === 'faturado')   extra.delivered_at = new Date().toISOString()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from('orders') as any).update({ status, ...extra }).eq('id', id)
     if (error) throw new Error(error.message)

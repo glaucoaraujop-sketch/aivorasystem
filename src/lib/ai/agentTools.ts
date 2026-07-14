@@ -9,7 +9,7 @@ import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
 import { priorizarRadar, rotuloSegmento, type CadenceRow } from '@/lib/ai/radar'
 import { carregarLinhasRadar } from '@/lib/ai/radarServer'
 
-const STATUS_PEDIDO = ['pendente', 'confirmado', 'em_producao', 'pronto', 'entregue', 'cancelado']
+const STATUS_PEDIDO = ['processado', 'em_carga', 'em_producao', 'faturado', 'cancelado']
 const STATUS_COMISSAO = ['prevista', 'aprovada', 'paga', 'cancelada']
 const STATUS_VISITA = ['agendada', 'realizada', 'cancelada', 'reagendada']
 const STATUS_ORCAMENTO = ['rascunho', 'enviado', 'aprovado', 'recusado', 'expirado']
@@ -399,7 +399,7 @@ async function criarPedidoFabrica(sb: SB, input: Input): Promise<string> {
     client_id: clienteId,
     supplier_id: supplierId,
     number: input.numero ? String(input.numero) : null,
-    status: 'pendente',
+    status: 'processado',
     finalidade,
     subtotal,
     total,

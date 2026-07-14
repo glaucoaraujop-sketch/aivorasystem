@@ -45,7 +45,7 @@ export function resumoFinanceiro(commissions: CommissionRow[], orders: OrderRow[
     if (o.status === 'cancelado') continue
     pedidosTotal += 1
     faturamento += Number(o.total || 0)
-    if (!['entregue', 'cancelado'].includes(o.status)) pedidosEmAberto += 1
+    if (!['faturado', 'cancelado'].includes(o.status)) pedidosEmAberto += 1
   }
   return {
     comissoes_a_receber: previstas + aprovadas,

@@ -10,21 +10,19 @@ import type { OrderStatus } from '@/types/database'
 import { ImportadorPedidos } from '@/components/import/ImportadorPedidos'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  pendente:    { label: 'Pendente',    color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
-  confirmado:  { label: 'Confirmado',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+  processado:  { label: 'Processado',  color: '#0075FF', bg: 'rgba(0,117,255,0.15)'   },
+  em_carga:    { label: 'Em Carga',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
   em_producao: { label: 'Em Produção', color: '#F6AD55', bg: 'rgba(246,173,85,0.15)'  },
-  pronto:      { label: 'Pronto',      color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
-  entregue:    { label: 'Entregue',    color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
+  faturado:    { label: 'Faturado',    color: '#01B574', bg: 'rgba(1,181,116,0.15)'   },
   cancelado:   { label: 'Cancelado',   color: '#FC8181', bg: 'rgba(252,129,129,0.15)' },
 }
 
 const FILTROS: { value: OrderStatus | ''; label: string }[] = [
   { value: '',            label: 'Todos' },
-  { value: 'pendente',    label: 'Pendente' },
-  { value: 'confirmado',  label: 'Confirmado' },
+  { value: 'processado',  label: 'Processado' },
+  { value: 'em_carga',    label: 'Em Carga' },
   { value: 'em_producao', label: 'Em Produção' },
-  { value: 'pronto',      label: 'Pronto' },
-  { value: 'entregue',    label: 'Entregue' },
+  { value: 'faturado',    label: 'Faturado' },
 ]
 
 export default function PedidosPage() {

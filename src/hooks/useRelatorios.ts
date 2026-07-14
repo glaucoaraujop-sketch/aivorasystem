@@ -79,7 +79,7 @@ export function useRelatorios() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase.from('orders') as any).select('total').gte('created_at', inicioMesAnterior).lte('created_at', fimMesAnterior).not('status', 'eq', 'cancelado'),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase.from('orders') as any).select('id').not('status', 'in', '("entregue","cancelado")'),
+        (supabase.from('orders') as any).select('id').not('status', 'in', '("faturado","cancelado")'),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase.from('commissions') as any).select('value').in('status', ['prevista','aprovada']),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
