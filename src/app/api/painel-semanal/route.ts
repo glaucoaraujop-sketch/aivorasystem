@@ -36,13 +36,8 @@ const addDias = (iso: string, n: number) => {
 }
 const dow = (iso: string) => toDate(iso).getUTCDay() // 0=Dom .. 4=Qui .. 6=Sáb
 
-// Última quinta ENCERRADA (a mais recente estritamente anterior à data de ref).
-function ultimaQuintaEncerrada(refIso: string) {
-  let d = addDias(refIso, -1)
-  while (dow(d) !== 4) d = addDias(d, -1)
-  return d
-}
 // Ajusta uma data qualquer para a QUINTA que fecha a semana dela (1ª quinta >=).
+// Aplicado ao "hoje", devolve a quinta da SEMANA EM CURSO (a que ainda vai fechar).
 function ajustaParaQuinta(iso: string) {
   let d = iso
   for (let i = 0; i < 7 && dow(d) !== 4; i++) d = addDias(d, 1)
@@ -72,8 +67,10 @@ async function handler(req: NextRequest) {
     return json({ error: 'não autorizado' }, 401)
   }
 
-  // 2) Quinta de referência (fim da semana)
+  // 2) Quinta de referência (fim da semana). Default = quinta da SEMANA EM CURSO,
+  //    para o acumulado_mes refletir o mês até hoje (casa com o painel mensal).
   const hoje = isoHoje()
+  const quintaAtual = ajustaParaQuinta(hoje)
   const ateParam = sp.get('ate')
   const anoParam = sp.get('ano')
   const mesParam = sp.get('mes')
@@ -90,9 +87,9 @@ async function handler(req: NextRequest) {
     if (!Number.isInteger(ano) || ano < 2020 || ano > 2100 || !Number.isInteger(mes) || mes < 1 || mes > 12) {
       return json({ error: 'ano/mes inválidos' }, 400)
     }
-    ate = ultimaQuintaDoMes(ano, mes, ultimaQuintaEncerrada(hoje))
+    ate = ultimaQuintaDoMes(ano, mes, quintaAtual)
   } else {
-    ate = ultimaQuintaEncerrada(hoje)
+    ate = quintaAtual
   }
 
   // 3) Monta o contrato no banco (uma chamada, sem cap de 1000)
