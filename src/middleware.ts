@@ -6,7 +6,14 @@ export async function middleware(request: NextRequest) {
   // Endpoints de automação (n8n/cron) e o consultor via WhatsApp fazem a própria
   // autenticação por segredo e não têm sessão — não passam pelo gate de acesso.
   const p = request.nextUrl.pathname
-  if (p.startsWith('/api/cron') || p === '/api/ai/consultor') {
+  // Rotas públicas / com auth própria por token-segredo (sem sessão de usuário):
+  // health (uptime/deploy), crons (n8n), consultor WhatsApp e painéis externos (?token=).
+  if (
+    p === '/api/health' ||
+    p.startsWith('/api/cron') ||
+    p === '/api/ai/consultor' ||
+    p.startsWith('/api/painel')
+  ) {
     return NextResponse.next({ request })
   }
 
