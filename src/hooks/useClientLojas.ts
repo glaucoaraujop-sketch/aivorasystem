@@ -100,7 +100,58 @@ export function useClientLojasMutations() {
     if (error) throw new Error(error.message)
   }
 
-  return { criar, atualizar, remover }
+  // Atribui manualmente um pedido a um PDV.
+  async function atribuirPedido(orderId: string, lojaId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('orders') as any).update({ loja_id: lojaId }).eq('id', orderId)
+    if (error) throw new Error(error.message)
+  }
+
+  // Reroda a atribuição automática (código/nome da OC) nos pedidos sem loja do cliente.
+  async function reatribuirAuto(clientId: string): Promise<number> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('fn_reatribuir_lojas', { p_client_id: clientId })
+    if (error) throw new Error(error.message)
+    return Number(data) || 0
+  }
+
+  return { criar, atualizar, remover, atribuirPedido, reatribuirAuto }
+}
+
+export interface PedidoSemLoja {
+  id: string
+  number: string | null
+  oc: string | null
+  total: number
+  data: string | null
+}
+
+export function usePedidosSemLoja(clientId: string, reloadKey = 0) {
+  const [pedidos, setPedidos] = useState<PedidoSemLoja[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, count } = await (supabase.from('orders') as any)
+      .select('id,number,purchase_order,ped_consultor,total,data_emissao,created_at', { count: 'exact' })
+      .eq('client_id', clientId).is('loja_id', null).neq('status', 'cancelado')
+      .order('data_emissao', { ascending: false, nullsFirst: false })
+      .limit(300)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows: PedidoSemLoja[] = (data ?? []).map((o: any) => ({
+      id: o.id, number: o.number,
+      oc: (o.purchase_order || o.ped_consultor || null),
+      total: Number(o.total) || 0,
+      data: o.data_emissao || (o.created_at ? String(o.created_at).slice(0, 10) : null),
+    }))
+    setPedidos(rows); setTotal(count ?? rows.length); setLoading(false)
+  }, [clientId, reloadKey])
+
+  useEffect(() => { fetch() }, [fetch])
+  return { pedidos, total, loading, refetch: fetch }
 }
 
 export const PRIORIDADE_PDV: Record<number, { label: string; color: string; bg: string }> = {

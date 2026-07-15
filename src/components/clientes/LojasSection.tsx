@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Store, Plus, Trash2, Pencil, X, Warehouse, MapPin, Clock } from 'lucide-react'
-import { useClientLojas, useClientLojasMutations, PRIORIDADE_PDV, type ClientLoja, type ClientLojaInput } from '@/hooks/useClientLojas'
+import { Store, Plus, Trash2, Pencil, X, Warehouse, MapPin, Clock, Wand2, Inbox } from 'lucide-react'
+import { useClientLojas, useClientLojasMutations, usePedidosSemLoja, PRIORIDADE_PDV, type ClientLoja, type ClientLojaInput } from '@/hooks/useClientLojas'
 import { formatCurrency } from '@/lib/utils'
 
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }
@@ -35,16 +35,37 @@ function paraInput(f: FormState): ClientLojaInput {
 }
 
 export function LojasSection({ clientId }: { clientId: string }) {
+  const [reloadKey, setReloadKey] = useState(0)
   const { lojas, loading, refetch } = useClientLojas(clientId)
-  const { criar, atualizar, remover } = useClientLojasMutations()
+  const { criar, atualizar, remover, atribuirPedido, reatribuirAuto } = useClientLojasMutations()
+  const { pedidos: semLoja, total: semLojaTotal, refetch: refetchSemLoja } = usePedidosSemLoja(clientId, reloadKey)
 
   const [aberto, setAberto] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(vazio)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
+  const [auto, setAuto] = useState(false)
 
   const pdvs = lojas.filter(l => l.tipo === 'loja')
+
+  async function recarregar() { await Promise.all([refetch(), refetchSemLoja()]); setReloadKey(k => k + 1) }
+
+  async function tentarAuto() {
+    setAuto(true)
+    try {
+      const n = await reatribuirAuto(clientId)
+      await recarregar()
+      alert(n > 0 ? `${n} pedido(s) atribuído(s) automaticamente pelo código da OC.` : 'Nenhum pedido novo casou automaticamente. Atribua manualmente abaixo.')
+    } catch (e) { alert(e instanceof Error ? e.message : 'Erro') }
+    finally { setAuto(false) }
+  }
+
+  async function atribuir(orderId: string, lojaId: string) {
+    if (!lojaId) return
+    try { await atribuirPedido(orderId, lojaId); await recarregar() }
+    catch (e) { alert(e instanceof Error ? e.message : 'Erro') }
+  }
 
   function abrirNovo() { setEditId(null); setForm(vazio); setErro(''); setAberto(true) }
   function abrirEdicao(l: ClientLoja) { setEditId(l.id); setForm(paraForm(l)); setErro(''); setAberto(true) }
@@ -57,7 +78,7 @@ export function LojasSection({ clientId }: { clientId: string }) {
     try {
       if (editId) await atualizar(editId, paraInput(form))
       else await criar(clientId, paraInput(form))
-      setAberto(false); await refetch()
+      setAberto(false); await recarregar()
     } catch (e) { setErro(e instanceof Error ? e.message : 'Erro ao salvar') }
     finally { setSalvando(false) }
   }
@@ -67,7 +88,7 @@ export function LojasSection({ clientId }: { clientId: string }) {
       ? `Remover o PDV "${l.nome}"? Os ${l.pedidos} pedido(s) ligados ficarão SEM loja (podem ser reatribuídos depois).`
       : `Remover o PDV "${l.nome}"?`
     if (!confirm(aviso)) return
-    try { await remover(l.id); await refetch() } catch (e) { alert(e instanceof Error ? e.message : 'Erro') }
+    try { await remover(l.id); await recarregar() } catch (e) { alert(e instanceof Error ? e.message : 'Erro') }
   }
 
   return (
@@ -140,6 +161,48 @@ export function LojasSection({ clientId }: { clientId: string }) {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Fila: pedidos sem loja */}
+      {pdvs.length > 0 && semLojaTotal > 0 && (
+        <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Inbox size={15} style={{ color: '#F6AD55' }} />
+              <h3 className="text-sm font-semibold text-white">Pedidos sem loja</h3>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: '#F6AD55', background: 'rgba(246,173,85,0.14)' }}>{semLojaTotal}</span>
+            </div>
+            <button onClick={tentarAuto} disabled={auto}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+              style={{ background: 'rgba(0,117,255,0.12)', color: '#0075FF', border: '1px solid rgba(0,117,255,0.25)' }}>
+              <Wand2 size={13} /> {auto ? 'Atribuindo…' : 'Tentar automático'}
+            </button>
+          </div>
+          <p className="text-xs mb-3" style={{ color: '#56577A' }}>
+            Pedidos que o sistema não conseguiu ligar a um PDV. Use “Tentar automático” (casa pelo código da OC) ou escolha a loja em cada um.
+          </p>
+          <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+            {semLoja.map(p => (
+              <div key={p.id} className="flex items-center gap-3 rounded-lg px-3 py-2" style={card}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-white font-medium">{p.number || '—'}</span>
+                    <span className="font-semibold" style={{ color: '#01B574' }}>{formatCurrency(p.total)}</span>
+                  </div>
+                  <p className="text-[11px] truncate" style={{ color: '#56577A' }}>{p.oc || '(sem OC)'}{p.data ? ` · ${p.data.split('-').reverse().join('/')}` : ''}</p>
+                </div>
+                <select defaultValue="" onChange={e => atribuir(p.id, e.target.value)}
+                  className="text-xs rounded-lg px-2 py-1.5 text-white outline-none flex-shrink-0" style={input}>
+                  <option value="" style={{ color: '#000' }}>Escolher loja…</option>
+                  {lojas.map(l => <option key={l.id} value={l.id} style={{ color: '#000' }}>{l.nome}</option>)}
+                </select>
+              </div>
+            ))}
+            {semLojaTotal > semLoja.length && (
+              <p className="text-[11px] text-center py-1" style={{ color: '#56577A' }}>Mostrando {semLoja.length} de {semLojaTotal}.</p>
+            )}
+          </div>
         </div>
       )}
 
