@@ -17,6 +17,7 @@ import {
   type ClientSupplierTerm,
 } from '@/hooks/useClientSupplierTerms'
 import { useClientCnpjs, useClientCnpjsMutations } from '@/hooks/useClientCnpjs'
+import { LojasSection } from '@/components/clientes/LojasSection'
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   loja:   { label: 'Loja',   color: '#0075FF', bg: 'rgba(0,117,255,0.15)' },
@@ -748,6 +749,9 @@ export default function ClientePage({ params }: { params: Promise<{ id: string }
 
           {/* Razões Sociais / CNPJs */}
           <CnpjsSection clientId={id} clientNome={cliente.name} clientRazao={cliente.razao_social} clientCnpj={cliente.cpf_cnpj} />
+
+          {/* Lojas / PDVs (filiais físicas) */}
+          <LojasSection clientId={id} />
 
           {/* Comercialização por fábrica */}
           <ComercializacaoSection clientId={id} />

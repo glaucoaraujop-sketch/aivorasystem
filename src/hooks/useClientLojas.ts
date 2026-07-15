@@ -1,0 +1,111 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+// PDV (loja física / filial) de um cliente. Ver migration 031/034.
+export interface ClientLoja {
+  id: string
+  client_id: string
+  nome: string
+  apelidos: string[]            // códigos/prefixos da OC que identificam o PDV
+  tipo: string                  // 'loja' | 'estoque'
+  ativo: boolean
+  prioridade: number | null     // 1=VIP 2=Ouro 3=Prata 4=Bronze
+  endereco: string | null
+  bairro: string | null
+  cidade: string | null
+  uf: string | null
+  cep: string | null
+  whatsapp: string | null
+  responsavel: string | null
+  created_at: string
+  // agregados (vw_lojas_resumo)
+  pedidos: number
+  faturamento: number
+  dias_desde_ultima: number | null
+}
+
+export interface ClientLojaInput {
+  nome: string
+  tipo?: string
+  apelidos?: string[]
+  ativo?: boolean
+  prioridade?: number | null
+  endereco?: string | null
+  bairro?: string | null
+  cidade?: string | null
+  uf?: string | null
+  cep?: string | null
+  whatsapp?: string | null
+  responsavel?: string | null
+}
+
+export function useClientLojas(clientId: string) {
+  const [lojas, setLojas] = useState<ClientLoja[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    const [ls, rs] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('client_lojas') as any).select('*').eq('client_id', clientId).order('tipo').order('nome'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('vw_lojas_resumo') as any).select('loja_id,pedidos,faturamento,dias_desde_ultima').eq('client_id', clientId),
+    ])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stats = new Map<string, any>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (rs.data ?? []) as any[]) stats.set(r.loja_id, r)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const merged: ClientLoja[] = (ls.data ?? []).map((l: any) => ({
+      ...l,
+      apelidos: l.apelidos ?? [],
+      pedidos: Number(stats.get(l.id)?.pedidos) || 0,
+      faturamento: Number(stats.get(l.id)?.faturamento) || 0,
+      dias_desde_ultima: stats.get(l.id)?.dias_desde_ultima ?? null,
+    }))
+    setLojas(merged)
+    setLoading(false)
+  }, [clientId])
+
+  useEffect(() => { fetch() }, [fetch])
+  return { lojas, loading, refetch: fetch }
+}
+
+export function useClientLojasMutations() {
+  const supabase = createClient()
+
+  async function criar(clientId: string, dados: ClientLojaInput) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('client_lojas') as any)
+      .insert({ client_id: clientId, tipo: 'loja', ativo: true, ...dados }).select().single()
+    if (error) throw new Error(error.message)
+    return data
+  }
+
+  async function atualizar(id: string, dados: ClientLojaInput) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('client_lojas') as any)
+      .update(dados).eq('id', id).select().single()
+    if (error) throw new Error(error.message)
+    return data
+  }
+
+  // Remove o PDV. Os pedidos ligados ficam com loja_id = null (FK ON DELETE SET NULL).
+  async function remover(id: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('client_lojas') as any).delete().eq('id', id)
+    if (error) throw new Error(error.message)
+  }
+
+  return { criar, atualizar, remover }
+}
+
+export const PRIORIDADE_PDV: Record<number, { label: string; color: string; bg: string }> = {
+  1: { label: 'VIP',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
+  2: { label: 'Ouro',   color: '#ECC94B', bg: 'rgba(236,201,75,0.15)'  },
+  3: { label: 'Prata',  color: '#A0AEC0', bg: 'rgba(160,174,192,0.15)' },
+  4: { label: 'Bronze', color: '#DD8B4E', bg: 'rgba(221,139,78,0.15)'  },
+}
