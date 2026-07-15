@@ -92,7 +92,7 @@ export function LojasSection({ clientId }: { clientId: string }) {
   }
 
   return (
-    <section className="glass-card rounded-2xl p-5">
+    <section className="glass-card rounded-2xl p-5 col-span-1 sm:col-span-3">
       <div className="flex items-center justify-between mb-4 gap-3">
         <div className="flex items-center gap-2">
           <Store size={16} style={{ color: '#0075FF' }} />
@@ -122,7 +122,7 @@ export function LojasSection({ clientId }: { clientId: string }) {
           <p className="text-xs mt-1" style={{ color: '#56577A' }}>Adicione as lojas físicas deste cliente para acompanhar o que cada uma compra.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {lojas.map(l => {
             const prio = l.prioridade ? PRIORIDADE_PDV[l.prioridade] : null
             return (
