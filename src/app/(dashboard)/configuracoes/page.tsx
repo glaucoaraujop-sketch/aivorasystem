@@ -368,10 +368,14 @@ function TabMetas() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {prefix && <span className="text-sm font-semibold" style={{ color }}>{suffix}</span>}
-                  <input type="number" min={0}
+                  <input type="number" min={0} step={key === 'revenue_goal' ? 'any' : 1}
                     value={form[key as keyof typeof form]}
-                    onChange={e => setForm(p => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
-                    className="w-24 rounded-lg px-2 py-1.5 text-sm text-center font-bold outline-none"
+                    onChange={e => {
+                      const raw = parseFloat(e.target.value) || 0
+                      const val = key === 'revenue_goal' ? Math.max(0, raw) : Math.max(0, Math.round(raw))
+                      setForm(p => ({ ...p, [key]: val }))
+                    }}
+                    className={`${key === 'revenue_goal' ? 'w-36' : 'w-24'} rounded-lg px-2 py-1.5 text-sm text-center font-bold outline-none`}
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color }}
                   />
                   {!prefix && <span className="text-sm font-medium" style={{ color: '#A0AEC0' }}>{suffix}</span>}
