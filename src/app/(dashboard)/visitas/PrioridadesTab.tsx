@@ -8,6 +8,7 @@ import { useBusinessRules } from '@/hooks/useBusinessRules'
 import { diasDeVisitaSet, proximoDiaDeVisita, idealDaysPrioridade } from '@/lib/planner/dias'
 import { capacidadeSemanal } from '@/lib/planner/engine'
 import { formatPhone } from '@/lib/utils'
+import { LojasPrioridade } from '@/components/visitas/LojasPrioridade'
 
 interface ClientePrio {
   id: string
@@ -228,17 +229,20 @@ export default function PrioridadesTab() {
   )
 
   if (clientes.length === 0) return (
-    <div className="glass-card rounded-2xl p-16 text-center">
-      <CalendarDays size={32} className="mx-auto mb-3" style={{ color: '#56577A' }} />
-      <p className="text-white font-semibold">Nenhum cliente com prioridade definida</p>
-      <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
-        Defina a prioridade de visita em cada cliente para visualizar aqui.
-      </p>
-      <Link href="/clientes"
-        className="inline-block mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
-        style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
-        Ir para Clientes
-      </Link>
+    <div className="space-y-6">
+      <LojasPrioridade />
+      <div className="glass-card rounded-2xl p-16 text-center">
+        <CalendarDays size={32} className="mx-auto mb-3" style={{ color: '#56577A' }} />
+        <p className="text-white font-semibold">Nenhum cliente com prioridade definida</p>
+        <p className="text-sm mt-1" style={{ color: '#A0AEC0' }}>
+          Defina a prioridade de visita em cada cliente para visualizar aqui.
+        </p>
+        <Link href="/clientes"
+          className="inline-block mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+          style={{ background: 'linear-gradient(135deg, #0075FF 0%, #4318FF 100%)' }}>
+          Ir para Clientes
+        </Link>
+      </div>
     </div>
   )
 
@@ -278,6 +282,9 @@ export default function PrioridadesTab() {
 
   return (
     <div className="space-y-6">
+
+      {/* Prioridade de visita por PDV (lojas físicas) */}
+      <LojasPrioridade />
 
       {/* Resumo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -154,6 +154,46 @@ export function usePedidosSemLoja(clientId: string, reloadKey = 0) {
   return { pedidos, total, loading, refetch: fetch }
 }
 
+export interface LojaRanking {
+  loja_id: string
+  cliente: string
+  loja: string
+  prioridade: number | null
+  faturamento: number
+  pedidos: number
+  dias_desde_ultima: number | null
+  cidade: string | null
+  uf: string | null
+  whatsapp: string | null
+}
+
+// Todos os PDVs (tipo loja) de todas as redes, para a lista de visita por classificação.
+export function useLojasRanking() {
+  const [lojas, setLojas] = useState<LojaRanking[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from('vw_lojas_resumo') as any)
+        .select('loja_id,client_name,loja_nome,tipo,prioridade,faturamento,pedidos,dias_desde_ultima,cidade,uf,whatsapp')
+        .eq('tipo', 'loja').order('faturamento', { ascending: false })
+      if (!vivo) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setLojas(((data ?? []) as any[]).map(r => ({
+        loja_id: r.loja_id, cliente: r.client_name, loja: r.loja_nome, prioridade: r.prioridade,
+        faturamento: Number(r.faturamento) || 0, pedidos: Number(r.pedidos) || 0,
+        dias_desde_ultima: r.dias_desde_ultima != null ? Number(r.dias_desde_ultima) : null,
+        cidade: r.cidade, uf: r.uf, whatsapp: r.whatsapp,
+      })))
+      setLoading(false)
+    })()
+    return () => { vivo = false }
+  }, [])
+  return { lojas, loading }
+}
+
 export const PRIORIDADE_PDV: Record<number, { label: string; color: string; bg: string }> = {
   1: { label: 'VIP',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
   2: { label: 'Ouro',   color: '#ECC94B', bg: 'rgba(236,201,75,0.15)'  },

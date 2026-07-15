@@ -124,6 +124,17 @@ export const tools: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'ranking_lojas',
+    description: 'Ranking das LOJAS/PDVs (filiais físicas de um mesmo cliente/CNPJ) por quanto cada uma comprou. Use para redes com várias lojas (ex.: Sylvia Design, Rossuti/Móveis Pietá). Traz faturamento, nº de pedidos, dias sem comprar e a classificação de visita (VIP/Ouro/Prata/Bronze) de cada PDV. Filtre por cliente informando o nome.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cliente: { type: 'string', description: 'Nome do cliente/rede para filtrar os PDVs (opcional)' },
+        limite: { type: 'integer', description: 'Quantas lojas retornar (padrão 20, máx 100)' },
+      },
+    },
+  },
+  {
     name: 'resumo_financeiro',
     description: 'Totais consolidados de TODO o sistema: comissões a receber/previstas/aprovadas/pagas, faturamento total e nº de pedidos em aberto.',
     input_schema: { type: 'object', properties: {} },
@@ -586,6 +597,30 @@ async function executarFerramenta(sb: SB, nome: string, input: Input): Promise<s
           faturamento: Number(r.faturamento) || 0,
         }))
         return JSON.stringify({ criterio: por, total_clientes: count ?? ranking.length, ranking })
+      }
+      case 'ranking_lojas': {
+        // Venda por PDV (vw_lojas_resumo) — filiais físicas de um mesmo CNPJ.
+        let q = sb.from('vw_lojas_resumo')
+          .select('client_name,loja_nome,tipo,prioridade,pedidos,faturamento,dias_desde_ultima,cidade,uf')
+          .order('faturamento', { ascending: false })
+          .limit(lim(input.limite, 20, 100))
+        const nomeCli = String(input.cliente ?? '').trim()
+        if (nomeCli) q = q.ilike('client_name', `%${nomeCli}%`)
+        const { data, error } = await q
+        if (error) return `Erro: ${error.message}`
+        const PRIO: Record<number, string> = { 1: 'VIP', 2: 'Ouro', 3: 'Prata', 4: 'Bronze' }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lojas = ((data ?? []) as any[]).map(r => ({
+          cliente: r.client_name,
+          loja: r.loja_nome,
+          tipo: r.tipo,
+          classificacao: r.prioridade ? PRIO[r.prioridade] : null,
+          faturamento: Math.round(Number(r.faturamento) || 0),
+          pedidos: Number(r.pedidos) || 0,
+          dias_sem_comprar: r.dias_desde_ultima != null ? Number(r.dias_desde_ultima) : null,
+          cidade: r.cidade ? `${r.cidade}${r.uf ? '/' + r.uf : ''}` : null,
+        }))
+        return JSON.stringify({ total: lojas.length, lojas })
       }
       case 'resumo_financeiro': {
         // Totais agregados no banco (não caem no limite de 1000 linhas do PostgREST)
