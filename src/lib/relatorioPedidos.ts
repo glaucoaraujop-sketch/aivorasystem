@@ -11,6 +11,9 @@ export interface FiltroRelatorio {
   base: BaseData
   status: OrderStatus | ''  // '' = todos
   supplierId: string        // '' = todas as fábricas
+  lojaId: string            // '' = todas as lojas (PDV)
+  clienteBusca: string      // '' = todos (busca por nome/razão)
+  finalidade: string        // '' = todas | 'venda' | 'mostruario'
 }
 
 export interface LinhaRelatorio {
@@ -22,16 +25,22 @@ export interface LinhaRelatorio {
   delivery_date: string | null
   delivered_at: string | null
   cliente: string
+  loja: string | null
   fabrica: string
 }
 
 const SEL =
-  'number, status, total, data_emissao, created_at, delivery_date, delivered_at, clients(name, company_name, razao_social), suppliers(name)'
+  'number, status, total, finalidade, data_emissao, created_at, delivery_date, delivered_at, clients(name, company_name, razao_social), suppliers(name), client_lojas(nome)'
 
 // Data que representa a linha conforme a base escolhida.
 export function dataDaLinha(l: LinhaRelatorio, base: BaseData): string | null {
   if (base === 'faturamento') return l.delivered_at
   return l.data_emissao ?? l.created_at
+}
+
+// Escapa vírgulas/parênteses que quebram o filtro .or() do PostgREST.
+function limparTermo(s: string) {
+  return s.replace(/[(),]/g, ' ').trim()
 }
 
 // Busca TODOS os pedidos do período (pagina de 1000 em 1000 pra furar o cap do PostgREST).
@@ -40,6 +49,18 @@ export async function buscarPedidosRelatorio(f: FiltroRelatorio): Promise<LinhaR
   const rows: LinhaRelatorio[] = []
   const pageSize = 1000
   let from = 0
+
+  // Busca por cliente (nome/empresa/razão): resolve os ids primeiro.
+  let clienteIds: string[] | null = null
+  const termo = limparTermo(f.clienteBusca || '')
+  if (termo) {
+    const like = `%${termo}%`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: cli } = await (supabase.from('clients') as any)
+      .select('id').or(`name.ilike.${like},company_name.ilike.${like},razao_social.ilike.${like}`).limit(1000)
+    clienteIds = (cli ?? []).map((c: { id: string }) => c.id)
+    if (clienteIds!.length === 0) return []  // nenhum cliente casou → relatório vazio
+  }
 
   for (;;) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,6 +79,9 @@ export async function buscarPedidosRelatorio(f: FiltroRelatorio): Promise<LinhaR
     }
     if (f.status) q = q.eq('status', f.status)
     if (f.supplierId) q = q.eq('supplier_id', f.supplierId)
+    if (f.lojaId) q = q.eq('loja_id', f.lojaId)
+    if (f.finalidade) q = q.eq('finalidade', f.finalidade)
+    if (clienteIds) q = q.in('client_id', clienteIds)
 
     q = q.range(from, from + pageSize - 1)
 
@@ -76,6 +100,7 @@ export async function buscarPedidosRelatorio(f: FiltroRelatorio): Promise<LinhaR
         delivery_date: o.delivery_date,
         delivered_at: o.delivered_at,
         cliente: nomeEmpresaCliente(o.clients),
+        loja: o.client_lojas?.nome ?? null,
         fabrica: o.suppliers?.name || '—',
       })
     }

@@ -11,6 +11,7 @@ import {
   type LinhaRelatorio,
 } from '@/lib/relatorioPedidos'
 import { gerarRelatorioPedidosPDF } from '@/lib/gerarRelatorioPedidosPDF'
+import { useLojasOpcoes } from '@/hooks/useClientLojas'
 
 const STATUS_OPCOES: { value: OrderStatus | ''; label: string }[] = [
   { value: '', label: 'Todos' },
@@ -57,16 +58,21 @@ export function RelatorioModal({
   const [base, setBase] = useState<BaseData>('emissao')
   const [status, setStatus] = useState<OrderStatus | ''>('')
   const [supplierId, setSupplierId] = useState('')
+  const [lojaId, setLojaId] = useState('')
+  const [clienteBusca, setClienteBusca] = useState('')
+  const [finalidade, setFinalidade] = useState('')
+  const lojaOpcoes = useLojasOpcoes()
 
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [resultado, setResultado] = useState<LinhaRelatorio[] | null>(null)
 
   const filtros: FiltroRelatorio = useMemo(
-    () => ({ de, ate, base, status, supplierId }),
-    [de, ate, base, status, supplierId],
+    () => ({ de, ate, base, status, supplierId, lojaId, clienteBusca, finalidade }),
+    [de, ate, base, status, supplierId, lojaId, clienteBusca, finalidade],
   )
   const fabricaNome = supplierId ? suppliers.find((s) => s.id === supplierId)?.name ?? 'Todas' : 'Todas'
+  const lojaNome = lojaId ? lojaOpcoes.find((o) => o.id === lojaId)?.label ?? 'Todas' : 'Todas'
 
   const soma = resultado ? resultado.reduce((s, l) => s + l.total, 0) : 0
 
@@ -94,7 +100,7 @@ export function RelatorioModal({
 
   function exportar() {
     if (!resultado || resultado.length === 0) return
-    gerarRelatorioPedidosPDF(resultado, filtros, fabricaNome)
+    gerarRelatorioPedidosPDF(resultado, filtros, fabricaNome, lojaNome)
   }
 
   // Ao mudar qualquer filtro, invalida o resultado anterior.
@@ -197,6 +203,33 @@ export function RelatorioModal({
           </Campo>
         </div>
 
+        {/* Loja (PDV) + Finalidade */}
+        <div className="grid grid-cols-2 gap-3 mt-3 mb-1">
+          <Campo label="Loja (PDV)">
+            <select value={lojaId} onChange={(e) => onFiltroChange(setLojaId)(e.target.value)} className={inputCls} style={inputStyle}>
+              <option value="" style={{ color: '#000' }}>Todas</option>
+              {lojaOpcoes.map((o) => (
+                <option key={o.id} value={o.id} style={{ color: '#000' }}>{o.label}</option>
+              ))}
+            </select>
+          </Campo>
+          <Campo label="Finalidade">
+            <select value={finalidade} onChange={(e) => onFiltroChange(setFinalidade)(e.target.value)} className={inputCls} style={inputStyle}>
+              <option value="" style={{ color: '#000' }}>Todas</option>
+              <option value="venda" style={{ color: '#000' }}>Venda</option>
+              <option value="mostruario" style={{ color: '#000' }}>Mostruário</option>
+            </select>
+          </Campo>
+        </div>
+
+        {/* Cliente */}
+        <div className="mt-3 mb-1">
+          <Campo label="Cliente (nome)">
+            <input value={clienteBusca} onChange={(e) => onFiltroChange(setClienteBusca)(e.target.value)}
+              placeholder="Deixe vazio para todos os clientes" className={inputCls} style={inputStyle} />
+          </Campo>
+        </div>
+
         {erro && <p className="text-xs mt-2" style={{ color: '#FC8181' }}>{erro}</p>}
 
         {/* Ações */}
@@ -253,7 +286,10 @@ export function RelatorioModal({
                         <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                           <Td>{l.number || '—'}</Td>
                           <Td>{fmtData(dataDaLinha(l, base))}</Td>
-                          <Td>{l.cliente}</Td>
+                          <Td>
+                            {l.cliente}
+                            {l.loja && <span className="block text-[11px]" style={{ color: '#56577A' }}>{l.loja}</span>}
+                          </Td>
                           <Td>
                             <span style={{ color: '#A0AEC0' }}>{STATUS_LABEL[l.status] || l.status}</span>
                           </Td>

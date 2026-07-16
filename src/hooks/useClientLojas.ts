@@ -194,6 +194,25 @@ export function useLojasRanking() {
   return { lojas, loading }
 }
 
+// Opções de loja/PDV para filtros (todas as redes), rotuladas "Cliente — Loja".
+export function useLojasOpcoes() {
+  const [opcoes, setOpcoes] = useState<{ id: string; label: string }[]>([])
+  const supabase = createClient()
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from('vw_lojas_resumo') as any)
+        .select('loja_id,loja_nome,client_name,tipo').order('client_name')
+      if (!vivo) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOpcoes(((data ?? []) as any[]).map(r => ({ id: r.loja_id, label: `${r.client_name} — ${r.loja_nome}` })))
+    })()
+    return () => { vivo = false }
+  }, [])
+  return opcoes
+}
+
 export const PRIORIDADE_PDV: Record<number, { label: string; color: string; bg: string }> = {
   1: { label: 'VIP',    color: '#9F7AEA', bg: 'rgba(159,122,234,0.15)' },
   2: { label: 'Ouro',   color: '#ECC94B', bg: 'rgba(236,201,75,0.15)'  },

@@ -23,6 +23,7 @@ export function gerarRelatorioPedidosPDF(
   linhas: LinhaRelatorio[],
   f: FiltroRelatorio,
   fabricaNome: string,
+  lojaNome = 'Todas',
 ) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
@@ -58,16 +59,21 @@ export function gerarRelatorioPedidosPDF(
   // ── Filtros aplicados ───────────────────────────────────────────────────
   const baseLabel = f.base === 'faturamento' ? 'Faturamento' : 'Emissão'
   const statusLabel = f.status ? STATUS_LABEL[f.status] : 'Todos'
-  const filtros = [
+  const partes = [
     `Período (${baseLabel}): ${fmtDate(f.de)} a ${fmtDate(f.ate)}`,
     `Status: ${statusLabel}`,
     `Fábrica: ${fabricaNome}`,
-  ].join('     •     ')
+  ]
+  if (lojaNome && lojaNome !== 'Todas') partes.push(`Loja: ${lojaNome}`)
+  if (f.finalidade) partes.push(`Finalidade: ${f.finalidade === 'mostruario' ? 'Mostruário' : 'Venda'}`)
+  if (f.clienteBusca && f.clienteBusca.trim()) partes.push(`Cliente: ${f.clienteBusca.trim()}`)
 
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(60, 70, 90)
-  doc.text(filtros, 14, 39)
+  const filtrosLines = doc.splitTextToSize(partes.join('     •     '), W - 28) as string[]
+  doc.text(filtrosLines, 14, 39)
+  const tableStart = 39 + filtrosLines.length * 4 + 3
 
   // ── Tabela ──────────────────────────────────────────────────────────────
   const soma = linhas.reduce((s, l) => s + l.total, 0)
@@ -75,24 +81,26 @@ export function gerarRelatorioPedidosPDF(
     l.number || '—',
     fmtDate(dataDaLinha(l, f.base)),
     l.cliente,
+    l.loja || '—',
     l.fabrica,
     STATUS_LABEL[l.status] || l.status,
     fmt(l.total),
   ])
 
   autoTable(doc, {
-    startY: 44,
-    head: [['Nº', 'Data', 'Cliente', 'Fábrica', 'Status', 'Valor']],
+    startY: tableStart,
+    head: [['Nº', 'Data', 'Cliente', 'Loja', 'Fábrica', 'Status', 'Valor']],
     body,
     theme: 'striped',
     styles: { fontSize: 8, cellPadding: 2, textColor: [40, 45, 60] },
     headStyles: { fillColor: azul, textColor: branco, fontStyle: 'bold', fontSize: 8 },
     alternateRowStyles: { fillColor: [244, 247, 254] },
     columnStyles: {
-      0: { cellWidth: 26 },
-      1: { cellWidth: 24 },
-      4: { cellWidth: 26 },
-      5: { cellWidth: 32, halign: 'right' },
+      0: { cellWidth: 22 },
+      1: { cellWidth: 22 },
+      3: { cellWidth: 28 },
+      5: { cellWidth: 24 },
+      6: { cellWidth: 30, halign: 'right' },
     },
     margin: { left: 14, right: 14 },
     // Rodapé com paginação
