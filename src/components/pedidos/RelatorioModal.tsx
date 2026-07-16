@@ -12,6 +12,7 @@ import {
 } from '@/lib/relatorioPedidos'
 import { gerarRelatorioPedidosPDF } from '@/lib/gerarRelatorioPedidosPDF'
 import { useLojasOpcoes } from '@/hooks/useClientLojas'
+import { ClienteLojaBusca, type SelecaoCliLoja } from '@/components/pedidos/ClienteLojaBusca'
 
 const STATUS_OPCOES: { value: OrderStatus | ''; label: string }[] = [
   { value: '', label: 'Todos' },
@@ -59,8 +60,10 @@ export function RelatorioModal({
   const [status, setStatus] = useState<OrderStatus | ''>('')
   const [supplierId, setSupplierId] = useState('')
   const [lojaId, setLojaId] = useState('')
-  const [clienteBusca, setClienteBusca] = useState('')
+  const [clienteId, setClienteId] = useState('')
   const [finalidade, setFinalidade] = useState('')
+  const [lojaNome, setLojaNome] = useState('Todas')
+  const [clienteNome, setClienteNome] = useState('Todos')
   const lojaOpcoes = useLojasOpcoes()
 
   const [loading, setLoading] = useState(false)
@@ -68,11 +71,18 @@ export function RelatorioModal({
   const [resultado, setResultado] = useState<LinhaRelatorio[] | null>(null)
 
   const filtros: FiltroRelatorio = useMemo(
-    () => ({ de, ate, base, status, supplierId, lojaId, clienteBusca, finalidade }),
-    [de, ate, base, status, supplierId, lojaId, clienteBusca, finalidade],
+    () => ({ de, ate, base, status, supplierId, lojaId, clienteId, finalidade }),
+    [de, ate, base, status, supplierId, lojaId, clienteId, finalidade],
   )
   const fabricaNome = supplierId ? suppliers.find((s) => s.id === supplierId)?.name ?? 'Todas' : 'Todas'
-  const lojaNome = lojaId ? lojaOpcoes.find((o) => o.id === lojaId)?.label ?? 'Todas' : 'Todas'
+
+  // Autocomplete cliente/PDV: cliente → filtra por cliente; PDV → filtra por loja.
+  function onSelCliLoja(s: SelecaoCliLoja | null) {
+    setResultado(null)
+    if (!s) { setClienteId(''); setLojaId(''); setClienteNome('Todos'); setLojaNome('Todas'); return }
+    if (s.tipo === 'cliente') { setClienteId(s.id); setLojaId(''); setClienteNome(s.label); setLojaNome('Todas') }
+    else { setLojaId(s.id); setClienteId(''); setLojaNome(s.label); setClienteNome('Todos') }
+  }
 
   const soma = resultado ? resultado.reduce((s, l) => s + l.total, 0) : 0
 
@@ -100,7 +110,7 @@ export function RelatorioModal({
 
   function exportar() {
     if (!resultado || resultado.length === 0) return
-    gerarRelatorioPedidosPDF(resultado, filtros, fabricaNome, lojaNome)
+    gerarRelatorioPedidosPDF(resultado, filtros, fabricaNome, lojaNome, clienteNome)
   }
 
   // Ao mudar qualquer filtro, invalida o resultado anterior.
@@ -203,15 +213,10 @@ export function RelatorioModal({
           </Campo>
         </div>
 
-        {/* Loja (PDV) + Finalidade */}
+        {/* Cliente / Loja (PDV) — autocomplete */}
         <div className="grid grid-cols-2 gap-3 mt-3 mb-1">
-          <Campo label="Loja (PDV)">
-            <select value={lojaId} onChange={(e) => onFiltroChange(setLojaId)(e.target.value)} className={inputCls} style={inputStyle}>
-              <option value="" style={{ color: '#000' }}>Todas</option>
-              {lojaOpcoes.map((o) => (
-                <option key={o.id} value={o.id} style={{ color: '#000' }}>{o.label}</option>
-              ))}
-            </select>
+          <Campo label="Cliente / Loja (PDV)">
+            <ClienteLojaBusca lojas={lojaOpcoes} onSelecionar={onSelCliLoja} />
           </Campo>
           <Campo label="Finalidade">
             <select value={finalidade} onChange={(e) => onFiltroChange(setFinalidade)(e.target.value)} className={inputCls} style={inputStyle}>
@@ -219,14 +224,6 @@ export function RelatorioModal({
               <option value="venda" style={{ color: '#000' }}>Venda</option>
               <option value="mostruario" style={{ color: '#000' }}>Mostruário</option>
             </select>
-          </Campo>
-        </div>
-
-        {/* Cliente */}
-        <div className="mt-3 mb-1">
-          <Campo label="Cliente (nome)">
-            <input value={clienteBusca} onChange={(e) => onFiltroChange(setClienteBusca)(e.target.value)}
-              placeholder="Deixe vazio para todos os clientes" className={inputCls} style={inputStyle} />
           </Campo>
         </div>
 

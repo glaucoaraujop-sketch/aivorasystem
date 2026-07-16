@@ -24,6 +24,7 @@ export function gerarRelatorioPedidosPDF(
   f: FiltroRelatorio,
   fabricaNome: string,
   lojaNome = 'Todas',
+  clienteNome = 'Todos',
 ) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
@@ -64,9 +65,9 @@ export function gerarRelatorioPedidosPDF(
     `Status: ${statusLabel}`,
     `Fábrica: ${fabricaNome}`,
   ]
+  if (clienteNome && clienteNome !== 'Todos') partes.push(`Cliente: ${clienteNome}`)
   if (lojaNome && lojaNome !== 'Todas') partes.push(`Loja: ${lojaNome}`)
   if (f.finalidade) partes.push(`Finalidade: ${f.finalidade === 'mostruario' ? 'Mostruário' : 'Venda'}`)
-  if (f.clienteBusca && f.clienteBusca.trim()) partes.push(`Cliente: ${f.clienteBusca.trim()}`)
 
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
