@@ -37,10 +37,15 @@ const addDias = (iso: string, n: number) => {
 const dow = (iso: string) => toDate(iso).getUTCDay() // 0=Dom .. 4=Qui .. 6=Sáb
 
 // Ajusta uma data qualquer para a QUINTA que fecha a semana dela (1ª quinta >=).
-// Aplicado ao "hoje", devolve a quinta da SEMANA EM CURSO (a que ainda vai fechar).
 function ajustaParaQuinta(iso: string) {
   let d = iso
   for (let i = 0; i < 7 && dow(d) !== 4; i++) d = addDias(d, 1)
+  return d
+}
+// Última quinta ENCERRADA (a mais recente estritamente anterior a hoje) = semana já fechada.
+function ultimaQuintaEncerrada(refIso: string) {
+  let d = addDias(refIso, -1)
+  while (dow(d) !== 4) d = addDias(d, -1)
   return d
 }
 // Última quinta do mês (ano,mês) que não ultrapasse o teto.
@@ -67,17 +72,32 @@ async function handler(req: NextRequest) {
     return json({ error: 'não autorizado' }, 401)
   }
 
-  // 2) Quinta de referência (fim da semana). Default = quinta da SEMANA EM CURSO,
-  //    para o acumulado_mes refletir o mês até hoje (casa com o painel mensal).
+  // 2) Período de referência. Data canônica = data do pedido (data_emissao).
+  //    - de + ate  → INTERVALO livre [de, ate], por data do pedido;
+  //    - só ate     → semana quinta→quinta que fecha em ate (compatibilidade);
+  //    - ano + mes  → última quinta do mês (limitada à última encerrada);
+  //    - sem nada   → semana mais recente ENCERRADA.
+  const reData = /^\d{4}-\d{2}-\d{2}$/
   const hoje = isoHoje()
-  const quintaAtual = ajustaParaQuinta(hoje)
+  const deParam = sp.get('de')
   const ateParam = sp.get('ate')
   const anoParam = sp.get('ano')
   const mesParam = sp.get('mes')
 
   let ate: string
-  if (ateParam) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(ateParam)) {
+  let de: string | null = null
+
+  if (deParam && ateParam) {
+    if (!reData.test(deParam) || !reData.test(ateParam)) {
+      return json({ error: 'de/ate inválidos — use YYYY-MM-DD' }, 400)
+    }
+    if (deParam > ateParam) {
+      return json({ error: 'de não pode ser maior que ate' }, 400)
+    }
+    de = deParam
+    ate = ateParam
+  } else if (ateParam) {
+    if (!reData.test(ateParam)) {
       return json({ error: 'ate inválido — use YYYY-MM-DD' }, 400)
     }
     ate = ajustaParaQuinta(ateParam)
@@ -87,9 +107,9 @@ async function handler(req: NextRequest) {
     if (!Number.isInteger(ano) || ano < 2020 || ano > 2100 || !Number.isInteger(mes) || mes < 1 || mes > 12) {
       return json({ error: 'ano/mes inválidos' }, 400)
     }
-    ate = ultimaQuintaDoMes(ano, mes, quintaAtual)
+    ate = ultimaQuintaDoMes(ano, mes, ultimaQuintaEncerrada(hoje))
   } else {
-    ate = quintaAtual
+    ate = ultimaQuintaEncerrada(hoje)
   }
 
   // 3) Monta o contrato no banco (uma chamada, sem cap de 1000)
@@ -101,7 +121,9 @@ async function handler(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (sb.rpc as any)('fn_painel_semanal', { p_ate: ate })
+  const args: Record<string, string> = de ? { p_ate: ate, p_de: de } : { p_ate: ate }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (sb.rpc as any)('fn_painel_semanal', args)
   if (error) {
     return json({ error: 'falha ao gerar o painel', detalhe: error.message }, 500)
   }
