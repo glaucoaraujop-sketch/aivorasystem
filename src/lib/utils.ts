@@ -10,7 +10,10 @@ export function formatCurrency(value: number) {
 }
 
 export function formatDate(date: string | Date) {
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(date))
+  // Datas "YYYY-MM-DD" (só data) viram meia-noite UTC e mostram o dia anterior
+  // em fusos negativos — ancora ao meio-dia local pra evitar off-by-one.
+  const d = typeof date === 'string' && date.length === 10 ? new Date(`${date}T12:00:00`) : new Date(date)
+  return new Intl.DateTimeFormat('pt-BR').format(d)
 }
 
 export function formatPhone(phone: string) {

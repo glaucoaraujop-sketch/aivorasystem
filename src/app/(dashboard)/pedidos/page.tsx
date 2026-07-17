@@ -226,7 +226,7 @@ export default function PedidosPage() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-lg font-semibold text-white">{formatCurrency(p.total)}</p>
-                  <p className="text-xs" style={{ color: '#56577A' }}>{formatDate(p.created_at)}</p>
+                  <p className="text-xs" style={{ color: '#56577A' }}>{formatDate(p.data_emissao || p.created_at)}</p>
                   {p.commission_value && (
                     <p className="text-xs font-medium" style={{ color: '#01B574' }}>
                       comissão: {formatCurrency(p.commission_value)}

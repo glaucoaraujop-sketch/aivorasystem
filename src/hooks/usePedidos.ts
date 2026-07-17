@@ -45,7 +45,7 @@ export interface ItemPedido {
 // Lista paginada com BUSCA e FILTRO no servidor (nº, cliente ou fornecedor).
 // Select leve (sem itens) — a lista não os usa; o detalhe carrega o completo.
 const PEDIDO_LISTA_SELECT =
-  'id, number, status, total, created_at, finalidade, delivery_date, commission_value, commission_pct, clients(name, company_name, razao_social, whatsapp), suppliers(name, lead_time_days)'
+  'id, number, status, total, created_at, data_emissao, finalidade, delivery_date, commission_value, commission_pct, clients(name, company_name, razao_social, whatsapp), suppliers(name, lead_time_days)'
 
 // Escapa vírgulas/parênteses que quebrariam o filtro .or() do PostgREST.
 function limparTermo(s: string): string {
@@ -85,6 +85,7 @@ export function usePedidos(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase.from('orders') as any)
       .select(PEDIDO_LISTA_SELECT, { count: 'exact' })
+      .order('data_emissao', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
     if (status) query = query.eq('status', status)
     if (termo) query = query.or(orParts.join(','))
