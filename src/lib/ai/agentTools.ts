@@ -825,6 +825,28 @@ export const toolsLeitura: Anthropic.Tool[] = tools.filter(t => !FERRAMENTAS_ESC
 
 const MAX_LOOPS = 8
 
+const CACHE: Anthropic.CacheControlEphemeral = { type: 'ephemeral' }
+
+// Prompt caching: devolve os mesmos blocos com um breakpoint de cache no
+// ÚLTIMO bloco da ÚLTIMA mensagem — cacheia todo o histórico acumulado até ali,
+// para que o loop do agente não reprocesse a conversa inteira a cada iteração.
+// Só marca uma cópia (não muta o array original) para não acumular breakpoints.
+function comCacheNoFim(msgs: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  if (msgs.length === 0) return msgs
+  const out = msgs.slice()
+  const last = out[out.length - 1]
+  if (typeof last.content === 'string') {
+    out[out.length - 1] = { ...last, content: [{ type: 'text', text: last.content, cache_control: CACHE }] }
+  } else {
+    const blocks = last.content.slice()
+    // Todo bloco de conteúdo aceita cache_control; o spread da união não estreita
+    // sozinho, então afirmamos o tipo de volta para ContentBlockParam.
+    blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], cache_control: CACHE } as Anthropic.ContentBlockParam
+    out[out.length - 1] = { ...last, content: blocks }
+  }
+  return out
+}
+
 // Loop do agente: chama o modelo, executa as tool_use e devolve o texto final.
 export async function runAgente(opts: {
   sb: SB
@@ -838,15 +860,25 @@ export async function runAgente(opts: {
   const conv = [...opts.messages]
   while (conv.length && conv[0]?.role === 'assistant') conv.shift()
 
+  // Prefixo ESTÁTICO (tools + system) cacheado num único breakpoint no system —
+  // como as tools são renderizadas antes do system, esse breakpoint cobre ambos.
+  const system: Anthropic.TextBlockParam[] = [{ type: 'text', text: opts.system, cache_control: CACHE }]
+
   let finalText = ''
+  let entrada = 0, saida = 0, cacheLido = 0, cacheEscrito = 0
   for (let i = 0; i < MAX_LOOPS; i++) {
     const resp = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: opts.maxTokens ?? 3000,
-      system: opts.system,
+      system,
       tools: opts.tools,
-      messages: conv,
+      messages: comCacheNoFim(conv),
     })
+
+    const u = resp.usage
+    entrada += u.input_tokens; saida += u.output_tokens
+    cacheLido += u.cache_read_input_tokens ?? 0
+    cacheEscrito += u.cache_creation_input_tokens ?? 0
 
     if (resp.stop_reason === 'tool_use') {
       conv.push({ role: 'assistant', content: resp.content })
@@ -864,7 +896,12 @@ export async function runAgente(opts: {
     }
 
     finalText = resp.content.filter(b => b.type === 'text').map(b => (b as Anthropic.TextBlock).text).join('')
-    opts.logger?.info?.('ai.agente.respondido', { loops: i + 1, chars: finalText.length })
+    opts.logger?.info?.('ai.agente.respondido', {
+      loops: i + 1, chars: finalText.length,
+      // Métricas de custo/cache — para comprovar a economia do prompt caching.
+      tokens_entrada: entrada, tokens_saida: saida,
+      cache_lido: cacheLido, cache_escrito: cacheEscrito,
+    })
     break
   }
   return finalText
