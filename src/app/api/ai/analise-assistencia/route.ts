@@ -1,5 +1,6 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
+import { MODELOS } from '@/lib/ai/modelos'
 import type Anthropic from '@anthropic-ai/sdk'
 
 async function buildContent(body: {
@@ -66,7 +67,7 @@ export const POST = withObservability('ai/analise-assistencia', async (req) => {
     async start(controller) {
       try {
         const aiStream = anthropic.messages.stream({
-          model: 'claude-sonnet-4-6',
+          model: MODELOS.analise,
           max_tokens: 1024,
           messages: [{ role: 'user', content }],
         })

@@ -1,5 +1,6 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
+import { MODELOS } from '@/lib/ai/modelos'
 
 function buildPrompt(body: {
   cliente: { name: string; company_name?: string | null; type: string; city?: string | null; state?: string | null; last_order_at?: string | null }
@@ -54,7 +55,7 @@ export const POST = withObservability('ai/sugestao-produtos', async (req) => {
     async start(controller) {
       try {
         const aiStream = anthropic.messages.stream({
-          model: 'claude-sonnet-4-6',
+          model: MODELOS.analise,
           max_tokens: 1024,
           messages: [{ role: 'user', content: buildPrompt(body) }],
         })

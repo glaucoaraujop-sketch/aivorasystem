@@ -9,6 +9,7 @@ import { soDig, fmtCnpj, semAcento, aliasTermos } from '@/lib/pedidos/matching'
 import { priorizarRadar, rotuloSegmento, type CadenceRow } from '@/lib/ai/radar'
 import { carregarLinhasRadar } from '@/lib/ai/radarServer'
 import { nomeEmpresaCliente } from '@/lib/nomeCliente'
+import { MODELOS } from '@/lib/ai/modelos'
 
 const STATUS_PEDIDO = ['processado', 'em_carga', 'em_producao', 'faturado', 'cancelado']
 const STATUS_COMISSAO = ['prevista', 'aprovada', 'paga', 'cancelada']
@@ -868,8 +869,11 @@ export async function runAgente(opts: {
   let entrada = 0, saida = 0, cacheLido = 0, cacheEscrito = 0
   for (let i = 0; i < MAX_LOOPS; i++) {
     const resp = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: MODELOS.agente,
       max_tokens: opts.maxTokens ?? 3000,
+      // Sonnet 5 liga adaptive thinking por padrão quando 'thinking' é omitido;
+      // desabilitamos para preservar o comportamento (latência/custo/max_tokens).
+      thinking: { type: 'disabled' },
       system,
       tools: opts.tools,
       messages: comCacheNoFim(conv),

@@ -1,5 +1,6 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
+import { MODELOS } from '@/lib/ai/modelos'
 
 type TipoMensagem =
   | 'follow_up_visita'
@@ -53,7 +54,7 @@ export const POST = withObservability('ai/mensagem', async (req) => {
     async start(controller) {
       try {
         const aiStream = anthropic.messages.stream({
-          model: 'claude-sonnet-4-6',
+          model: MODELOS.redacao,
           max_tokens: 512,
           messages: [{ role: 'user', content: buildPrompt(body) }],
         })

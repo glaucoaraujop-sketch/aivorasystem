@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { PDFDocument } from 'pdf-lib'
 import { withObservability, timed } from '@/lib/observability/api'
 import { deduplicarPedidos } from '@/lib/pedidos/matching'
+import { MODELOS } from '@/lib/ai/modelos'
 
 // Arquivos grandes (PDFs de 100+ páginas) podem levar minutos para processar
 export const maxDuration = 300
@@ -101,7 +102,7 @@ type Pedido = Record<string, any>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function extrairPedidos(content: any): Promise<Pedido[]> {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: MODELOS.extracao,
     max_tokens: MAX_TOKENS,
     messages: [{ role: 'user', content }],
   })
