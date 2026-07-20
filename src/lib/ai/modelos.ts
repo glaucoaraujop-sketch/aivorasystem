@@ -17,4 +17,20 @@ export const MODELOS = {
   analise: 'claude-sonnet-4-6',
   // Geração de texto curto / saudação. Trivial → modelo mais barato (~67% menor).
   redacao: 'claude-haiku-4-5',
+  // Roteador de intenção (Fase 3): classifica a mensagem antes do agente.
+  // Chamada curtíssima → o modelo mais barato e rápido.
+  roteador: 'claude-haiku-4-5',
+  // Análise ESTRATÉGICA pesada (comparativo ano-a-ano, concentração de carteira,
+  // reativação, recomendações). Único bucket que custa mais, de propósito, pela
+  // qualidade do raciocínio. Trocar por 'claude-sonnet-5' se quiser máximo corte.
+  estrategia: 'claude-opus-4-8',
 } as const
+
+// Mapa intenção → modelo do agente (o roteador escolhe; as ferramentas seguem
+// SEMPRE completas, então errar a intenção nunca tira uma ferramenta do agente).
+export type Intencao = 'conversa' | 'consulta' | 'estrategia'
+export const MODELO_POR_INTENCAO: Record<Intencao, string> = {
+  conversa: MODELOS.redacao,    // papo/saudação sem dado → Haiku
+  consulta: MODELOS.agente,     // consulta/ação de dados → Sonnet 5 (padrão)
+  estrategia: MODELOS.estrategia, // análise pesada → Opus 4.8
+}

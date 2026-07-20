@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { serializeError, type Logger } from '@/lib/observability/logger'
 import { withObservability } from '@/lib/observability/api'
 import { toolsLeitura, runAgente } from '@/lib/ai/agentTools'
+import { rotearMensagem } from '@/lib/ai/roteador'
 
 // AIVA Consultor — a mesma AIVA, na lente ESTRATÉGICA, pelo WhatsApp do Glauco.
 // Chamado server-to-server pelo n8n (webhook da Evolution). Somente leitura.
@@ -81,12 +82,17 @@ async function handler(req: NextRequest, { logger }: { requestId: string; logger
     return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY não configurada' }, { status: 500 })
   }
 
+  // Roteador (Fase 3): classifica a intenção → modelo do agente. No WhatsApp a
+  // resposta segue curta; só a análise estratégica ganha um pouco mais de fôlego.
+  const rota = await rotearMensagem(mensagem, logger)
+  const maxTokens = rota.intencao === 'estrategia' ? 1800 : 1200
+
   let resposta = ''
   try {
     resposta = await runAgente({
       sb, system: SYSTEM_CONSULTOR, tools: toolsLeitura,
       messages: [{ role: 'user', content: mensagem }],
-      logger, maxTokens: 1200,
+      logger, maxTokens, model: rota.modelo,
     })
   } catch (e) {
     logger.error('ai.consultor.error', { error: serializeError(e) })

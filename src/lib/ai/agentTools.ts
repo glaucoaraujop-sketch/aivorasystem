@@ -857,6 +857,7 @@ export async function runAgente(opts: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logger?: any
   maxTokens?: number
+  model?: string  // modelo do agente (roteador escolhe); padrão MODELOS.agente
 }): Promise<string> {
   const conv = [...opts.messages]
   while (conv.length && conv[0]?.role === 'assistant') conv.shift()
@@ -865,15 +866,20 @@ export async function runAgente(opts: {
   // como as tools são renderizadas antes do system, esse breakpoint cobre ambos.
   const system: Anthropic.TextBlockParam[] = [{ type: 'text', text: opts.system, cache_control: CACHE }]
 
+  const modelo = opts.model ?? MODELOS.agente
+  // Sonnet 5 / Opus ligam adaptive thinking quando 'thinking' é omitido — o que
+  // adiciona latência/custo e disputa o max_tokens. Desabilitamos explicitamente.
+  // Haiku já é no-thinking por padrão, então nem passamos o campo (evita 400).
+  const thinking: Anthropic.ThinkingConfigParam | undefined =
+    modelo === MODELOS.redacao ? undefined : { type: 'disabled' }
+
   let finalText = ''
   let entrada = 0, saida = 0, cacheLido = 0, cacheEscrito = 0
   for (let i = 0; i < MAX_LOOPS; i++) {
     const resp = await anthropic.messages.create({
-      model: MODELOS.agente,
+      model: modelo,
       max_tokens: opts.maxTokens ?? 3000,
-      // Sonnet 5 liga adaptive thinking por padrão quando 'thinking' é omitido;
-      // desabilitamos para preservar o comportamento (latência/custo/max_tokens).
-      thinking: { type: 'disabled' },
+      ...(thinking ? { thinking } : {}),
       system,
       tools: opts.tools,
       messages: comCacheNoFim(conv),

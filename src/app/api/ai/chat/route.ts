@@ -3,6 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { withObservability } from '@/lib/observability/api'
 import { serializeError } from '@/lib/observability/logger'
 import { tools, runAgente } from '@/lib/ai/agentTools'
+import { rotearMensagem } from '@/lib/ai/roteador'
+
+// Extrai o texto da última mensagem do usuário (para o roteador classificar).
+function ultimoTextoUsuario(msgs: Anthropic.MessageParam[]): string {
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i]
+    if (m.role !== 'user') continue
+    if (typeof m.content === 'string') return m.content
+    return m.content
+      .filter((b): b is Anthropic.TextBlockParam => b.type === 'text')
+      .map(b => b.text).join(' ')
+  }
+  return ''
+}
 
 // Análises podem encadear várias consultas — dá folga de tempo
 export const maxDuration = 120
@@ -60,9 +74,14 @@ export const POST = withObservability('ai/chat', async (req, { logger }) => {
     ? messages.map((m: any) => ({ role: m.role, content: m.content }))
     : []
 
+  // Roteador (Fase 3): classifica a intenção → escolhe o modelo do agente.
+  // Ferramentas seguem completas; só o modelo muda.
+  const rota = await rotearMensagem(ultimoTextoUsuario(conv), logger)
+  const maxTokens = rota.intencao === 'estrategia' ? 4000 : rota.intencao === 'conversa' ? 800 : 3000
+
   let finalText = ''
   try {
-    finalText = await runAgente({ sb, system, tools, messages: conv, logger })
+    finalText = await runAgente({ sb, system, tools, messages: conv, logger, model: rota.modelo, maxTokens })
   } catch (e) {
     logger.error('ai.chat.error', { error: serializeError(e) })
     finalText = 'Tive um problema ao consultar os dados. Tente novamente em instantes.'
