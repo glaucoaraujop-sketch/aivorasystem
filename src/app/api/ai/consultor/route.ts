@@ -4,6 +4,7 @@ import { serializeError, type Logger } from '@/lib/observability/logger'
 import { withObservability } from '@/lib/observability/api'
 import { toolsLeitura, runAgente } from '@/lib/ai/agentTools'
 import { rotearMensagem } from '@/lib/ai/roteador'
+import { segredoConfere } from '@/lib/security/segredo'
 
 // AIVA Consultor — a mesma AIVA, na lente ESTRATÉGICA, pelo WhatsApp do Glauco.
 // Chamado server-to-server pelo n8n (webhook da Evolution). Somente leitura.
@@ -64,7 +65,7 @@ async function handler(req: NextRequest, { logger }: { requestId: string; logger
   const segredo = process.env.CRON_SECRET
   if (!segredo) return NextResponse.json({ error: 'CRON_SECRET não configurado' }, { status: 500 })
   const enviado = req.headers.get('x-consultor-secret') || req.headers.get('x-cron-secret')
-  if (enviado !== segredo) return NextResponse.json({ error: 'não autorizado' }, { status: 401 })
+  if (!segredoConfere(enviado, segredo)) return NextResponse.json({ error: 'não autorizado' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
   const mensagem = String(body?.mensagem ?? '').trim()

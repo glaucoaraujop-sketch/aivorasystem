@@ -1,6 +1,7 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 import { MODELOS } from '@/lib/ai/modelos'
+import { guardaIA } from '@/lib/security/guardaIA'
 
 function buildPrompt(body: {
   cliente: { name: string; company_name?: string | null; type: string; city?: string | null; state?: string | null; last_order_at?: string | null }
@@ -49,6 +50,8 @@ Em português brasileiro. Máximo 300 palavras.`
 }
 
 export const POST = withObservability('ai/sugestao-produtos', async (req) => {
+  const g = await guardaIA(req, 'ai/sugestao-produtos')
+  if (!g.ok) return g.resposta
   const body = await req.json()
   const encoder = new TextEncoder()
   const stream = new ReadableStream({

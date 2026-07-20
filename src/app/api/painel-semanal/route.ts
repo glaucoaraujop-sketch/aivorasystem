@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { withObservability } from '@/lib/observability/api'
 import { nomeEmpresaCliente } from '@/lib/nomeCliente'
+import { segredoConfere } from '@/lib/security/segredo'
 
 // Rota SÓ-LEITURA que alimenta o Painel Semanal externo (corte quinta→quinta,
 // drill-down Cliente → Fábrica → Item). Métrica = VENDAS (pedido colocado, pela
@@ -68,7 +69,7 @@ async function handler(req: NextRequest) {
     return json({ error: 'PAINEL_TOKEN não configurado no servidor' }, 500)
   }
   const enviado = sp.get('token') || req.headers.get('x-painel-token')
-  if (enviado !== segredo) {
+  if (!segredoConfere(enviado, segredo)) {
     return json({ error: 'não autorizado' }, 401)
   }
 

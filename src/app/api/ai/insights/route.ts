@@ -1,6 +1,7 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 import { MODELOS } from '@/lib/ai/modelos'
+import { guardaIA } from '@/lib/security/guardaIA'
 
 function buildPrompt(body: {
   kpis: {
@@ -82,6 +83,8 @@ Priorize os insights mais impactantes. Seja específico com os números. Em port
 }
 
 export const POST = withObservability('ai/insights', async (req) => {
+  const g = await guardaIA(req, 'ai/insights')
+  if (!g.ok) return g.resposta
   const body = await req.json()
 
   const encoder = new TextEncoder()

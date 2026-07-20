@@ -4,6 +4,7 @@ import { withObservability } from '@/lib/observability/api'
 import { serializeError } from '@/lib/observability/logger'
 import { tools, runAgente } from '@/lib/ai/agentTools'
 import { rotearMensagem } from '@/lib/ai/roteador'
+import { guardaIA } from '@/lib/security/guardaIA'
 
 // Extrai o texto da última mensagem do usuário (para o roteador classificar).
 function ultimoTextoUsuario(msgs: Anthropic.MessageParam[]): string {
@@ -63,6 +64,8 @@ Regras:
 // ─────────────────────────── Ferramentas (somente leitura) ───────────────────────────
 
 export const POST = withObservability('ai/chat', async (req, { logger }) => {
+  const g = await guardaIA(req, 'ai/chat')
+  if (!g.ok) return g.resposta
   const { messages, context } = await req.json()
   const sb = await createClient()
 

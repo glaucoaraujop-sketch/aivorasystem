@@ -1,6 +1,7 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 import { MODELOS } from '@/lib/ai/modelos'
+import { guardaIA } from '@/lib/security/guardaIA'
 import type Anthropic from '@anthropic-ai/sdk'
 
 async function buildContent(body: {
@@ -59,6 +60,8 @@ Em português brasileiro, direto e técnico. Máximo 350 palavras.`
 }
 
 export const POST = withObservability('ai/analise-assistencia', async (req) => {
+  const g = await guardaIA(req, 'ai/analise-assistencia')
+  if (!g.ok) return g.resposta
   const body = await req.json()
   const content = await buildContent(body)
 

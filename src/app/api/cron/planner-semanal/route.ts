@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { montarAgendaSemana } from '@/lib/planner/agendaServer'
 import { withObservability } from '@/lib/observability/api'
+import { segredoConfere } from '@/lib/security/segredo'
 
 // Endpoint de AUTOMAÇÃO (n8n/cron): roda o AIVA Planner e devolve o briefing
 // pronto (texto WhatsApp) + o plano estruturado. Não grava nada — apenas propõe.
@@ -25,7 +26,7 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ error: 'CRON_SECRET não configurado no servidor' }, { status: 500 })
   }
   const enviado = req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
-  if (enviado !== segredo) {
+  if (!segredoConfere(enviado, segredo)) {
     return NextResponse.json({ error: 'não autorizado' }, { status: 401 })
   }
 

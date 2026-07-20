@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { carregarLinhasRadar } from '@/lib/ai/radarServer'
 import { priorizarRadar, formatarMensagemRadar } from '@/lib/ai/radar'
 import { withObservability } from '@/lib/observability/api'
+import { segredoConfere } from '@/lib/security/segredo'
 
 // Endpoint de AUTOMAÇÃO (n8n/cron): monta o Radar de Carteira diário e devolve a
 // mensagem pronta pro WhatsApp do Alex + a lista priorizada. Não grava nada.
@@ -14,7 +15,7 @@ async function handler(req: NextRequest) {
   const segredo = process.env.CRON_SECRET
   if (!segredo) return NextResponse.json({ error: 'CRON_SECRET não configurado no servidor' }, { status: 500 })
   const enviado = req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
-  if (enviado !== segredo) return NextResponse.json({ error: 'não autorizado' }, { status: 401 })
+  if (!segredoConfere(enviado, segredo)) return NextResponse.json({ error: 'não autorizado' }, { status: 401 })
 
   let sb: ReturnType<typeof createAdminClient>
   try { sb = createAdminClient() } catch {

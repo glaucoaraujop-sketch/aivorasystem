@@ -1,6 +1,7 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 import { MODELOS } from '@/lib/ai/modelos'
+import { guardaIA } from '@/lib/security/guardaIA'
 
 async function fetchWeather(city: string): Promise<string> {
   try {
@@ -53,6 +54,8 @@ Tom: amigável, direto, como uma assistente pessoal. NÃO use saudações (isso 
 }
 
 export const POST = withObservability('ai/bom-dia', async (req) => {
+  const g = await guardaIA(req, 'ai/bom-dia')
+  if (!g.ok) return g.resposta
   const body = await req.json()
   const { area } = body
 

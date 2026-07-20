@@ -4,6 +4,12 @@ import { PDFDocument } from 'pdf-lib'
 import { withObservability, timed } from '@/lib/observability/api'
 import { deduplicarPedidos } from '@/lib/pedidos/matching'
 import { MODELOS } from '@/lib/ai/modelos'
+import { guardaIA } from '@/lib/security/guardaIA'
+
+// Teto de upload: evita OOM do container e estouro de custo (arquivo gigante →
+// muitos blocos de 16k tokens). Pedidos de venda reais são de KB a poucos MB.
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024 // 25 MB
+const MAX_TEXTO_CHARS = 200_000 // ~50k tokens de texto colado
 
 // Arquivos grandes (PDFs de 100+ páginas) podem levar minutos para processar
 export const maxDuration = 300
@@ -152,12 +158,25 @@ async function dividirPdfEmBlocos(buffer: Buffer): Promise<string[]> {
 }
 
 export const POST = withObservability('import/pedidos', async (req, { logger }) => {
+    const g = await guardaIA(req, 'import/pedidos', 20)
+    if (!g.ok) return g.resposta
+
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const texto = ((formData.get('text') as string | null) ?? '').trim()
 
     if (!file && !texto) {
       return NextResponse.json({ error: 'Nenhum arquivo ou texto enviado' }, { status: 400 })
+    }
+    // Rejeita arquivo grande ANTES de bufferizar (evita OOM).
+    if (file && file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { error: `Arquivo muito grande (máx. ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB).` },
+        { status: 413 },
+      )
+    }
+    if (texto.length > MAX_TEXTO_CHARS) {
+      return NextResponse.json({ error: 'Texto muito longo. Divida em partes menores.' }, { status: 413 })
     }
 
     let pedidos: Pedido[] = []

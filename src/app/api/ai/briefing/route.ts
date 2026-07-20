@@ -1,6 +1,7 @@
 import { withObservability } from '@/lib/observability/api'
 import { anthropic } from '@/lib/anthropic'
 import { MODELOS } from '@/lib/ai/modelos'
+import { guardaIA } from '@/lib/security/guardaIA'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -79,6 +80,8 @@ Seja direto e prático. Máximo 280 palavras. Use bullets quando for listar iten
 }
 
 export const POST = withObservability('ai/briefing', async (req) => {
+  const g = await guardaIA(req, 'ai/briefing')
+  if (!g.ok) return g.resposta
   const body = await req.json()
 
   const encoder = new TextEncoder()
