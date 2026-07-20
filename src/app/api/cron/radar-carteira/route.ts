@@ -14,7 +14,9 @@ export const maxDuration = 60
 async function handler(req: NextRequest) {
   const segredo = process.env.CRON_SECRET
   if (!segredo) return NextResponse.json({ error: 'CRON_SECRET não configurado no servidor' }, { status: 500 })
-  const enviado = req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
+  // Segredo só via header (n8n usa x-cron-secret). Fallback por query removido:
+  // query string vaza em logs/proxies. Ver auditoria de segurança jul/2026.
+  const enviado = req.headers.get('x-cron-secret')
   if (!segredoConfere(enviado, segredo)) return NextResponse.json({ error: 'não autorizado' }, { status: 401 })
 
   let sb: ReturnType<typeof createAdminClient>
